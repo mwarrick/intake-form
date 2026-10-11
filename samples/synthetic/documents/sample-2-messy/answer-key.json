@@ -1,0 +1,72 @@
+{
+  "received_at": "2026-10-10T14:20",
+  "documents": {
+    "demographics": {
+      "file": "demographics.pdf",
+      "expected": {
+        "patient_name": "ELLIS, TAMARA",
+        "dob": "1965-04-07",
+        "mrn": "SJ-0093381"
+      }
+    },
+    "authorization": {
+      "file": "authorization.pdf",
+      "expected": {
+        "authorization_number": "RC-2026-119207",
+        "approved_days": 14,
+        "status": "Approved"
+      }
+    },
+    "history_physical": {
+      "file": "history_physical.pdf",
+      "expected": {
+        "cognitive_impairment": false,
+        "oriented_x4": true
+      }
+    },
+    "vitals": {
+      "file": "vitals.pdf",
+      "expected": {
+        "taken_at": "2026-10-09T06:00"
+      }
+    },
+    "medications": {
+      "file": "medications.pdf",
+      "expected": {
+        "medications": 4
+      }
+    },
+    "therapy_notes": {
+      "file": "therapy_notes.pdf",
+      "expected": {
+        "ambulation_distance_ft": 150,
+        "transfers_independent": true
+      }
+    },
+    "culture": {
+      "file": "culture.pdf",
+      "expected": {
+        "result": "positive",
+        "mrsa": true
+      }
+    }
+  },
+  "expected_flags": [
+    [
+      "conflict",
+      "active_infection"
+    ],
+    [
+      "conflict",
+      "los_authorized_days"
+    ],
+    [
+      "document",
+      "Vitals are"
+    ],
+    [
+      "eligibility",
+      "Active infection"
+    ]
+  ]
+}

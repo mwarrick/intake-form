@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fieldsJsonSchema } from "@/lib/extract";
-import { referrerFields } from "@/lib/form";
+import { paperFields } from "@/lib/form";
 
 // OpenAI strict structured outputs: every object must list all its properties as required
 // and set additionalProperties: false.
@@ -22,13 +22,13 @@ function checkStrict(node: unknown, path = "$"): string[] {
 }
 
 describe("extraction schema", () => {
-  const s = fieldsJsonSchema(referrerFields);
+  const s = fieldsJsonSchema(paperFields);
   it("is valid for strict mode", () => {
     expect(checkStrict(s)).toEqual([]);
   });
   it("covers every referrer field and no staff fields", () => {
     const keys = Object.keys((s.properties as any).fields.properties);
-    expect(keys).toEqual(referrerFields.map((f) => f.id));
+    expect(keys).toEqual(paperFields.map((f) => f.id));
     expect(keys).not.toContain("approved");
   });
   it("allows null for yes/no answers", () => {

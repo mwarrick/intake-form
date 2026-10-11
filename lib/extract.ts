@@ -1,6 +1,7 @@
 import "server-only";
 import OpenAI from "openai";
-import { type Field, type FormData, normalize, referrerFields, schema } from "@/lib/form";
+import { type Field, type FormData, normalize, paperFields, schema } from "@/lib/form";
+import { DOC_TYPES } from "@/lib/documents";
 import type { Extraction } from "@/lib/validate";
 
 export interface PageImage {
@@ -14,6 +15,8 @@ export interface PipelineResult {
   extraction: Extraction;
   pipeline: {
     formPages: number[];
+    /** What each faxed page is; supporting documents are read from these. */
+    pageTypes?: PageType[];
     classifyNotes?: string;
     extractNotes?: string;
     rereadFields: string[];
@@ -26,6 +29,8 @@ export interface PipelineResult {
 
 export const models = {
   classify: process.env.OPENAI_MODEL_CLASSIFY || "gpt-5.4-nano",
+  // Supporting documents (H&P, med list, culture…) are mostly typed text.
+  docs: process.env.OPENAI_MODEL_DOCS || "gpt-5.4-mini",
   extract: process.env.OPENAI_MODEL_EXTRACT || "gpt-5.4-mini",
   // Set OPENAI_MODEL_REREAD to an empty string to skip the second reading.
   reread: process.env.OPENAI_MODEL_REREAD ?? "gpt-5.5",
@@ -39,14 +44,16 @@ function openai(): OpenAI {
   return client;
 }
 
-type Usage = PipelineResult["pipeline"]["usage"];
+export type Usage = PipelineResult["pipeline"]["usage"];
 
-async function jsonCall<T>(opts: {
+export async function jsonCall<T>(opts: {
   step: string;
   model: string;
   instructions: string;
   text: string;
   images: { dataUrl: string; detail: "low" | "high" }[];
+  /** PDFs, as data: URLs. */
+  files?: { dataUrl: string; filename: string }[];
   schemaName: string;
   jsonSchema: Record<string, unknown>;
   usage: Usage;
@@ -61,6 +68,7 @@ async function jsonCall<T>(opts: {
         content: [
           { type: "input_text", text: opts.text },
           ...opts.images.map((img) => ({ type: "input_image" as const, image_url: img.dataUrl, detail: img.detail })),
+          ...(opts.files ?? []).map((f) => ({ type: "input_file" as const, file_data: f.dataUrl, filename: f.filename, detail: "high" as const })),
         ],
       },
     ],
@@ -83,37 +91,51 @@ async function jsonCall<T>(opts: {
   return JSON.parse(text) as T;
 }
 
-// ---------- Step 1: find the referral form among the faxed pages ----------
+// ---------- Step 1: sort the faxed pages ----------
 
-const CLASSIFY_INSTRUCTIONS = `You sort pages of faxed hospital referral packets.
-The packet may contain a cover sheet, the referral form, face sheets, H&P notes, medication lists and other records.
-Identify the page(s) of the "${schema.form}" (form code ${schema.formCode}) that contain the fill-in sections:
-"Referring Party", "Patient Information", "Hospital Admission Details", "History of Health & Living Situation",
-"Behavioral and Mental Health Status" and the "ILLUMINATION STAFF ONLY" box.
-Do NOT include the informational page titled "Recuperative Care with Illumination / A SAFE PLACE TO HEAL",
-which only lists admission criteria and the referral checklist.`;
+export const PAGE_TYPES = ["referral_form", "info_sheet", ...DOC_TYPES.map((d) => d.id), "other"] as const;
 
-async function findFormPages(pages: PageImage[], usage: Usage): Promise<{ pages: number[]; notes: string }> {
-  const result = await jsonCall<{ form_pages: number[]; notes: string }>({
+const CLASSIFY_INSTRUCTIONS = `You sort pages of faxed hospital referral packets for a recuperative care program.
+Label every page with one type:
+- referral_form: the "${schema.form}" (form code ${schema.formCode}) page with the fill-in sections "Referring Party", "Patient Information", "Hospital Admission Details", "History of Health & Living Situation", "Behavioral and Mental Health Status" and the "ILLUMINATION STAFF ONLY" box.
+- info_sheet: the program's informational page titled "Recuperative Care with Illumination / A SAFE PLACE TO HEAL" (admission criteria and checklist only, nothing filled in).
+${DOC_TYPES.map((d) => `- ${d.id}: ${d.recognize}`).join("\n")}
+- other: fax cover sheets and anything else.`;
+
+export interface PageType {
+  page: number;
+  type: (typeof PAGE_TYPES)[number];
+}
+
+async function classifyPages(pages: PageImage[], usage: Usage): Promise<{ pages: PageType[]; notes: string }> {
+  const result = await jsonCall<{ pages: PageType[]; notes: string }>({
     step: "classify",
     model: models.classify,
     instructions: CLASSIFY_INSTRUCTIONS,
-    text: `There are ${pages.length} pages, in order, numbered ${pages.map((p) => p.pageNumber).join(", ")}. Return the page numbers of the referral form's fill-in page(s).`,
+    text: `There are ${pages.length} pages, in order, numbered ${pages.map((p) => p.pageNumber).join(", ")}. Label each one.`,
     images: pages.map((p) => ({ dataUrl: p.dataUrl, detail: "low" })),
-    schemaName: "form_pages",
+    schemaName: "page_types",
     jsonSchema: {
       type: "object",
       additionalProperties: false,
-      required: ["form_pages", "notes"],
+      required: ["pages", "notes"],
       properties: {
-        form_pages: { type: "array", items: { type: "integer" } },
-        notes: { type: "string", description: "One short sentence on what the other pages are." },
+        pages: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["page", "type"],
+            properties: { page: { type: "integer" }, type: { type: "string", enum: [...PAGE_TYPES] } },
+          },
+        },
+        notes: { type: "string", description: "One short sentence describing the packet." },
       },
     },
     usage,
   });
   const valid = new Set(pages.map((p) => p.pageNumber));
-  return { pages: result.form_pages.filter((n) => valid.has(n)), notes: result.notes };
+  return { pages: result.pages.filter((p) => valid.has(p.page)), notes: result.notes };
 }
 
 // ---------- Step 2 and 3: read fields ----------
@@ -217,17 +239,20 @@ function sameValue(a: unknown, b: unknown): boolean {
 
 export async function runPipeline(pages: PageImage[]): Promise<PipelineResult> {
   const usage: Usage = [];
-  const fields = referrerFields;
+  const fields = paperFields;
 
   // Step 1: a one-page upload is the form page; otherwise let the cheap model find it.
   let formPages = pages;
+  let pageTypes: PageType[] = pages.map((p) => ({ page: p.pageNumber, type: "referral_form" }));
   let classifyNotes: string | undefined;
   let classifyModel: string | null = null;
   if (pages.length > 1) {
     classifyModel = models.classify;
-    const found = await findFormPages(pages, usage);
-    classifyNotes = found.notes;
-    if (found.pages.length) formPages = pages.filter((p) => found.pages.includes(p.pageNumber));
+    const sorted = await classifyPages(pages, usage);
+    classifyNotes = sorted.notes;
+    pageTypes = sorted.pages;
+    const form = new Set(sorted.pages.filter((p) => p.type === "referral_form").map((p) => p.page));
+    if (form.size) formPages = pages.filter((p) => form.has(p.pageNumber));
   }
 
   // Step 2: read every field.
@@ -279,6 +304,7 @@ export async function runPipeline(pages: PageImage[]): Promise<PipelineResult> {
     extraction,
     pipeline: {
       formPages: formPages.map((p) => p.pageNumber),
+      pageTypes,
       classifyNotes,
       extractNotes: first.notes || undefined,
       rereadFields: unsure.map((f) => f.id),

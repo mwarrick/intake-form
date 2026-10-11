@@ -87,6 +87,8 @@ export function PortalForm({ threshold }: { threshold: number }) {
         return;
       }
       await Promise.all(res.uploads.map((u, i) => uploadSigned(u, attachments[i].file)));
+      // Start reading the supporting documents; the referral is already submitted, so don't wait.
+      if (res.uploads.length) void fetch(`/api/referrals/${res.id}/documents`, { method: "POST" }).catch(() => {});
       router.push(`/refer/thanks?id=${res.id}`);
     } catch (err) {
       setServerErrors([err instanceof Error ? err.message : String(err)]);

@@ -1,0 +1,85 @@
+{
+  "received_at": "2026-10-10T14:20",
+  "documents": {
+    "demographics": {
+      "file": "demographics.pdf",
+      "expected": {
+        "patient_name": "PIKE, GERALD",
+        "mrn": "FV2290141"
+      }
+    },
+    "authorization": {
+      "file": "authorization.pdf",
+      "expected": {
+        "status": "Pending clinical review"
+      }
+    },
+    "history_physical": {
+      "file": "history_physical.pdf",
+      "expected": {
+        "cognitive_impairment": true,
+        "oriented_x4": false,
+        "infections": [
+          {
+            "organism": "MRSA",
+            "status": "active"
+          }
+        ]
+      }
+    },
+    "vitals": {
+      "file": "vitals.pdf",
+      "expected": {
+        "taken_at": "2026-10-10T10:00",
+        "oxygen": "2L NC"
+      }
+    },
+    "medications": {
+      "file": "medications.pdf",
+      "expected": {
+        "medications": 4
+      }
+    },
+    "therapy_notes": {
+      "file": "therapy_notes.pdf",
+      "expected": {
+        "ambulation_distance_ft": 40,
+        "transfers_independent": false,
+        "adls_independent": false
+      }
+    },
+    "culture": {
+      "file": "culture.pdf",
+      "expected": {
+        "result": "positive",
+        "mrsa": true
+      }
+    }
+  },
+  "expected_flags": [
+    [
+      "conflict",
+      "mrn"
+    ],
+    [
+      "document",
+      "Authorization status"
+    ],
+    [
+      "eligibility",
+      "IV medication"
+    ],
+    [
+      "eligibility",
+      "walks 40 ft"
+    ],
+    [
+      "eligibility",
+      "cognitive impairment"
+    ],
+    [
+      "eligibility",
+      "Active infection"
+    ]
+  ]
+}

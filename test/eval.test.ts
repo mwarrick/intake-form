@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { models, runPipeline, type PageImage } from "@/lib/extract";
-import { fieldsById, referrerFields } from "@/lib/form";
+import { fieldsById, paperFields } from "@/lib/form";
 
 const DIR = fileURLToPath(new URL("../samples/synthetic/", import.meta.url));
 const run = process.env.EVAL === "1";
@@ -45,7 +45,7 @@ describe.skipIf(!run)("extraction accuracy", () => {
       const key = JSON.parse(readFileSync(join(DIR, pdf.replace(/\.pdf$/, ".json")), "utf8"));
       const result = await runPipeline(pageImages(join(DIR, pdf)));
 
-      const wrong = referrerFields
+      const wrong = paperFields
         .filter((f) => norm(result.data[f.id]) !== norm(key.expected[f.id]))
         .map((f) => ({
           field: f.id,
@@ -60,7 +60,7 @@ describe.skipIf(!run)("extraction accuracy", () => {
 
       summary.push({
         sample: pdf,
-        accuracy: `${referrerFields.length - wrong.length}/${referrerFields.length}`,
+        accuracy: `${paperFields.length - wrong.length}/${paperFields.length}`,
         confidentlyWrong: confidentlyWrong.length,
         formPagesFound: result.pipeline.formPages.join(","),
         formPagesExpected: key.form_pages.join(","),
@@ -68,7 +68,7 @@ describe.skipIf(!run)("extraction accuracy", () => {
         tokens,
         seconds: Math.round(seconds),
       });
-      console.log(`\n${pdf}: ${referrerFields.length - wrong.length}/${referrerFields.length} fields correct`);
+      console.log(`\n${pdf}: ${paperFields.length - wrong.length}/${paperFields.length} fields correct`);
       for (const w of wrong) {
         console.log(
           `  ${fieldsById.get(w.field)?.label}: expected ${JSON.stringify(w.expected)}, got ${JSON.stringify(w.got)} (${Math.round((w.confidence ?? 0) * 100)}%)`,
@@ -83,4 +83,40 @@ describe.skipIf(!run)("extraction accuracy", () => {
     console.table(summary);
     writeFileSync(join(DIR, "..", `eval-${Date.now()}.json`), JSON.stringify({ models, summary }, null, 2));
   });
+});
+
+describe.skipIf(!run)("supporting document accuracy", async () => {
+  const { readDocument } = await import("@/lib/extract-docs");
+  const { crossCheck } = await import("@/lib/crosscheck");
+  const { docTypesById } = await import("@/lib/documents");
+  const { emptyData } = await import("@/lib/form");
+  const docsDir = join(DIR, "documents");
+  const same = (a: unknown, b: unknown) =>
+    typeof b === "number" && Array.isArray(a) ? a.length === b : typeof b === "string" && typeof a === "string" ? norm(a).includes(norm(b)) || norm(b).includes(norm(a)) : JSON.stringify(a) === JSON.stringify(b);
+
+  for (const sample of readdirSync(docsDir).sort()) {
+    it(sample, { timeout: 300_000 }, async () => {
+      const key = JSON.parse(readFileSync(join(docsDir, sample, "answer-key.json"), "utf8"));
+      const form = { ...emptyData(), ...JSON.parse(readFileSync(join(DIR, `${sample}.json`), "utf8")).expected };
+      const usage: Parameters<typeof readDocument>[2] = [];
+      const read = await Promise.all(
+        Object.entries(key.documents as Record<string, { file: string; expected: Record<string, unknown> }>).map(async ([docType, d]) => {
+          const pdf = readFileSync(join(docsDir, sample, d.file)).toString("base64");
+          const data = await readDocument(docTypesById.get(docType)!, { file: { dataUrl: `data:application/pdf;base64,${pdf}`, filename: d.file } }, usage);
+          const wrong = Object.entries(d.expected).filter(([k, v]) => !same(data[k], v)).map(([k, v]) => `${docType}.${k}: expected ${JSON.stringify(v)}, got ${JSON.stringify(data[k])}`);
+          return { doc: { id: docType, doc_type: docType, label: null, document_id: "x", pages: null, status: "done" as const, data, error: null }, wrong };
+        }),
+      );
+      const flags = crossCheck(form, read.map((r) => r.doc), key.received_at);
+      const missedFlags = (key.expected_flags as [string, string][]).filter(
+        ([kind, match]) => !flags.some((f) => f.kind === kind && (f.field === match || f.message.toLowerCase().includes(match.toLowerCase()))),
+      );
+      const wrong = read.flatMap((r) => r.wrong);
+      console.log(`\n${sample} documents: ${wrong.length} wrong values, ${missedFlags.length} missed flags, ${usage.reduce((s, u) => s + u.input_tokens + u.output_tokens, 0)} tokens`);
+      for (const w of wrong) console.log(`  ${w}`);
+      for (const m of missedFlags) console.log(`  missed flag ${m.join(": ")}`);
+      for (const f of flags) console.log(`  · ${f.kind}: ${f.message}`);
+      expect(missedFlags).toEqual([]);
+    });
+  }
 });

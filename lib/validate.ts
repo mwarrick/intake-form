@@ -1,6 +1,15 @@
 import { type Field, type FormData, fieldsById, isEmpty, isRequired, referrerFields } from "@/lib/form";
 
-export type FlagKind = "missing" | "invalid" | "ambiguous" | "eligibility" | "low_confidence" | "disagreement";
+export type FlagKind =
+  | "missing"
+  | "invalid"
+  | "ambiguous"
+  | "eligibility"
+  | "low_confidence"
+  | "disagreement"
+  // From supporting documents (lib/crosscheck.ts): a document contradicts the form, or a checklist problem.
+  | "conflict"
+  | "document";
 
 export interface Flag {
   kind: FlagKind;
@@ -23,6 +32,7 @@ const ELIGIBILITY_MESSAGES: Record<string, string> = {
   self_admin_meds: "Patient must be able to self-administer medications",
   ambulatory: "Patient must be able to walk 100 ft. and transfer independently",
   active_infection: "Active infection must be cleared by a doctor or CID before admission",
+  meds_30_day_supply: "Patient must arrive with a 30-day supply of all medications",
   "Cognitive Impairment": "Cognitive impairment is an exclusion criterion",
   "Registered Sex Offender": "Registered sex offenders are not eligible",
 };

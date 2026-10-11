@@ -10,6 +10,8 @@ const FLAG_STYLES: Record<Flag["kind"], string> = {
   ambiguous: "text-amber-700",
   low_confidence: "text-amber-700",
   disagreement: "text-amber-700",
+  conflict: "text-red-700",
+  document: "text-slate-600",
 };
 
 export function confidenceTone(c: number, threshold: number) {

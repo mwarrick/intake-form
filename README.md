@@ -56,6 +56,14 @@ The eval reports fields correct per sample, whether the form page was found, tok
 
 The three samples cover a neat single-page form, messy writing with a crossed-out answer and an ambiguous DOB, and a three-page packet for a patient who fails the admission criteria.
 
+## Deferred until after the prototype
+
+This is a prototype with fake data. These are intentionally out of scope for now and must be done before any real patient data goes through the app:
+
+- **HIPAA compliance:** signed BAAs with every service that touches patient data (OpenAI, Vercel, Supabase, the fax/email provider, logging), the plan tiers those require, and OpenAI zero data retention.
+- **Audit log:** a record of who viewed or changed each referral, and when.
+- **Staff login:** the queue and review screens are open to anyone with the URL.
+
 ## Known issue in the fillable PDF
 
 In `RC0725-SH`, all 52 Yes/No checkboxes on page 2 are wired as a single field (`Check Box1`). Ticking one box ticks or clears all of them, so a digitally filled copy can't be trusted for those answers.

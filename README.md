@@ -30,7 +30,8 @@ The defaults are model names whose tier is clear. Swap in any vision-capable mod
 - `docs/REQUIREMENTS.md`: the requirements, with the status of each (built, in progress, planned, deferred).
 
 - `schema/referral-form.json`: the one field list. It drives the extraction schema, the portal form, the review screen and validation.
-- `supabase/migrations/`: `0001` creates tables `ILLINTAKE_referrals` and `ILLINTAKE_documents` and the private storage bucket `illintake-files`. `0002` adds the `draft` status for portal pre-fill. `0003` adds `ILLINTAKE_supporting_docs` (what was read from each supporting document) and `doc_flags` on referrals.
+- `lib/auth.ts`, `lib/password.ts`, `app/auth-actions.ts`, `app/admin-actions.ts`: staff accounts, sessions and user admin.
+- `supabase/migrations/`: `0001` creates tables `ILLINTAKE_referrals` and `ILLINTAKE_documents` and the private storage bucket `illintake-files`. `0002` adds the `draft` status for portal pre-fill. `0003` adds `ILLINTAKE_supporting_docs` (what was read from each supporting document) and `doc_flags` on referrals. `0004` adds `ILLINTAKE_users` and `ILLINTAKE_sessions` for staff sign-in.
 - `lib/extract.ts`: the OpenAI pipeline. `lib/validate.ts`: rules and flags. `lib/process.ts`: runs a scan through the pipeline.
 - `app/`: pages (`/upload`, `/refer`, `/referrals`, `/referrals/[id]`), server actions, and the processing route.
 - `scripts/make_samples.py`: generates fake hand-filled, faxed forms with answer keys in `samples/synthetic/`.
@@ -48,7 +49,9 @@ The defaults are model names whose tier is clear. Swap in any vision-capable mod
 
 **Cleanup:** Vercel Cron calls `/api/cron/cleanup` once a day (`vercel.json`). It deletes uploads that are more than a day old and not attached to an intake record: online-form uploads of a paper form that were never submitted (including repeat uploads), and storage folders whose referral no longer exists. Faxed scans and submitted referrals are never deleted. Optionally set `CRON_SECRET` in Vercel so only the cron job can call the route.
 
-All database access goes through server code with the service role key. Row level security is on with no policies, so the public key can't read the tables. There's no login: anyone with the URL can see the queue, which is fine for fake data only.
+All database access goes through server code with the service role key. Row level security is on with no policies, so the public key can't read the tables.
+
+**Staff sign-in.** The queue, review screens, fax upload and user admin require a staff account. Accounts are in `ILLINTAKE_users`, not Supabase Auth, and the roles are user and admin. Passwords are stored only as salted scrypt hashes, and sessions are random tokens in an HTTP-only cookie, stored hashed. On a fresh install with no users, `/login` offers to create the first admin, who then adds everyone else under **Users**. The online referral form stays public.
 
 ## Testing accuracy
 
@@ -70,7 +73,7 @@ This is a prototype with fake data. These are intentionally out of scope for now
 
 - **HIPAA compliance:** signed BAAs with every service that touches patient data (OpenAI, Vercel, Supabase, the fax/email provider, logging), the plan tiers those require, and OpenAI zero data retention.
 - **Audit log:** a record of who viewed or changed each referral, and when.
-- **Staff login:** the queue and review screens are open to anyone with the URL.
+- **Login hardening:** rate limiting failed sign-ins, password reset by email, multi-factor sign-in.
 - **Email notifications:** confirming receipt to the referrer and sending them the approve/deny decision. For now, coordinators contact referrers themselves.
 
 ## Known issue in the fillable PDF

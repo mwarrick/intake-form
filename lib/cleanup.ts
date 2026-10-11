@@ -83,6 +83,9 @@ export async function cleanupStaleUploads(now = Date.now()): Promise<CleanupResu
     }
   }
 
+  // Expired sign-in sessions.
+  await supabase.from(T.sessions).delete().lt("expires_at", new Date(now).toISOString());
+
   return result;
 }
 

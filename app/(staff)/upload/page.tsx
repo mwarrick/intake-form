@@ -1,6 +1,8 @@
+import { requireUser } from "@/lib/auth";
 import { UploadForm } from "./UploadForm";
 
-export default function UploadPage() {
+export default async function UploadPage() {
+  await requireUser("/upload");
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div>

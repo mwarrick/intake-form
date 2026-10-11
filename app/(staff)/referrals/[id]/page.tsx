@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 import { rereadThreshold } from "@/lib/extract";
+import { requireUser } from "@/lib/auth";
 import { getReferral } from "@/lib/referrals";
 import { ReviewClient } from "./ReviewClient";
 
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ReferralPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireUser(`/referrals/${id}`);
   const found = await getReferral(id);
   if (!found) notFound();
   const { referral, documents, supporting } = found;

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { signOut } from "@/app/auth-actions";
+import { currentUser } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,7 +9,8 @@ export const metadata: Metadata = {
   description: "Read faxed referral forms and take referrals online",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const user = await currentUser();
   return (
     <html lang="en">
       <body className="min-h-screen antialiased">
@@ -16,14 +19,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="font-semibold text-brand-900">
               Recuperative Care Intake
             </Link>
-            <div className="flex gap-4 text-sm text-slate-600">
-              <Link href="/upload" className="hover:text-brand-700">Upload scan</Link>
+            <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+              {user && <Link href="/upload" className="hover:text-brand-700">Upload scan</Link>}
               <Link href="/refer" className="hover:text-brand-700">Online referral</Link>
-              <Link href="/referrals" className="hover:text-brand-700">Referral queue</Link>
+              {user && <Link href="/referrals" className="hover:text-brand-700">Referral queue</Link>}
+              {user?.role === "admin" && <Link href="/admin/users" className="hover:text-brand-700">Users</Link>}
             </div>
-            <span className="ml-auto rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-              Demo · fake patient data only
-            </span>
+            <div className="ml-auto flex flex-wrap items-center gap-3 text-sm">
+              <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                Demo · fake patient data only
+              </span>
+              {user ? (
+                <>
+                  <Link href="/account" className="text-slate-600 hover:text-brand-700">
+                    {user.first_name} {user.last_name}
+                  </Link>
+                  <form action={signOut}>
+                    <button className="text-slate-500 hover:text-brand-700">Sign out</button>
+                  </form>
+                </>
+              ) : (
+                <Link href="/login" className="text-slate-600 hover:text-brand-700">Staff sign in</Link>
+              )}
+            </div>
           </nav>
         </header>
         <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>

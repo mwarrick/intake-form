@@ -34,7 +34,7 @@ The defaults are model names whose tier is clear. Swap in any vision-capable mod
 - `lib/extract.ts`: the OpenAI pipeline. `lib/validate.ts`: rules and flags. `lib/process.ts`: runs a scan through the pipeline.
 - `app/`: pages (`/upload`, `/refer`, `/referrals`, `/referrals/[id]`), server actions, and the processing route.
 - `scripts/make_samples.py`: generates fake hand-filled, faxed forms with answer keys in `samples/synthetic/`.
-- `scripts/make_documents.py`: generates fake supporting documents for the same three patients in `samples/synthetic/documents/`, with answer keys and the flags they should raise. Patient 2's culture shows MRSA although the form says no infection, their authorization is short, and their vitals are 32 hours old. Patient 3 has IV antibiotics, dementia, walks only 40 ft, a pending authorization, and an MRN typo.
+- `scripts/make_documents.py`: generates fake supporting documents for the same three patients in `samples/synthetic/documents/`, with answer keys and the flags they should raise. Each patient gets typed printouts plus handwritten versions of the vitals flowsheet, nursing mobility assessment, authorization request, and a medication list with handwritten corrections. Patient 2's culture shows MRSA although the form says no infection, their authorization is short, and their vitals are 32 hours old. Patient 3 has IV antibiotics, dementia, walks only 40 ft, a pending authorization, and an MRN typo.
 - `test/`: unit tests, plus `eval.test.ts`, which scores the real pipeline against the sample answer keys.
 
 ## Setup

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Generate fake supporting documents (the referral checklist) for the three sample patients.
 
-Each document is a typed, hospital-style printout run through a light fax effect, saved as a PDF,
+Each patient gets typed, hospital-style printouts plus handwritten versions of the documents that often
+arrive filled in by hand (bedside vitals flowsheet, nursing mobility assessment, authorization request,
+and a medication list with handwritten corrections). All go through a light fax effect and are saved as PDFs,
 with an answer key of the values the reader should find and the cross-check flags the app should raise.
 Some documents deliberately contradict the patient's referral form (see samples/synthetic/*.json).
 
@@ -15,7 +17,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from make_samples import DPI, fax_effect, fax_header  # noqa: E402
+from make_samples import DPI, Pen, ensure_fonts, fax_effect, fax_header  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "samples" / "synthetic" / "documents"
@@ -74,18 +76,20 @@ class Page:
             self.d.text((560, self.y), str(v), font=font(23), fill=0)
             self.y += 33
 
-    def table(self, header, rows, widths):
+    def table(self, header, rows, widths, row_h=30):
         x = 130
         for h, w in zip(header, widths):
             self.d.text((x, self.y), h, font=font(21, bold=True), fill=0)
             x += w
         self.y += 32
+        self.row_ys = []
         for r in rows:
+            self.row_ys.append(self.y)
             x = 130
             for cell, w in zip(r, widths):
                 self.d.text((x, self.y), cell, font=font(21, mono=False), fill=0)
                 x += w
-            self.y += 30
+            self.y += row_h
         self.y += 6
 
     def signed(self, who):
@@ -169,12 +173,13 @@ def vitals(p, rows, o2):
     return pg
 
 
-def meds(p, rows, allergies):
+def meds(p, rows, allergies, row_h=30, sign=True):
     pg = Page(p["hospital"], "Discharge Medication Reconciliation", p)
     pg.fields([("Allergies", allergies)])
     pg.heading("Medications")
-    pg.table(["Medication", "Dose", "Route", "Frequency"], rows, [560, 260, 160, 400])
-    pg.signed("Pharmacy, " + p["hospital"])
+    pg.table(["Medication", "Dose", "Route", "Frequency"], rows, [560, 260, 160, 400], row_h)
+    if sign:
+        pg.signed("Pharmacy, " + p["hospital"])
     return pg
 
 
@@ -315,20 +320,224 @@ def build():
     return docs, expected_flags
 
 
+
+# ---------- Handwritten versions: paper forms filled in by hand ----------
+
+class PaperForm(Page):
+    """A printed blank form; returns pixel boxes where the writing goes."""
+
+    def blank(self, label, width=None, x=130):
+        f = font(23, bold=True)
+        self.d.text((x, self.y), f"{label}:", font=f, fill=0)
+        x0 = x + int(f.getlength(f"{label}:")) + 14
+        x1 = x0 + width if width else W - 130
+        base = self.y + 30
+        self.d.line([x0, base, x1, base], fill=0, width=1)
+        self.y += 46
+        return (x0, base - 34, x1, base)
+
+    def boxes(self, label, options):
+        """A row of printed checkboxes; returns option -> box."""
+        f = font(23, bold=True)
+        self.d.text((130, self.y), f"{label}:", font=f, fill=0)
+        x = 130 + int(f.getlength(f"{label}:")) + 24
+        out = {}
+        for opt in options:
+            box = (x, self.y + 4, x + 24, self.y + 28)
+            self.d.rectangle(box, outline=0, width=2)
+            self.d.text((x + 32, self.y), opt, font=font(22), fill=0)
+            out[opt] = box
+            x += 32 + int(font(22).getlength(opt)) + 34
+        self.y += 46
+        return out
+
+    def grid(self, header, widths, rows):
+        """A ruled table with empty cells; returns cell boxes [row][col]."""
+        x = 130
+        for h, w in zip(header, widths):
+            self.d.text((x + 6, self.y), h, font=font(20, bold=True), fill=0)
+            x += w
+        self.y += 30
+        top, row_h = self.y, 58
+        cells = []
+        for r in range(rows):
+            y0 = top + r * row_h
+            x = 130
+            row = []
+            for w in widths:
+                row.append((x + 6, y0 + 10, x + w - 6, y0 + row_h - 8))
+                x += w
+            cells.append(row)
+        right = 130 + sum(widths)
+        for r in range(rows + 1):
+            self.d.line([130, top + r * row_h, right, top + r * row_h], fill=0, width=1)
+        x = 130
+        for w in [0, *widths]:
+            x += w
+            self.d.line([x, top, x, top + rows * row_h], fill=0, width=1)
+        self.d.line([130, top, 130, top + rows * row_h], fill=0, width=1)
+        self.y = top + rows * row_h + 20
+        return cells
+
+
+def hand_vitals(p, rows, o2, pen_font, rng):
+    pg = PaperForm(p["hospital"], "Vital Signs Flowsheet (bedside)", p)
+    pg.line("Record every 4 hours and as needed. Initial each entry.")
+    cells = pg.grid(["Date / time", "BP", "HR", "Temp °F", "RR", "SpO2", "O2", "Init."], [300, 170, 100, 140, 90, 120, 180, 100], 6)
+    pen = Pen(pg.img, pen_font, rng, 1.0)
+    for r, values in enumerate(rows):
+        for c, v in enumerate([*values, o2, rng.choice(["MT", "JL", "RN"])]):
+            pen.text(cells[r][c], v)
+    return pg
+
+
+def hand_mobility(p, m, pen_font, rng):
+    pg = PaperForm(p["hospital"], "Nursing Mobility & ADL Assessment", p)
+    when = pg.blank("Date / time", 420)
+    nurse = pg.blank("Assessed by", 520)
+    pg.heading("Mobility")
+    dist = pg.blank("Ambulation distance (ft)", 220)
+    device = pg.boxes("Assistive device", ["None", "Cane", "Walker", "Wheelchair", "Other"])
+    transfers = pg.boxes("Transfers", ["Independent", "Supervision", "Min assist", "Mod assist", "Max assist"])
+    pg.heading("Activities of daily living")
+    adl = pg.boxes("ADLs", ["Independent", "Needs some help", "Dependent"])
+    pg.heading("Comments")
+    notes = [pg.blank("", None) for _ in range(3)]
+    pen = Pen(pg.img, pen_font, rng, 1.25)
+    pen.text(when, m["when"])
+    pen.text(nurse, m["who"])
+    pen.text(dist, m["feet"])
+    pen.tick(device[m["device"]])
+    pen.tick(transfers[m["transfers"]])
+    pen.tick(adl[m["adl"]])
+    for box, text in zip(notes, m["comments"]):
+        pen.text(box, text)
+    return pg
+
+
+def hand_auth(p, a, pen_font, rng):
+    pg = PaperForm("CalOptima Health", "Recuperative Care Authorization Request", p)
+    fields = {k: pg.blank(k, 700) for k in ["Member name", "Member DOB", "Member ID", "Requesting facility", "Requested by / phone",
+                                           "Primary diagnosis", "Days requested"]}
+    pg.heading("For CalOptima use only")
+    status = pg.boxes("Determination", ["Approved", "Denied", "Pending"])
+    auth_no = pg.blank("Authorization #", 520)
+    days = pg.blank("Approved days", 200)
+    dates = pg.blank("Approved dates", 640)
+    reviewer = pg.blank("Reviewer", 520)
+    pen = Pen(pg.img, pen_font, rng, 1.25)
+    for k, v in a["request"].items():
+        pen.text(fields[k], v)
+    reviewer_pen = Pen(pg.img, pen_font, random.Random(rng.random()), 1.15)
+    reviewer_pen.tick(status[a["status"]], style="x")
+    for box, v in [(auth_no, a["number"]), (days, a["days"]), (dates, a["dates"]), (reviewer, a["reviewer"])]:
+        if v:
+            reviewer_pen.text(box, v)
+    return pg
+
+
+def meds_corrected(p, rows, allergies, corrections, added, pen_font, rng):
+    """The typed list (printed with room between rows), then a nurse's pen: strike-throughs with the
+    new value written underneath, added medications, and a sign-off."""
+    pg = meds(p, rows, allergies, row_h=70, sign=False)
+    pen = Pen(pg.img, pen_font, rng, 1.15)
+    cols = [130, 690, 950, 1110]
+    for row_index, col, new in corrections:
+        y = pg.row_ys[row_index]
+        x0 = cols[col]
+        pen.draw.line([x0 - 4, y + 13, x0 + 150, y + 13 + rng.uniform(-2, 2)], fill=pen.ink, width=3)
+        pen.text((x0 - 10, y + 22, x0 + 240, y + 62), new)
+    y = pg.row_ys[-1] + 80
+    for med in added:
+        pen.text((120, y, W - 140, y + 44), med)
+        y += 60
+    pen.text((W - 560, y + 20, W - 140, y + 64), "reviewed w/ pt 10/10 - RN")
+    pg.y = y + 90
+    pg.signed("Pharmacy, " + p["hospital"])
+    return pg
+
+
+HAND = {
+    "sample-1-clean": {
+        "vitals_expect": {"taken_at": "2026-10-10T08:00", "oxygen": "RA"},
+        "vitals": [["10/9 20:00", "124/78", "82", "98.1", "16", "97%"], ["10/10 08:00", "118/76", "78", "98.0", "16", "98%"]],
+        "o2": "RA",
+        "mobility": {"when": "10/10/26 0915", "who": "T. Moore RN", "feet": "300", "device": "None", "transfers": "Independent", "adl": "Independent",
+                     "comments": ["Walked hallway x2 w/o assist, steady gait.", "Indep. w/ shower + dressing.", ""]},
+        "mobility_expect": {"ambulation_distance_ft": 300, "transfers_independent": True, "adls_independent": True},
+        "auth": {"request": {"Member name": "Marcus Delgado", "Member DOB": "11/23/1968", "Member ID": "C93820411", "Requesting facility": "Orange Coast Regional",
+                             "Requested by / phone": "D. Whitfield MSW 714-555-0142", "Primary diagnosis": "CHF exacerbation", "Days requested": "14"},
+                 "status": "Approved", "number": "RC-2026-118842", "days": "14", "dates": "10/10/26 - 10/24/26", "reviewer": "K. Lam RN, UM"},
+        "auth_expect": {"authorization_number": "RC-2026-118842", "approved_days": 14, "status": "Approved"},
+        "meds": [["Furosemide", "40 mg", "PO", "Daily"], ["Carvedilol", "12.5 mg", "PO", "Twice daily"], ["Lisinopril", "10 mg", "PO", "Daily"]],
+        "corrections": [(2, 1, "5 mg")],
+        "added": ["Nicotine patch 14 mg transdermal daily"],
+        "meds_expect": {"medications": 4, "dose:Lisinopril": "5 mg"},
+    },
+    "sample-2-messy": {
+        "vitals_expect": {"taken_at": "2026-10-09T06:00", "oxygen": "RA"},
+        "vitals": [["10/8 22:00", "138/84", "88", "99.0", "18", "97%"], ["10/9 06:00", "132/80", "84", "98.6", "16", "98%"]],
+        "o2": "RA",
+        "mobility": {"when": "10/9/26 1400", "who": "P. Sanchez RN", "feet": "150", "device": "Walker", "transfers": "Independent", "adl": "Needs some help",
+                     "comments": ["FWW, supervision only. No LOB.", "Needs set-up for LE dressing (wound).", "Dressing change done by RN daily."]},
+        "mobility_expect": {"ambulation_distance_ft": 150, "transfers_independent": True},
+        "auth": {"request": {"Member name": "Tamara Ellis", "Member DOB": "04/07/1965", "Member ID": "C11873502", "Requesting facility": "St. Jude Medical Ctr",
+                             "Requested by / phone": "K. Nguyen RN CM x204", "Primary diagnosis": "LLE cellulitis s/p I&D", "Days requested": "21"},
+                 "status": "Approved", "number": "RC-2026-119207", "days": "14", "dates": "10/10/26 - 10/24/26", "reviewer": "K. Lam RN, UM"},
+        "auth_expect": {"authorization_number": "RC-2026-119207", "approved_days": 14, "status": "Approved"},
+        "meds": [["Insulin glargine", "18 units", "SC", "Nightly"], ["Metformin", "1000 mg", "PO", "Twice daily"],
+                 ["Trimethoprim-sulfamethoxazole DS", "1 tab", "PO", "Twice daily x 7 days"], ["Sertraline", "100 mg", "PO", "Daily"]],
+        "corrections": [(0, 1, "22 units")],
+        "added": ["Acetaminophen 650 mg PO q6h PRN pain"],
+        "meds_expect": {"medications": 5, "dose:Insulin glargine": "22 units"},
+    },
+    "sample-3-ineligible": {
+        "vitals_expect": {"taken_at": "2026-10-10T10:00", "oxygen": "2L NC"},
+        "vitals": [["10/10 04:00", "142/88", "96", "99.8", "22", "92%"], ["10/10 10:00", "138/86", "92", "99.4", "20", "93%"]],
+        "o2": "2L NC",
+        "mobility": {"when": "10/10/26 0800", "who": "A. Brooks RN", "feet": "40", "device": "Wheelchair", "transfers": "Mod assist", "adl": "Dependent",
+                     "comments": ["Amb 40 ft w/ RW + mod A, then w/c.", "Confused at night, pulled at PICC x1.", "Needs assist bathing/toileting."]},
+        "mobility_expect": {"ambulation_distance_ft": 40, "transfers_independent": False, "adls_independent": False},
+        "auth": {"request": {"Member name": "Gerald Pike", "Member DOB": "02/14/1952", "Member ID": "1EG4-TE5-MK72", "Requesting facility": "Fountain Valley Hosp.",
+                             "Requested by / phone": "A. Romero LCSW 714-555-0163", "Primary diagnosis": "Pneumonia (MRSA)", "Days requested": "14"},
+                 "status": "Pending", "number": None, "days": None, "dates": None, "reviewer": "Need ID clearance + PT eval"},
+        "auth_expect": {"status": "Pending"},
+        "meds": [["Vancomycin", "1.25 g", "IV (PICC)", "Every 12 hours"], ["Furosemide", "20 mg", "PO", "Daily"],
+                 ["Donepezil", "5 mg", "PO", "Nightly"], ["Heparin", "5,000 units", "SC", "Every 8 hours"]],
+        "corrections": [(2, 1, "10 mg")],
+        "added": [],
+        "meds_expect": {"medications": 4, "dose:Donepezil": "10 mg"},
+    },
+}
+
+
+def handwritten(sample, pen_font, rng):
+    p, h = PATIENTS[sample], HAND[sample]
+    return [
+        ("vitals", "vitals-handwritten", hand_vitals(p, h["vitals"], h["o2"], pen_font, rng), h["vitals_expect"]),
+        ("therapy_notes", "nursing-mobility-handwritten", hand_mobility(p, h["mobility"], pen_font, rng), h["mobility_expect"]),
+        ("authorization", "authorization-request-handwritten", hand_auth(p, h["auth"], pen_font, rng), h["auth_expect"]),
+        ("medications", "medications-corrected-handwritten", meds_corrected(p, h["meds"], "see chart", h["corrections"], h["added"], pen_font, rng), h["meds_expect"]),
+    ]
+
+
 def main():
     docs, expected_flags = build()
-    for sample, items in docs.items():
+    fonts = ensure_fonts()
+    for i, (sample, items) in enumerate(docs.items()):
+        items = [(doc_id, doc_id, page, expect) for doc_id, (page, expect) in items.items()]
+        items += handwritten(sample, fonts[i % len(fonts)], random.Random(f"{sample}-pen"))
         out = OUT / sample
         out.mkdir(parents=True, exist_ok=True)
         rng = random.Random(sample)
-        key = {"received_at": "2026-10-10T14:20", "documents": {}, "expected_flags": expected_flags[sample]}
+        key = {"received_at": "2026-10-10T14:20", "documents": [], "expected_flags": expected_flags[sample]}
         sender = PATIENTS[sample]["hospital"].upper()[:22]
-        for i, (doc_id, (page, expect)) in enumerate(items.items(), 1):
+        for doc_type, stem, page, expect in items:
             img = fax_effect(page.img, rng)
             fax_header(img, 1, 1, sender)
-            path = out / f"{doc_id}.pdf"
+            path = out / f"{stem}.pdf"
             img.save(path, resolution=DPI)
-            key["documents"][doc_id] = {"file": path.name, "expected": expect}
+            key["documents"].append({"doc_type": doc_type, "file": path.name, "handwritten": stem.endswith("-handwritten"), "expected": expect})
         (out / "answer-key.json").write_text(json.dumps(key, indent=2) + "\n")
         print(f"wrote {len(items)} documents to {out.relative_to(ROOT)}")
 

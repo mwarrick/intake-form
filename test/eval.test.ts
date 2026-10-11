@@ -99,12 +99,22 @@ describe.skipIf(!run)("supporting document accuracy", async () => {
       const key = JSON.parse(readFileSync(join(docsDir, sample, "answer-key.json"), "utf8"));
       const form = { ...emptyData(), ...JSON.parse(readFileSync(join(DIR, `${sample}.json`), "utf8")).expected };
       const usage: Parameters<typeof readDocument>[2] = [];
+      type KeyDoc = { doc_type: string; file: string; handwritten: boolean; expected: Record<string, unknown> };
       const read = await Promise.all(
-        Object.entries(key.documents as Record<string, { file: string; expected: Record<string, unknown> }>).map(async ([docType, d]) => {
+        (key.documents as KeyDoc[]).map(async (d) => {
           const pdf = readFileSync(join(docsDir, sample, d.file)).toString("base64");
-          const data = await readDocument(docTypesById.get(docType)!, { file: { dataUrl: `data:application/pdf;base64,${pdf}`, filename: d.file } }, usage);
-          const wrong = Object.entries(d.expected).filter(([k, v]) => !same(data[k], v)).map(([k, v]) => `${docType}.${k}: expected ${JSON.stringify(v)}, got ${JSON.stringify(data[k])}`);
-          return { doc: { id: docType, doc_type: docType, label: null, document_id: "x", pages: null, status: "done" as const, data, error: null }, wrong };
+          const data = await readDocument(docTypesById.get(d.doc_type)!, { file: { dataUrl: `data:application/pdf;base64,${pdf}`, filename: d.file } }, usage);
+          const wrong = Object.entries(d.expected)
+            .filter(([k, v]) => {
+              // "dose:<medication>" checks a handwritten correction on the medication list.
+              if (k.startsWith("dose:")) {
+                const row = (Array.isArray(data.medications) ? data.medications : []).find((m: any) => norm(m?.name).includes(norm(k.slice(5))));
+                return !same((row as any)?.dose, v);
+              }
+              return !same(data[k], v);
+            })
+            .map(([k, v]) => `${d.file}${d.handwritten ? " (handwritten)" : ""} ${k}: expected ${JSON.stringify(v)}, got ${JSON.stringify(k.startsWith("dose:") ? data.medications : data[k])}`);
+          return { doc: { id: d.file, doc_type: d.doc_type, label: null, document_id: "x", pages: null, status: "done" as const, data, error: null }, wrong };
         }),
       );
       const flags = crossCheck(form, read.map((r) => r.doc), key.received_at);

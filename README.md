@@ -5,7 +5,7 @@ Intake for Illumination Health + Home Recuperative Care referrals (form RC0725-S
 There are two ways in, and both land in the same coordinator queue:
 
 1. **Paper/fax reader (`/upload`).** Upload a faxed referral packet (PDF or photo). The app picks out the referral form page, reads the handwriting with OpenAI models, and flags anything uncertain. A coordinator then checks the fields side by side with the scan.
-2. **Online referral portal (`/refer`).** Hospital SW/CM/RN staff fill out the same form on the web and attach supporting documents.
+2. **Online referral portal (`/refer`).** Hospital SW/CM/RN staff fill out the same form on the web and attach supporting documents. A referrer who already filled out the paper form can **upload a scan of it to pre-fill the online form**. The same reader fills in the fields and highlights the ones that were hard to read, disputed or ambiguous. The referrer checks them against their original and confirms before submitting. Until then the referral is a `draft` and stays out of the queue. The coordinator sees the scan beside the fields, plus a list of fields the referrer corrected.
 
 The **queue** (`/referrals`) lists every referral. Each referral's page has the review screen and the Illumination Staff Only decision box.
 
@@ -26,7 +26,7 @@ The defaults are model names whose tier is clear. Swap in any vision-capable mod
 ## Layout
 
 - `schema/referral-form.json`: the one field list. It drives the extraction schema, the portal form, the review screen and validation.
-- `supabase/migrations/0001_illintake_init.sql`: tables `ILLINTAKE_referrals` and `ILLINTAKE_documents`, plus the private storage bucket `illintake-files`.
+- `supabase/migrations/`: `0001` creates tables `ILLINTAKE_referrals` and `ILLINTAKE_documents` and the private storage bucket `illintake-files`. `0002` adds the `draft` status for portal pre-fill.
 - `lib/extract.ts`: the OpenAI pipeline. `lib/validate.ts`: rules and flags. `lib/process.ts`: runs a scan through the pipeline.
 - `app/`: pages (`/upload`, `/refer`, `/referrals`, `/referrals/[id]`), server actions, and the processing route.
 - `scripts/make_samples.py`: generates fake hand-filled, faxed forms with answer keys in `samples/synthetic/`.
@@ -34,7 +34,7 @@ The defaults are model names whose tier is clear. Swap in any vision-capable mod
 
 ## Setup
 
-1. **Supabase:** run `supabase/migrations/0001_illintake_init.sql` in the SQL editor, or with `supabase db push`. Table names are uppercase, so raw SQL must quote them: `select * from "ILLINTAKE_referrals"`.
+1. **Supabase:** run the files in `supabase/migrations/` in order, in the SQL editor or with `supabase db push`. Table names are uppercase, so raw SQL must quote them: `select * from "ILLINTAKE_referrals"`.
 2. **Environment variables** (Vercel project settings; see `.env.example`):
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`), and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEY`). The Vercel Supabase integration sets these.
    - `OPENAI_API_KEY`

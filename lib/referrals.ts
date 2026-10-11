@@ -4,7 +4,7 @@ import type { Extraction, Flag } from "@/lib/validate";
 import type { PipelineResult } from "@/lib/extract";
 import { T, db, signedUrls } from "@/lib/supabase";
 
-export type Status = "processing" | "needs_review" | "reviewed" | "approved" | "denied" | "failed";
+export type Status = "draft" | "processing" | "needs_review" | "reviewed" | "approved" | "denied" | "failed";
 
 export interface Referral {
   id: string;
@@ -38,6 +38,9 @@ export async function listReferrals(): Promise<Referral[]> {
   const { data, error } = await db()
     .from(T.referrals)
     .select("id, created_at, updated_at, source, status, patient_name, referring_hospital, flags, error, reviewed_at")
+    // Referrers' unsubmitted portal uploads (drafts, or still being read) aren't the coordinator's yet.
+    .neq("status", "draft")
+    .or("source.eq.scan,status.neq.processing")
     .order("created_at", { ascending: false })
     .limit(200);
   if (error) throw new Error(error.message);

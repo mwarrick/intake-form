@@ -5,9 +5,14 @@ import { summaryColumns } from "@/lib/referrals";
 import { BUCKET, T, db } from "@/lib/supabase";
 import { validate } from "@/lib/validate";
 
-/** Read a scanned referral's page images with the model pipeline and store the results for review. */
+/**
+ * Read a referral's page images with the model pipeline and store the results.
+ * Faxed scans go to the coordinator queue; a referrer's portal upload becomes a draft that pre-fills their form.
+ */
 export async function processScan(referralId: string): Promise<void> {
   const supabase = db();
+  const { data: ref } = await supabase.from(T.referrals).select("source").eq("id", referralId).single();
+  const prefill = ref?.source === "portal";
   try {
     const { data: docs, error } = await supabase
       .from(T.documents)
@@ -34,7 +39,7 @@ export async function processScan(referralId: string): Promise<void> {
     const { error: upErr } = await supabase
       .from(T.referrals)
       .update({
-        status: "needs_review",
+        status: prefill ? "draft" : "needs_review",
         data,
         extraction: result.extraction,
         pipeline: result.pipeline,
@@ -50,7 +55,8 @@ export async function processScan(referralId: string): Promise<void> {
     console.error(`processScan ${referralId} failed:`, e);
     await supabase
       .from(T.referrals)
-      .update({ status: "failed", error: message, updated_at: new Date().toISOString() })
+      // A failed pre-fill stays a draft: the referrer can still type the form in.
+      .update({ status: prefill ? "draft" : "failed", error: message, updated_at: new Date().toISOString() })
       .eq("id", referralId);
   }
 }

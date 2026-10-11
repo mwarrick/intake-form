@@ -41,6 +41,8 @@ The defaults are model names whose tier is clear. Swap in any vision-capable mod
    - Optional: `OPENAI_MODEL_CLASSIFY`, `OPENAI_MODEL_EXTRACT`, `OPENAI_MODEL_REREAD`, `EXTRACT_REREAD_THRESHOLD`
 3. `npm install` (this also copies the pdf.js worker into `public/`), then `npm run dev`.
 
+**Cleanup:** Vercel Cron calls `/api/cron/cleanup` once a day (`vercel.json`). It deletes uploads that are more than a day old and not attached to an intake record: online-form uploads of a paper form that were never submitted (including repeat uploads), and storage folders whose referral no longer exists. Faxed scans and submitted referrals are never deleted. Optionally set `CRON_SECRET` in Vercel so only the cron job can call the route.
+
 All database access goes through server code with the service role key. Row level security is on with no policies, so the public key can't read the tables. There's no login: anyone with the URL can see the queue, which is fine for fake data only.
 
 ## Testing accuracy

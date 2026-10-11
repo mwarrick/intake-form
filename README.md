@@ -63,6 +63,7 @@ This is a prototype with fake data. These are intentionally out of scope for now
 - **HIPAA compliance:** signed BAAs with every service that touches patient data (OpenAI, Vercel, Supabase, the fax/email provider, logging), the plan tiers those require, and OpenAI zero data retention.
 - **Audit log:** a record of who viewed or changed each referral, and when.
 - **Staff login:** the queue and review screens are open to anyone with the URL.
+- **Email notifications:** confirming receipt to the referrer and sending them the approve/deny decision. For now, coordinators contact referrers themselves.
 
 ## Known issue in the fillable PDF
 

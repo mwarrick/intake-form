@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { saveDecision, saveReview } from "@/app/actions";
+import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { FormSections } from "@/components/FormSections";
+import type { SupportingDoc } from "@/lib/documents";
 import { type FieldValue, type FormData, referrerFields, referrerSections, staffFields, staffSection } from "@/lib/form";
 import type { DocumentRow, Referral } from "@/lib/referrals";
 import { type Flag, fieldLabel, validate } from "@/lib/validate";
@@ -11,23 +13,32 @@ import { type Flag, fieldLabel, validate } from "@/lib/validate";
 interface Props {
   referral: Referral;
   documents: DocumentRow[];
+  supporting: SupportingDoc[];
   threshold: number;
 }
 
-export function ReviewClient({ referral, documents, threshold }: Props) {
+export function ReviewClient({ referral, documents, supporting, threshold }: Props) {
   const router = useRouter();
   const processing = referral.status === "processing";
+  const docsPending = supporting.filter((d) => d.status === "processing").length;
+  // Attachments on an online referral are read right after it's submitted.
+  const justSubmitted = Date.now() - new Date(referral.created_at).getTime() < 3 * 60 * 1000;
+  const awaitingDocs =
+    referral.source === "portal" && justSubmitted && documents.some((d) => d.kind === "attachment") && !supporting.some((s) => s.document_id);
 
-  // Poll the status while the reader is working; refresh the page once it is done.
+  // Poll while the reader is working on the form or documents; refresh the page when something changes.
   useEffect(() => {
-    if (!processing) return;
+    if (!processing && !docsPending && !awaitingDocs) return;
     const t = setInterval(async () => {
       const res = await fetch(`/api/referrals/${referral.id}/status`, { cache: "no-store" }).catch(() => null);
       const body = res?.ok ? await res.json() : null;
-      if (body && body.status !== "processing") router.refresh();
+      if (!body) return;
+      if (body.status !== referral.status || body.docsPending !== docsPending) router.refresh();
     }, 3000);
     return () => clearInterval(t);
-  }, [processing, referral.id, router]);
+  }, [processing, docsPending, awaitingDocs, referral.id, referral.status, router]);
+
+  const fileUrls = new Map(documents.filter((d) => d.url).map((d) => [d.id, d.url!]));
 
   const pages = documents.filter((d) => d.kind === "page");
   const original = documents.find((d) => d.kind === "original");
@@ -52,6 +63,7 @@ export function ReviewClient({ referral, documents, threshold }: Props) {
         {!processing && referral.status !== "failed" && (
           <>
             <PipelineSummary referral={referral} />
+            <DocumentsPanel docs={supporting} flags={referral.doc_flags ?? []} fileUrls={fileUrls} />
             <FieldsEditor referral={referral} threshold={threshold} />
             <DecisionPanel referral={referral} />
           </>
@@ -174,8 +186,11 @@ function FailedNotice({ id, error }: { id: string; error: string | null }) {
 
 function PipelineSummary({ referral }: { referral: Referral }) {
   const p = referral.pipeline;
-  const eligibility = (referral.flags ?? []).filter((f) => f.kind === "eligibility");
+  const docFlags = referral.doc_flags ?? [];
+  // Form answers and supporting documents can raise the same admission concern; list it once.
+  const eligibility = dedupe([...(referral.flags ?? []), ...docFlags].filter((f) => f.kind === "eligibility"));
   const toCheck = (referral.flags ?? []).filter((f) => f.kind !== "eligibility");
+  const conflicts = docFlags.filter((f) => f.kind === "conflict");
   const tokens = p?.usage?.reduce((s, u) => s + u.input_tokens + u.output_tokens, 0) ?? 0;
   const seconds = (p?.usage?.reduce((s, u) => s + u.ms, 0) ?? 0) / 1000;
   const wasRead = !!p?.usage?.length;
@@ -186,6 +201,7 @@ function PipelineSummary({ referral }: { referral: Referral }) {
       <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
         <Stat label="Admission criteria" value={eligibility.length ? `${eligibility.length} concern${eligibility.length > 1 ? "s" : ""}` : "None flagged"} tone={eligibility.length ? "purple" : "green"} />
         <Stat label="Fields to check" value={String(toCheck.length)} tone={toCheck.length ? "amber" : "green"} />
+        <Stat label="Document conflicts" value={String(conflicts.length)} tone={conflicts.length ? "red" : "green"} />
         {wasRead && <Stat label="Reader" value={`${seconds.toFixed(0)} s · ${tokens.toLocaleString()} tokens`} />}
       </div>
       {eligibility.length > 0 && (
@@ -223,8 +239,8 @@ function PipelineSummary({ referral }: { referral: Referral }) {
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: string; tone?: "green" | "amber" | "purple" }) {
-  const color = { green: "text-emerald-700", amber: "text-amber-700", purple: "text-purple-700" }[tone ?? "green"];
+function Stat({ label, value, tone }: { label: string; value: string; tone?: "green" | "amber" | "purple" | "red" }) {
+  const color = { green: "text-emerald-700", amber: "text-amber-700", purple: "text-purple-700", red: "text-red-700" }[tone ?? "green"];
   return (
     <div>
       <p className="text-xs text-slate-500">{label}</p>
@@ -245,7 +261,12 @@ function FieldsEditor({ referral, threshold }: { referral: Referral; threshold: 
   // Read confidence stops mattering once a person has checked the fields: the coordinator, or the referrer on the portal.
   const extraction = confirmed || referral.source === "portal" ? undefined : referral.extraction;
   // Recompute live so fixing a field clears its "missing"/"invalid" flag as you type.
-  const flags: Flag[] = useMemo(() => validate(data, { extraction, confidenceThreshold: threshold }), [data, extraction, threshold]);
+  // Document conflicts sit under the field they contradict; they're recomputed on save.
+  const docFieldFlags = useMemo(() => (referral.doc_flags ?? []).filter((f) => f.kind === "conflict" && f.field), [referral.doc_flags]);
+  const flags: Flag[] = useMemo(
+    () => [...validate(data, { extraction, confidenceThreshold: threshold }), ...docFieldFlags],
+    [data, extraction, threshold, docFieldFlags],
+  );
   const flagged = new Set(flags.map((f) => f.field));
 
   const sections = onlyFlagged
@@ -351,6 +372,10 @@ function DecisionPanel({ referral }: { referral: Referral }) {
       </div>
     </div>
   );
+}
+
+function dedupe(flags: Flag[]): Flag[] {
+  return flags.filter((f, i) => flags.findIndex((g) => g.message === f.message) === i);
 }
 
 function pick(data: FormData, ids: string[]): FormData {

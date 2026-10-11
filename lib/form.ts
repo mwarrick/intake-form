@@ -27,6 +27,8 @@ export interface Field {
   showWhen?: Condition;
   requiredWhen?: Condition;
   explainWhen?: string;
+  /** Asked on the online form only; there is no place for it on the paper form, so the reader skips it. */
+  notOnPaper?: boolean;
   // "must_be_yes" | "review_if_yes" for yes_no fields, or option -> "exclusion" for multi_choice
   eligibility?: string | Record<string, string>;
 }
@@ -55,6 +57,8 @@ export const staffSection = schema.sections.find((s) => s.staffOnly)!;
 
 export const allFields: Field[] = schema.sections.flatMap((s) => s.fields);
 export const referrerFields: Field[] = referrerSections.flatMap((s) => s.fields);
+/** Fields printed on the paper form, i.e. what the scan reader looks for. */
+export const paperFields: Field[] = referrerFields.filter((f) => !f.notOnPaper);
 export const staffFields: Field[] = staffSection.fields;
 export const fieldsById = new Map(allFields.map((f) => [f.id, f]));
 

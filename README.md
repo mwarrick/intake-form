@@ -27,6 +27,8 @@ The defaults are model names whose tier is clear. Swap in any vision-capable mod
 
 ## Layout
 
+- `docs/REQUIREMENTS.md`: the requirements, with the status of each (built, in progress, planned, deferred).
+
 - `schema/referral-form.json`: the one field list. It drives the extraction schema, the portal form, the review screen and validation.
 - `supabase/migrations/`: `0001` creates tables `ILLINTAKE_referrals` and `ILLINTAKE_documents` and the private storage bucket `illintake-files`. `0002` adds the `draft` status for portal pre-fill. `0003` adds `ILLINTAKE_supporting_docs` (what was read from each supporting document) and `doc_flags` on referrals.
 - `lib/extract.ts`: the OpenAI pipeline. `lib/validate.ts`: rules and flags. `lib/process.ts`: runs a scan through the pipeline.

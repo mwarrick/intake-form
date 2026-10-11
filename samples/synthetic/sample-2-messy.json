@@ -1,0 +1,63 @@
+{
+  "about": "Messier writing, wound and diabetes follow-ups, a crossed-out answer, and a DOB that reads either way round.",
+  "form_pages": [
+    2
+  ],
+  "expected": {
+    "referring_hospital": "St. Jude Medical Ctr",
+    "dept_floor": "3 North",
+    "referrer_name": "K. Nguyen RN CM",
+    "referrer_phone": "(714) 555-0118 x204",
+    "referrer_email": "knguyen@stjude.test",
+    "nursing_station_phone": null,
+    "authorized_by": null,
+    "authorized_by_phone": null,
+    "patient_name": "Tamara Ellis",
+    "mrn": "SJ-0093381",
+    "dob": "1965-04-07",
+    "gender": "Female",
+    "ethnicity": "Black",
+    "ssn_last4": "0397",
+    "insurance": "Medi-Cal",
+    "preferred_language": "English",
+    "housing_situation": [
+      "Currently Unhoused",
+      "4+ episodes of homelessness in the past 3 years"
+    ],
+    "chief_complaint": "LLE cellulitis s/p I&D, DM2 uncontrolled",
+    "admit_date": "2026-10-02",
+    "wounds": "Yes",
+    "wounds_detail": "1 wound L lower leg 4x3cm, stage 2, packed daily",
+    "independent_wound_care": "No",
+    "home_health_ordered": "Yes",
+    "tb_test_done": "Yes",
+    "tb_test_date": "2026-10-03",
+    "tb_test_results": "PPD neg",
+    "o2": "No",
+    "o2_explain": null,
+    "self_admin_meds": "Yes",
+    "continent": "Yes",
+    "ostomy": "No",
+    "foley": "No",
+    "diabetes": "Yes",
+    "insulin": "Yes",
+    "diabetes_oral_meds": "Yes",
+    "active_infection": "No",
+    "active_infection_explain": null,
+    "ambulatory": "Yes",
+    "assistive_device": "Yes",
+    "assistive_device_explain": "front wheel walker",
+    "hospice": "No",
+    "hospice_explain": null,
+    "car": "No",
+    "service_animal": "No",
+    "has_limitations": "Yes",
+    "behavioral_flags": [
+      "Mental Health DX",
+      "Forgetful"
+    ],
+    "mental_health_dx_type": "Depression, stable on meds",
+    "behavioral_explain": null,
+    "los_authorized_days": 21
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "form": "Illumination Recuperative Care Referral Form",
+  "formCode": "RC0725-SH",
+  "page": 2,
+  "sections": [
+    {
+      "id": "referring_party",
+      "label": "Referring Party",
+      "fields": [
+        { "id": "referring_hospital", "label": "Referring Hospital", "type": "text", "required": true },
+        { "id": "dept_floor", "label": "Dept/Floor", "type": "text" },
+        { "id": "referrer_name", "label": "SW/CM/RN", "type": "text", "required": true },
+        { "id": "referrer_phone", "label": "Phone/Pager #", "type": "phone", "required": true },
+        { "id": "referrer_email", "label": "Email", "type": "email" },
+        { "id": "nursing_station_phone", "label": "Nursing Station #", "type": "phone" },
+        { "id": "authorized_by", "label": "Authorized by", "type": "text" },
+        { "id": "authorized_by_phone", "label": "Phone #", "type": "phone" }
+      ]
+    },
+    {
+      "id": "patient",
+      "label": "Patient Information",
+      "phi": true,
+      "fields": [
+        { "id": "patient_name", "label": "Patient Name", "type": "text", "required": true },
+        { "id": "mrn", "label": "MRN", "type": "text", "required": true },
+        { "id": "dob", "label": "Date of Birth", "type": "date", "required": true,
+          "note": "Form prints 'dd/mm/yyy'; US hospitals usually write mm/dd/yyyy. Flag any date where day and month are both <= 12." },
+        { "id": "gender", "label": "Gender", "type": "single_choice", "options": ["Male", "Female", "Transgender", "Other"] },
+        { "id": "ethnicity", "label": "Ethnicity", "type": "text" },
+        { "id": "ssn_last4", "label": "Last 4 of SSN", "type": "text", "pattern": "^\\d{4}$" },
+        { "id": "insurance", "label": "Insurance", "type": "text" },
+        { "id": "preferred_language", "label": "Preferred Language", "type": "text" },
+        { "id": "housing_situation", "label": "Housing Situation", "type": "multi_choice",
+          "options": ["Currently Unhoused", "4+ episodes of homelessness in the past 3 years"] }
+      ]
+    },
+    {
+      "id": "admission",
+      "label": "Hospital Admission Details",
+      "phi": true,
+      "fields": [
+        { "id": "chief_complaint", "label": "Chief Complaint / Admitting Diagnosis", "type": "longtext", "required": true },
+        { "id": "admit_date", "label": "Admit Date", "type": "date", "required": true },
+        { "id": "wounds", "label": "Any Wounds?", "type": "yes_no" },
+        { "id": "wounds_detail", "label": "Number, location, size and stage", "type": "longtext",
+          "requiredWhen": { "wounds": "Yes" } },
+        { "id": "independent_wound_care", "label": "Independent with Wound Care?", "type": "yes_no",
+          "showWhen": { "wounds": "Yes" } },
+        { "id": "home_health_ordered", "label": "If no, will Home Health be ordered?", "type": "yes_no",
+          "requiredWhen": { "independent_wound_care": "No" } },
+        { "id": "tb_test_done", "label": "PPD/TB Test or Chest X-Ray Performed?", "type": "yes_no" },
+        { "id": "tb_test_date", "label": "TB test date", "type": "date", "requiredWhen": { "tb_test_done": "Yes" } },
+        { "id": "tb_test_results", "label": "TB test results", "type": "text", "requiredWhen": { "tb_test_done": "Yes" } }
+      ]
+    },
+    {
+      "id": "health_history",
+      "label": "History of Health & Living Situation",
+      "phi": true,
+      "instructions": "On paper, the referrer circles Y or N. An asterisk means an explanation is required for that answer.",
+      "fields": [
+        { "id": "o2", "label": "O2", "type": "yes_no", "explainWhen": "Yes" },
+        { "id": "o2_explain", "label": "O2 explanation", "type": "text", "requiredWhen": { "o2": "Yes" } },
+        { "id": "self_admin_meds", "label": "Self Administer All Meds", "type": "yes_no", "explainWhen": "No", "eligibility": "must_be_yes" },
+        { "id": "continent", "label": "Continent of Bowel & Bladder", "type": "yes_no" },
+        { "id": "ostomy", "label": "Colostomy/Ileostomy", "type": "yes_no" },
+        { "id": "foley", "label": "Foley Catheter", "type": "yes_no" },
+        { "id": "diabetes", "label": "Diabetes", "type": "yes_no" },
+        { "id": "insulin", "label": "Insulin", "type": "yes_no", "showWhen": { "diabetes": "Yes" } },
+        { "id": "diabetes_oral_meds", "label": "Diabetes-related Oral Meds", "type": "yes_no", "showWhen": { "diabetes": "Yes" } },
+        { "id": "active_infection", "label": "Active Infection", "type": "yes_no", "explainWhen": "Yes", "eligibility": "review_if_yes" },
+        { "id": "active_infection_explain", "label": "Active infection explanation", "type": "text", "requiredWhen": { "active_infection": "Yes" } },
+        { "id": "ambulatory", "label": "Ambulatory", "type": "yes_no", "eligibility": "must_be_yes" },
+        { "id": "assistive_device", "label": "Assistive Device", "type": "yes_no", "explainWhen": "Yes" },
+        { "id": "assistive_device_explain", "label": "Assistive device explanation", "type": "text", "requiredWhen": { "assistive_device": "Yes" } },
+        { "id": "hospice", "label": "Hospice", "type": "yes_no", "explainWhen": "Yes" },
+        { "id": "hospice_explain", "label": "Hospice explanation", "type": "text", "requiredWhen": { "hospice": "Yes" } },
+        { "id": "car", "label": "Car", "type": "yes_no" },
+        { "id": "service_animal", "label": "Service Animal", "type": "yes_no" }
+      ]
+    },
+    {
+      "id": "behavioral",
+      "label": "Behavioral and Mental Health Status",
+      "phi": true,
+      "fields": [
+        { "id": "has_limitations", "label": "Any limitations, behavioral or mental health challenges?", "type": "yes_no" },
+        { "id": "behavioral_flags", "label": "Check all that apply", "type": "multi_choice",
+          "showWhen": { "has_limitations": "Yes" },
+          "options": ["Mental Health DX", "Non-compliant", "Forgetful", "Cognitive Impairment", "Registered Sex Offender", "Other"],
+          "eligibility": { "Cognitive Impairment": "exclusion", "Registered Sex Offender": "exclusion" } },
+        { "id": "mental_health_dx_type", "label": "Mental Health DX type", "type": "text",
+          "requiredWhen": { "behavioral_flags": "Mental Health DX" } },
+        { "id": "behavioral_explain", "label": "Explain", "type": "longtext" }
+      ]
+    },
+    {
+      "id": "los",
+      "label": "Length of Stay",
+      "fields": [
+        { "id": "los_authorized_days", "label": "Length of Stay Authorized in Recuperative Care (days)", "type": "integer" }
+      ]
+    },
+    {
+      "id": "staff_only",
+      "label": "Illumination Staff Only",
+      "staffOnly": true,
+      "fields": [
+        { "id": "date_received", "label": "Date Received", "type": "date" },
+        { "id": "reviewed_by", "label": "Reviewed by", "type": "text" },
+        { "id": "approved", "label": "Approved", "type": "yes_no" },
+        { "id": "approval_date", "label": "Approval Date", "type": "date", "requiredWhen": { "approved": "Yes" } },
+        { "id": "authorization_number", "label": "Authorization #", "type": "text", "requiredWhen": { "approved": "Yes" } },
+        { "id": "denial_reason", "label": "Reason for Denial", "type": "longtext", "requiredWhen": { "approved": "No" } },
+        { "id": "admission_date", "label": "Admission Date", "type": "date" },
+        { "id": "admission_time", "label": "Admission Time", "type": "time" },
+        { "id": "exit_date", "label": "Exit Date", "type": "date" },
+        { "id": "extension_requested", "label": "Extension Request", "type": "yes_no" },
+        { "id": "extension_approval_date", "label": "Additional Approval Date", "type": "date", "requiredWhen": { "extension_requested": "Yes" } },
+        { "id": "extension_approved_by", "label": "Extension approved by", "type": "text" },
+        { "id": "total_los", "label": "Total LOS", "type": "integer" }
+      ]
+    }
+  ],
+  "attachments": {
+    "label": "Referral Checklist",
+    "items": [
+      "Client's Demographic Page",
+      "CalOptima Form/LOA/AUTH",
+      "H&P (History and Physical)",
+      "Current Progress Notes (if needed)",
+      "Updated Vitals (last 24 hours)",
+      "Medication List",
+      "PT/OT or Nursing Notes",
+      "Blood or Wound Culture (if needed)",
+      "30-day supply of all medications"
+    ]
+  }
+}

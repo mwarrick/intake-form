@@ -1,5 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { removeSupportingDoc } from "@/app/actions";
 import { AddDocuments } from "@/components/AddDocuments";
 import { type DocData, type DocField, type DocTable, type SupportingDoc, docTypesById } from "@/lib/documents";
 import type { Flag } from "@/lib/validate";
@@ -48,7 +51,7 @@ export function DocumentsPanel({ docs, flags, fileUrls, referralId }: Props) {
       {docs.length > 0 && (
         <div className="divide-y divide-slate-100">
           {docs.map((d) => (
-            <DocCard key={d.id} doc={d} url={d.document_id ? fileUrls.get(d.document_id) : undefined} />
+            <DocCard key={d.id} doc={d} url={d.document_id ? fileUrls.get(d.document_id) : undefined} referralId={referralId} />
           ))}
         </div>
       )}
@@ -56,8 +59,23 @@ export function DocumentsPanel({ docs, flags, fileUrls, referralId }: Props) {
   );
 }
 
-function DocCard({ doc, url }: { doc: SupportingDoc; url?: string }) {
+function DocCard({ doc, url, referralId }: { doc: SupportingDoc; url?: string; referralId?: string }) {
+  const router = useRouter();
+  const [removing, setRemoving] = useState(false);
   const type = docTypesById.get(doc.doc_type);
+
+  async function remove() {
+    const what = doc.document_id ? "Remove this document and delete its uploaded file?" : "Remove this document? The fax pages stay with the scan.";
+    if (!referralId || !window.confirm(what)) return;
+    setRemoving(true);
+    const res = await removeSupportingDoc(referralId, doc.id);
+    if ("error" in res) {
+      window.alert(res.error);
+      setRemoving(false);
+      return;
+    }
+    router.refresh();
+  }
   const where = doc.pages?.length
     ? `Fax page${doc.pages.length > 1 ? "s" : ""} ${doc.pages.join(", ")}`
     : "Uploaded attachment";
@@ -69,11 +87,25 @@ function DocCard({ doc, url }: { doc: SupportingDoc; url?: string }) {
         <span className="text-xs text-slate-500">{where}</span>
         {doc.status === "processing" && <span className="rounded bg-sky-100 px-1.5 py-0.5 text-xs text-sky-800">Reading…</span>}
         {doc.status === "failed" && <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-800">Couldn’t read</span>}
-        {url && (
-          <a href={url} target="_blank" rel="noreferrer" className="ml-auto text-xs text-brand-700 hover:underline" onClick={(e) => e.stopPropagation()}>
-            Open
-          </a>
-        )}
+        <span className="ml-auto flex items-center gap-3">
+          {url && (
+            <a href={url} target="_blank" rel="noreferrer" className="text-xs text-brand-700 hover:underline" onClick={(e) => e.stopPropagation()}>
+              Open
+            </a>
+          )}
+          {referralId && (
+            <button
+              className="text-xs text-slate-500 hover:text-red-700"
+              disabled={removing}
+              onClick={(e) => {
+                e.preventDefault();
+                remove();
+              }}
+            >
+              {removing ? "Removing…" : "Remove"}
+            </button>
+          )}
+        </span>
       </summary>
       {doc.status === "failed" && doc.error && <p className="mt-1 font-mono text-xs text-red-700">{doc.error}</p>}
       {doc.status === "done" && doc.data && type && <DocDetails data={doc.data} fields={type.fields} tables={type.tables ?? []} />}

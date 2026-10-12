@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DeleteReferral } from "@/components/DeleteReferral";
 import { StatusBadge } from "@/components/StatusBadge";
 import { rereadThreshold } from "@/lib/extract";
 import { requireUser } from "@/lib/auth";
@@ -10,10 +11,12 @@ export const dynamic = "force-dynamic";
 
 export default async function ReferralPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireUser(`/referrals/${id}`);
+  const user = await requireUser(`/referrals/${id}`);
   const found = await getReferral(id);
   if (!found) notFound();
   const { referral, documents, supporting } = found;
+  // A referral with a decision recorded is kept unless an admin deletes it.
+  const canDelete = user.role === "admin" || !["approved", "denied"].includes(referral.status);
 
   return (
     <div className="space-y-4">
@@ -26,6 +29,11 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
         <span className="text-sm text-slate-500">
           {referral.source === "scan" ? "Fax/scan" : "Online"} · received {new Date(referral.created_at).toLocaleString()}
         </span>
+        {canDelete && (
+          <span className="ml-auto">
+            <DeleteReferral id={referral.id} />
+          </span>
+        )}
       </div>
       <ReviewClient
         key={referral.updated_at}

@@ -7,7 +7,7 @@ There are two ways in, and both land in the same coordinator queue:
 1. **Paper/fax reader (`/upload`).** Upload a faxed referral packet (PDF or photo). The app picks out the referral form page, reads the handwriting with OpenAI models, and flags anything uncertain. A coordinator then checks the fields side by side with the scan.
 2. **Online referral portal (`/refer`).** Hospital SW/CM/RN staff fill out the same form on the web and attach supporting documents. A referrer who already filled out the paper form can **upload a scan of it to pre-fill the online form**. The same reader fills in the fields and highlights the ones that were hard to read, disputed or ambiguous. The referrer checks them against their original and confirms before submitting. Until then the referral is a `draft` and stays out of the queue. The coordinator sees the scan beside the fields, plus a list of fields the referrer corrected.
 
-The **queue** (`/referrals`) lists every referral. Each referral's page has the review screen and the Illumination Staff Only decision box.
+The **queue** (`/referrals`) lists every referral. Each referral's page has the review screen and the Illumination Staff Only decision box. On a faxed referral, clicking a field zooms the scan to that spot on the form and outlines it; the − / + buttons zoom out and in, and the percentage button goes back to fitting the page width.
 
 ## How the reader works
 
@@ -35,6 +35,7 @@ The defaults are model names whose tier is clear. Swap in any vision-capable mod
 - `lib/extract.ts`: the OpenAI pipeline. `lib/validate.ts`: rules and flags. `lib/process.ts`: runs a scan through the pipeline.
 - `app/`: pages (`/upload`, `/refer`, `/referrals`, `/referrals/[id]`), server actions, and the processing route.
 - `scripts/make_samples.py`: generates fake hand-filled, faxed forms with answer keys in `samples/synthetic/`.
+- `scripts/make_regions.py`: writes `schema/field-regions.json`, where each field sits on the paper form, from the blank form PDF's field boxes. The review screen uses it to zoom to a field. Re-run it if the form layout changes.
 - `scripts/make_documents.py`: generates fake supporting documents for the same three patients in `samples/synthetic/documents/`, with answer keys and the flags they should raise. Each patient gets typed printouts plus handwritten versions of the vitals flowsheet, nursing mobility assessment, authorization request, and a medication list with handwritten corrections. Patient 2's culture shows MRSA although the form says no infection, their authorization is short, and their vitals are 32 hours old. Patient 3 has IV antibiotics, dementia, walks only 40 ft, a pending authorization, and an MRN typo.
 - `test/`: unit tests, plus `eval.test.ts`, which scores the real pipeline against the sample answer keys.
 

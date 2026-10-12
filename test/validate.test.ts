@@ -56,6 +56,14 @@ describe("validate", () => {
     expect(kinds(flags, "dob")).toEqual(["ambiguous"]);
     expect(kinds(flags, "patient_name")).toEqual(["disagreement"]);
   });
+
+  it("highlights an answer that was crossed out, however confident the reading", () => {
+    const flags = validate({ ...complete(), active_infection: "No" }, {
+      confidenceThreshold: 0.75,
+      extraction: { active_infection: { confidence: 0.95, raw: "Yes scribbled out; No circled", model: "m", corrected: true } },
+    });
+    expect(kinds(flags, "active_infection")).toEqual(["ambiguous"]);
+  });
 });
 
 describe("form helpers", () => {

@@ -75,6 +75,14 @@ describe("crossCheck against the sample answer keys", () => {
     }
   });
 
+  it("judges vitals age by the newest vitals when updated ones arrive later", () => {
+    const fresh = doc("vitals", { patient_name: "ELLIS, TAMARA", taken_at: "2026-10-10T12:00" });
+    const before = crossCheck(form("sample-2-messy"), READS["sample-2-messy"], "2026-10-10T14:20");
+    const after = crossCheck(form("sample-2-messy"), [...READS["sample-2-messy"], { ...fresh, id: "vitals-2" }], "2026-10-10T14:20");
+    expect(before.some((f) => f.message.startsWith("Vitals are"))).toBe(true);
+    expect(after.some((f) => f.message.startsWith("Vitals are"))).toBe(false);
+  });
+
   it("explains a DOB that is the form's with day and month swapped", () => {
     const flags = crossCheck({ ...form("sample-2-messy"), dob: "1965-07-04" }, READS["sample-2-messy"], "2026-10-10T14:20");
     expect(flags.find((f) => f.field === "dob")?.message).toContain("day and month swapped");

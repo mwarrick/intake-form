@@ -77,7 +77,7 @@ export function ReviewClient({ referral, documents, supporting, threshold }: Pro
         {!processing && referral.status !== "failed" && (
           <>
             <PipelineSummary referral={referral} />
-            <DocumentsPanel docs={supporting} flags={referral.doc_flags ?? []} fileUrls={fileUrls} />
+            <DocumentsPanel docs={supporting} flags={referral.doc_flags ?? []} fileUrls={fileUrls} referralId={referral.id} />
             <FieldsEditor
               referral={referral}
               threshold={threshold}

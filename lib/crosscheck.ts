@@ -28,6 +28,10 @@ export function crossCheck(data: FormData, docs: SupportingDoc[], receivedAt: st
     else add("document", `Not received (if needed): ${name}`);
   }
 
+  const vitals = read.filter((d) => d.doc_type === "vitals");
+  const takenAt = (d: SupportingDoc) => Date.parse(str((d.data as DocData).taken_at) ?? "") || -Infinity;
+  const newestVitals = vitals.reduce<SupportingDoc | undefined>((a, b) => (!a || takenAt(b) > takenAt(a) ? b : a), undefined);
+
   for (const doc of read) {
     const d = doc.data as DocData;
     const src = label(doc);
@@ -102,8 +106,8 @@ export function crossCheck(data: FormData, docs: SupportingDoc[], receivedAt: st
       }
     }
 
-    // Vitals within 24 hours of the referral.
-    if (doc.doc_type === "vitals") {
+    // Vitals within 24 hours of the referral. Only the newest set counts: updated vitals often arrive later.
+    if (doc.doc_type === "vitals" && doc === newestVitals) {
       const taken = str(d.taken_at);
       const hours = taken ? (Date.parse(receivedAt) - Date.parse(taken)) / 3_600_000 : NaN;
       if (!taken) add("document", "Vitals: no date/time found");

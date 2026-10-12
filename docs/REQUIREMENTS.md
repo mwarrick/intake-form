@@ -56,6 +56,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 
 | ID | Requirement | Status |
 |---|---|---|
+| D-0 | Staff can add supporting documents to an existing referral (Add documents on the review screen), one or several files at a time. Each file is identified automatically unless a checklist item is chosen, then read and cross-checked. | ✅ |
 | D-1 | Each checklist document has its own field list (`lib/documents.ts`): face sheet, CalOptima authorization, H&P, progress notes, vitals, medication list, PT/OT/nursing notes, culture. | ✅ |
 | D-2 | Documents are read whether attached online or found in a faxed packet. PDFs go to the model as files; images as images. | ✅ |
 | D-3 | Documents are checked against the form and the admission criteria in plain code (`lib/crosscheck.ts`), with no model involved:<br>• same patient (name, DOB including day/month swaps, MRN)<br>• active infection not cleared (e.g. MRSA on a culture while the form says none)<br>• cognitive impairment and not alert and oriented x4<br>• not medically stable<br>• walking distance under 100 ft, can't transfer independently, not independent with ADLs<br>• assistive device, oxygen or insulin contradicting the form<br>• IV medications<br>• vitals older than 24 hours<br>• authorization not approved, missing number, fewer days than requested, or expired<br>• required checklist documents missing; "if needed" items (progress notes, culture) listed as not received, and a culture counts as missing when the form reports an active infection or wound | ✅ |

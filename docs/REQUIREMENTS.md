@@ -99,7 +99,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 
 | ID | Requirement | Status |
 |---|---|---|
-| M-1 | OpenAI, with the model for each step set by an environment variable: `OPENAI_MODEL_CLASSIFY`, `OPENAI_MODEL_EXTRACT`, `OPENAI_MODEL_REREAD`, `OPENAI_MODEL_DOCS`. Defaults are cheap models for sorting pages and reading, and a stronger one only for re-reading uncertain fields and, always, patient name, MRN and date of birth. | ✅ |
+| M-1 | OpenAI, with the model for each step set by an environment variable: `OPENAI_MODEL_CLASSIFY`, `OPENAI_MODEL_EXTRACT`, `OPENAI_MODEL_REREAD`, `OPENAI_MODEL_DOCS`. Defaults are cheap models for sorting pages and reading, and a stronger one only for re-reading uncertain fields and, always, patient name, MRN and date of birth. Answers crossed out or changed on the paper are re-read and always highlighted. | ✅ |
 | M-2 | Token use and time are recorded for every read and shown on the review screen. | ✅ |
 | M-3 | Eligibility rules and checks are plain code, not a model, so they behave the same way every time. | ✅ |
 

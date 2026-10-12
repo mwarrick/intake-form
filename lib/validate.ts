@@ -24,6 +24,8 @@ export interface FieldExtraction {
   model: string;
   // set when a second model re-read the field and disagreed with the first pass
   firstPass?: { value: unknown; confidence: number; model: string };
+  /** An answer was crossed out or changed on the paper; always checked by a person. */
+  corrected?: boolean;
 }
 
 export type Extraction = Record<string, FieldExtraction>;
@@ -119,6 +121,13 @@ export function validate(data: FormData, opts: ValidateOptions = {}): Flag[] {
           kind: "ambiguous",
           field: f.id,
           message: `${f.label} "${ex.raw}" could be read as month/day or day/month`,
+        });
+      }
+      if (ex.corrected) {
+        flags.push({
+          kind: "ambiguous",
+          field: f.id,
+          message: `${f.label}: an answer was crossed out or changed on the form; check which one is final`,
         });
       }
       if (ex.firstPass) {

@@ -201,12 +201,14 @@ export async function saveReview(id: string, raw: Record<string, unknown>, confi
 
 async function updateReview(id: string, raw: Record<string, unknown>, confirm: boolean) {
   const supabase = db();
-  const { data: current, error: curErr } = await supabase.from(T.referrals).select("data, status, source").eq("id", id).single();
+  const { data: current, error: curErr } = await supabase.from(T.referrals).select("data, status, source, reviewed_at").eq("id", id).single();
   if (curErr) throw new Error(curErr.message);
 
   const data = { ...current.data, ...normalize(raw, referrerFields) };
+  // Saving after the fields were confirmed keeps them confirmed.
+  const checked = confirm || !!current.reviewed_at;
   // Once a person has checked the fields (coordinator confirming, or the referrer on the portal), the model's uncertainty no longer applies.
-  const extraction = confirm || current.source === "portal" ? undefined : await loadExtraction(id);
+  const extraction = checked || current.source === "portal" ? undefined : await loadExtraction(id);
   const flags = validate(data, { extraction, confidenceThreshold: rereadThreshold });
 
   const decided = current.status === "approved" || current.status === "denied";

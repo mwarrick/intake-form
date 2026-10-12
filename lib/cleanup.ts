@@ -30,7 +30,8 @@ async function listFiles(prefix: string): Promise<string[]> {
   }
 }
 
-async function removeFolder(folder: string): Promise<number> {
+/** Delete every file in a referral's storage folder. */
+export async function removeFolder(folder: string): Promise<number> {
   const files = await listFiles(folder);
   for (let i = 0; i < files.length; i += PAGE) {
     const { error } = await db().storage.from(BUCKET).remove(files.slice(i, i + PAGE));

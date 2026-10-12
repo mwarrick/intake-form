@@ -38,7 +38,8 @@ export async function renderPages(file: File, onProgress?: (done: number, total:
   if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
     pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-    const task = pdfjs.getDocument({ data: await file.arrayBuffer() });
+    // wasmUrl: fax pages are CCITT/JBIG2 images, which pdf.js decodes with WebAssembly.
+    const task = pdfjs.getDocument({ data: await file.arrayBuffer(), wasmUrl: "/pdfjs-wasm/" });
     const doc = await task.promise;
     const pages: Blob[] = [];
     for (let n = 1; n <= doc.numPages; n++) {

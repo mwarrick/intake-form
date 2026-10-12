@@ -1,6 +1,7 @@
 import { after, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { processScan } from "@/lib/process";
+import type { ReadProgress } from "@/lib/progress";
 import { T, db } from "@/lib/supabase";
 
 // Reading a multi-page fax with up to three model calls can take a minute or two.
@@ -21,10 +22,15 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
 
   await db()
     .from(T.referrals)
-    .update({ status: "processing", error: null, updated_at: new Date().toISOString() })
+    .update({
+      status: "processing",
+      error: null,
+      updated_at: new Date().toISOString(),
+      pipeline: { progress: { step: "start", startedAt: new Date().toISOString() } satisfies ReadProgress },
+    })
     .eq("id", id);
 
-  // Respond right away; the review page polls until status leaves "processing".
+  // Respond right away; the upload and review screens poll the status endpoint for progress.
   after(() => processScan(id));
   return NextResponse.json({ ok: true });
 }

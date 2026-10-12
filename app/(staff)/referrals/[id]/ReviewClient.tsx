@@ -4,9 +4,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { saveDecision, saveReview } from "@/app/actions";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
+import { ReadingProgress } from "@/components/ReadingProgress";
 import { FormSections } from "@/components/FormSections";
 import type { SupportingDoc } from "@/lib/documents";
 import { type FieldValue, type FormData, fieldRegions, referrerFields, referrerSections, staffFields, staffSection } from "@/lib/form";
+import type { ReadProgress, ReadStatus } from "@/lib/progress";
 import type { DocumentRow, Referral } from "@/lib/referrals";
 import { type Flag, fieldLabel, validate } from "@/lib/validate";
 
@@ -26,15 +28,17 @@ export function ReviewClient({ referral, documents, supporting, threshold }: Pro
   const awaitingDocs =
     referral.source === "portal" && justSubmitted && documents.some((d) => d.kind === "attachment") && !supporting.some((s) => s.document_id);
 
-  // Poll while the reader is working on the form or documents; refresh the page when something changes.
+  // Poll while the reader is working on the form or documents: show its progress, and refresh the page when something changes.
+  const [progress, setProgress] = useState<ReadProgress | null>(referral.pipeline?.progress ?? null);
   useEffect(() => {
     if (!processing && !docsPending && !awaitingDocs) return;
     const t = setInterval(async () => {
       const res = await fetch(`/api/referrals/${referral.id}/status`, { cache: "no-store" }).catch(() => null);
-      const body = res?.ok ? await res.json() : null;
+      const body: ReadStatus | null = res?.ok ? await res.json() : null;
       if (!body) return;
+      setProgress(body.progress);
       if (body.status !== referral.status || body.docsPending !== docsPending) router.refresh();
-    }, 3000);
+    }, processing ? 1500 : 3000);
     return () => clearInterval(t);
   }, [processing, docsPending, awaitingDocs, referral.id, referral.status, router]);
 
@@ -68,7 +72,7 @@ export function ReviewClient({ referral, documents, supporting, threshold }: Pro
       </div>
 
       <div className="space-y-4">
-        {processing && <ProcessingNotice />}
+        {processing && <ProcessingNotice progress={progress} pageCount={pages.length} />}
         {referral.status === "failed" && <FailedNotice id={referral.id} error={referral.error} />}
         {!processing && referral.status !== "failed" && (
           <>
@@ -275,14 +279,13 @@ function AttachmentList({ attachments }: { attachments: DocumentRow[] }) {
   );
 }
 
-function ProcessingNotice() {
+function ProcessingNotice({ progress, pageCount }: { progress: ReadProgress | null; pageCount: number }) {
+  // Mount time stands in until the reader has saved when it started.
+  const [mounted] = useState(() => Date.now());
   return (
-    <div className="card flex items-center gap-3 p-4">
-      <span className="size-3 animate-pulse rounded-full bg-sky-500" />
-      <div>
-        <p className="font-medium text-slate-800">Reading the form…</p>
-        <p className="text-sm text-slate-600">Finding the form page, reading fields, re-checking unclear ones. Usually under a minute.</p>
-      </div>
+    <div className="card p-4">
+      <p className="mb-3 font-medium text-slate-800">Reading the form…</p>
+      <ReadingProgress progress={progress} pageCount={pageCount} since={progress ? Date.parse(progress.startedAt) : mounted} />
     </div>
   );
 }

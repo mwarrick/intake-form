@@ -33,10 +33,11 @@ export function NavMenu({ entries }: { entries: NavEntry[] }) {
     };
   }, [open]);
 
-  const linkClass = (on: boolean) => `rounded px-2 py-1 hover:bg-slate-100 hover:text-brand-700 ${on ? "font-medium text-brand-700" : ""}`;
+  // Sits on the navy header: current page in the yellow accent.
+  const linkClass = (on: boolean) => `rounded px-2 py-1 hover:bg-white/10 hover:text-white ${on ? "font-semibold text-accent-400" : ""}`;
 
   return (
-    <div ref={ref} className="flex flex-wrap items-center gap-1 text-sm text-slate-600">
+    <div ref={ref} className="flex flex-wrap items-center gap-1 text-sm text-white/85">
       {entries.map((e) => {
         if (!("items" in e) || e.items.length === 1) {
           const item = "items" in e ? e.items[0] : e;

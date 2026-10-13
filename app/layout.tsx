@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { Archivo } from "next/font/google";
 import Link from "next/link";
 import { signOut } from "@/app/auth-actions";
 import { type NavEntry, NavMenu } from "@/components/NavMenu";
 import { type User, currentUser } from "@/lib/auth";
 import "./globals.css";
+
+const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Recuperative Care Intake",
@@ -13,32 +16,33 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   return (
-    <html lang="en">
+    <html lang="en" className={archivo.variable}>
       <body className="min-h-screen antialiased">
-        <header className="border-b border-slate-200 bg-white print:hidden">
+        <header className="bg-brand-900 text-white print:hidden">
           <nav className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-            <Link href="/" className="font-semibold text-brand-900">
-              Recuperative Care Intake
+            <Link href="/" className="flex items-center gap-3" aria-label="Recuperative Care Intake, home">
+              {/* eslint-disable-next-line @next/next/no-img-element -- static SVG logo */}
+              <img src="/brand/ihh-logo-light.svg" alt="Illumination Health + Home" width={168} height={28} className="h-7 w-auto" />
+              <span className="hidden border-l border-white/30 pl-3 text-sm font-medium text-white/90 sm:inline">Recuperative Care Intake</span>
             </Link>
             <NavMenu entries={menu(user)} />
             <div className="ml-auto flex flex-wrap items-center gap-3 text-sm">
-              <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                Demo · fake patient data only
-              </span>
+              <span className="rounded bg-accent-400 px-2 py-0.5 text-xs font-semibold text-brand-900">Demo · fake patient data only</span>
               {user ? (
                 <>
-                  <Link href="/account" className="text-slate-600 hover:text-brand-700">
+                  <Link href="/account" className="text-white/85 hover:text-accent-400">
                     {user.first_name} {user.last_name}
                   </Link>
                   <form action={signOut}>
-                    <button className="text-slate-500 hover:text-brand-700">Sign out</button>
+                    <button className="text-white/70 hover:text-accent-400">Sign out</button>
                   </form>
                 </>
               ) : (
-                <Link href="/login" className="text-slate-600 hover:text-brand-700">Staff sign in</Link>
+                <Link href="/login" className="text-white/85 hover:text-accent-400">Staff sign in</Link>
               )}
             </div>
           </nav>
+          <div className="h-1 bg-accent-400" />
         </header>
         <main className="mx-auto max-w-7xl px-4 py-6 print:p-0">{children}</main>
       </body>

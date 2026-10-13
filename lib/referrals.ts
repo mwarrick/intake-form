@@ -68,6 +68,21 @@ export async function listAdmissions(): Promise<Referral[]> {
   return (data as Referral[]).sort((a, b) => date(a).localeCompare(date(b)));
 }
 
+/** For each referral, whether a given checklist document was received: "done", "processing" or "failed" (read failed but received). */
+export async function docStatuses(referralIds: string[], docType: string): Promise<Map<string, SupportingDoc["status"]>> {
+  if (!referralIds.length) return new Map();
+  const { data, error } = await db().from(T.supporting).select("referral_id, status").eq("doc_type", docType).in("referral_id", referralIds);
+  if (error) throw new Error(error.message);
+  const rank = { done: 2, processing: 1, failed: 0 } as const;
+  const out = new Map<string, SupportingDoc["status"]>();
+  for (const r of data ?? []) {
+    const s = r.status as SupportingDoc["status"];
+    const prev = out.get(r.referral_id as string);
+    if (!prev || rank[s] > rank[prev]) out.set(r.referral_id as string, s);
+  }
+  return out;
+}
+
 export async function getReferral(
   id: string,
 ): Promise<{ referral: Referral; documents: DocumentRow[]; supporting: SupportingDoc[] } | null> {

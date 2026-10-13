@@ -20,12 +20,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               Recuperative Care Intake
             </Link>
             <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+              {user?.role === "admin" && <Link href="/dashboard" className="hover:text-brand-700">Dashboard</Link>}
+              {user && <Link href="/data-to-fix" className="hover:text-brand-700">Data to fix</Link>}
+              {user && <Link href="/admissions" className="hover:text-brand-700">Admissions</Link>}
+              {user && <Link href="/referrals" className="hover:text-brand-700">Referral queue</Link>}
               {user && <Link href="/upload" className="hover:text-brand-700">Upload scan</Link>}
               <Link href="/refer" className="hover:text-brand-700">Online referral</Link>
-              {user && <Link href="/referrals" className="hover:text-brand-700">Referral queue</Link>}
-              {user && <Link href="/admissions" className="hover:text-brand-700">Admissions</Link>}
-              {user && <Link href="/data-to-fix" className="hover:text-brand-700">Data to fix</Link>}
-              {user?.role === "admin" && <Link href="/dashboard" className="hover:text-brand-700">Dashboard</Link>}
               {user?.role === "admin" && <Link href="/admin/users" className="hover:text-brand-700">Users</Link>}
               <Link href="/how-it-works" className="hover:text-brand-700">How it works</Link>
             </div>

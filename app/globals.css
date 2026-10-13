@@ -1,18 +1,24 @@
 @import "tailwindcss";
 
+/* Illumination Health + Home's palette (illuminationhealthhome.org): blue #1A2187, navy #122640,
+   yellow #FACC0A, warm beige #EDE5DE; Archivo type. */
 @theme {
-  --color-brand-50: #eef7f6;
-  --color-brand-100: #d5ecea;
-  --color-brand-500: #2a8c84;
-  --color-brand-600: #1f726b;
-  --color-brand-700: #195b56;
-  --color-brand-900: #0f3532;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-brand-50: #eff0fa;
+  --color-brand-100: #dcdef4;
+  --color-brand-500: #3d44b5;
+  --color-brand-600: #1a2187;
+  --color-brand-700: #151b6e;
+  --color-brand-900: #122640;
+  --color-accent-300: #fde27a;
+  --color-accent-400: #facc0a;
+  --color-sand-50: #f8f5f2;
+  --color-sand-100: #ede5de;
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
-  background: #f6f7f8;
-  color: #1c2024;
+  background: var(--color-sand-50);
+  color: #122640;
 }
 
 @media print {

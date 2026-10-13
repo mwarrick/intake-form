@@ -16,9 +16,13 @@ export interface User {
   active: boolean;
   created_at: string;
   last_login_at: string | null;
+  /** Signed in with a temporary password an admin set; must choose their own before using the app. */
+  must_change_password: boolean;
 }
 
-export const USER_COLUMNS = "id, first_name, last_name, email, role, active, created_at, last_login_at";
+export const USER_COLUMNS = "id, first_name, last_name, email, role, active, created_at, last_login_at, must_change_password";
+/** Where someone with a temporary password is sent until they choose their own. */
+export const PASSWORD_CHANGE_PATH = "/account?required=1";
 const COOKIE = "illintake_session";
 const SESSION_HOURS = 12;
 
@@ -64,10 +68,14 @@ export const currentUser = cache(async (): Promise<User | null> => {
   return user as User;
 });
 
-/** For pages: send signed-out visitors to the login page. */
-export async function requireUser(next = "/referrals"): Promise<User> {
+/**
+ * For pages: send signed-out visitors to the login page, and anyone still on a temporary password
+ * to choose their own (the account page itself passes allowTemporaryPassword).
+ */
+export async function requireUser(next = "/referrals", opts: { allowTemporaryPassword?: boolean } = {}): Promise<User> {
   const user = await currentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(next)}`);
+  if (user.must_change_password && !opts.allowTemporaryPassword) redirect(PASSWORD_CHANGE_PATH);
   return user;
 }
 
@@ -77,10 +85,17 @@ export async function requireAdmin(): Promise<User> {
   return user;
 }
 
+/** For API routes: the signed-in user if they can use the app (not still on a temporary password), else null. */
+export async function apiUser(): Promise<User | null> {
+  const user = await currentUser();
+  return user && !user.must_change_password ? user : null;
+}
+
 /** For server actions and API routes, where a redirect isn't the right answer. */
 export async function staffOrThrow(role: Role = "user"): Promise<User> {
   const user = await currentUser();
   if (!user) throw new Error("Your session has ended. Please sign in again.");
+  if (user.must_change_password) throw new Error("Choose a new password on your Account page first.");
   if (role === "admin" && user.role !== "admin") throw new Error("Only admins can do that.");
   return user;
 }

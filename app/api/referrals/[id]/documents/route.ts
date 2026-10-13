@@ -1,6 +1,6 @@
 import { after, NextResponse } from "next/server";
 import { readAttachments, refreshDocFlags } from "@/lib/extract-docs";
-import { currentUser } from "@/lib/auth";
+import { apiUser } from "@/lib/auth";
 import { T, db } from "@/lib/supabase";
 
 // One model call per attachment, run in parallel.
@@ -14,7 +14,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
   // The public online form calls this right after submitting; anything else needs a signed-in user.
   // Reading is idempotent: only attachments not yet read are sent to the model.
-  if (data.source !== "portal" && !(await currentUser())) {
+  if (data.source !== "portal" && !(await apiUser())) {
     return NextResponse.json({ error: "Please sign in" }, { status: 401 });
   }
 

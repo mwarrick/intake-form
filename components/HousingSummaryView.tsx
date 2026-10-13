@@ -27,7 +27,10 @@ export function HousingSummaryView({ referral, supporting, assessment }: { refer
         <Link href={`/referrals/${id}/assessment`} className="text-slate-500 hover:text-brand-700">
           Edit assessment
         </Link>
-        <span className="ml-auto">
+        <span className="ml-auto flex items-center gap-3">
+          <Link href={`/referrals/${id}/housing-packet`} className={assessment.status === "complete" ? "btn-primary" : "btn-secondary"}>
+            Housing search packet
+          </Link>
           <PrintButton />
         </span>
       </div>

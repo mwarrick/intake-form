@@ -97,9 +97,10 @@ describe.runIf(process.env.MOCK_SQL === "1")("seed file", () => {
     ];
     for (const { p, data, docs, flags, docFlags, assessment } of built.values()) {
       const received = new Date(p.receivedAt).toISOString();
+      const decided = new Date(Date.parse(p.receivedAt) + p.decisionMinutes * 60_000).toISOString();
       lines.push(
-        `insert into "ILLINTAKE_referrals" (id, created_at, updated_at, source, status, patient_name, referring_hospital, data, flags, doc_flags, reviewed_at) values (` +
-          [q(p.id), q(received), q(received), q("portal"), q("approved"), q(data.patient_name as string), q(data.referring_hospital as string), json(data), json(flags), json(docFlags), q(received)].join(", ") +
+        `insert into "ILLINTAKE_referrals" (id, created_at, updated_at, source, status, patient_name, referring_hospital, data, flags, doc_flags, reviewed_at, decided_at) values (` +
+          [q(p.id), q(received), q(received), q("portal"), q("approved"), q(data.patient_name as string), q(data.referring_hospital as string), json(data), json(flags), json(docFlags), q(received), q(decided)].join(", ") +
           ");",
       );
       for (const d of docs) {

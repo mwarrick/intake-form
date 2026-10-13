@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Assessment } from "@/lib/assessment";
 import { requireUser } from "@/lib/auth";
 import { buildHandoff } from "@/lib/handoff";
+import { addDays, localDate } from "@/lib/metrics";
 import { type Referral, assessmentStatuses, listAdmissions } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +17,10 @@ export default async function Admissions() {
   const assessments = await assessmentStatuses(referrals.map((r) => r.id));
   const today = localDate(new Date());
   const date = (r: Referral) => (typeof r.data.admission_date === "string" ? r.data.admission_date : null);
+  // A stay has ended once its authorized days are up; those patients drop off both lists.
+  const ends = (r: Referral) => (date(r) && typeof r.data.los_authorized_days === "number" ? addDays(date(r)!, r.data.los_authorized_days) : null);
   const arriving = referrals.filter((r) => (date(r) ?? "9999") >= today);
-  const inCare = referrals.filter((r) => (date(r) ?? "9999") < today).reverse();
+  const inCare = referrals.filter((r) => (date(r) ?? "9999") < today && (ends(r) ?? "9999") > today).reverse();
 
   return (
     <div className="space-y-6">
@@ -126,11 +129,4 @@ function AdmissionTable({
       </div>
     </section>
   );
-}
-
-function localDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-function addDays(iso: string, days: number): string {
-  return new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }

@@ -5,7 +5,9 @@ import { cache } from "react";
 import { hashToken, newSessionToken } from "@/lib/password";
 import { T, db } from "@/lib/supabase";
 
-export type Role = "user" | "admin";
+import type { Role } from "@/lib/roles";
+
+export type { Role };
 
 export interface User {
   id: string;

@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { type Role, staffOrThrow } from "@/lib/auth";
 import { hashPassword, passwordProblem } from "@/lib/password";
+import { parseRole } from "@/lib/roles";
 import { T, db } from "@/lib/supabase";
 import { type ImportRow, parseStaffList } from "@/lib/user-import";
 import { friendlyDbError, readUserFields } from "@/lib/users";
 import type { FormState } from "./auth-actions";
 
 function readRole(form: FormData): Role {
-  return form.get("role") === "admin" ? "admin" : "user";
+  return parseRole(form.get("role"));
 }
 
 /** Add one user. With a password, it's temporary; without one, they choose their own at first sign-in with their email. */

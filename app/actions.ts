@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { assessmentGaps, normalizeAssessment } from "@/lib/assessment";
 import { rereadThreshold } from "@/lib/extract";
 import { type FormData, allFields, emptyData, normalize, referrerFields, schema, staffFields } from "@/lib/form";
 import { fullName, staffOrThrow } from "@/lib/auth";
@@ -336,4 +337,29 @@ async function updateDecision(id: string, raw: Record<string, unknown>, reviewer
   revalidatePath(`/referrals/${id}`);
   revalidatePath("/referrals");
   return { ok: true as const };
+}
+
+/** Save the Care Coordinator's Housing & Services Assessment; completing it needs every required answer. */
+export async function saveAssessment(referralId: string, raw: Record<string, unknown>, complete: boolean) {
+  return reported(async () => {
+    const me = await staffOrThrow();
+    const data = normalizeAssessment(raw);
+    if (!data.assessed_by) data.assessed_by = fullName(me);
+    if (complete) {
+      const gaps = assessmentGaps(data);
+      if (gaps.length) return { errors: gaps.map((g) => `Required: ${g}`) };
+    }
+    const now = new Date().toISOString();
+    const { error } = await db()
+      .from(T.assessments)
+      .upsert(
+        { referral_id: referralId, data, status: complete ? "complete" : "draft", updated_at: now, completed_at: complete ? now : null },
+        { onConflict: "referral_id" },
+      );
+    if (error) throw new Error(error.message);
+    revalidatePath(`/referrals/${referralId}/assessment`);
+    revalidatePath(`/referrals/${referralId}/handoff`);
+    revalidatePath("/admissions");
+    return { ok: true as const };
+  });
 }

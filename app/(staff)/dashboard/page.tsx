@@ -1,5 +1,6 @@
 import { DashboardView } from "@/components/DashboardView";
 import { requireAdmin } from "@/lib/auth";
+import { findDataIssues } from "@/lib/dataquality";
 import { addDays, computeMetrics, localDate } from "@/lib/metrics";
 import { loadMetricsData } from "@/lib/referrals";
 
@@ -14,5 +15,6 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const earliest = referrals.reduce((min, r) => (localDate(r.created_at) < min ? localDate(r.created_at) : min), today);
   const from = range === "all" ? earliest : addDays(today, -(range === "30" ? 29 : 89));
   const m = computeMetrics(referrals, assessments, docs, { from, to: today }, today);
-  return <DashboardView m={m} range={range === "30" || range === "all" ? range : "90"} />;
+  const { records } = findDataIssues(referrals, assessments, today);
+  return <DashboardView m={m} range={range === "30" || range === "all" ? range : "90"} toFix={records} />;
 }

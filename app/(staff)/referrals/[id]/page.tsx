@@ -29,11 +29,12 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
         <span className="text-sm text-slate-500">
           {referral.source === "scan" ? "Fax/scan" : "Online"} · received {new Date(referral.created_at).toLocaleString()}
         </span>
-        {canDelete && (
-          <span className="ml-auto">
-            <DeleteReferral id={referral.id} />
-          </span>
-        )}
+        <span className="ml-auto flex items-center gap-3">
+          <Link href={`/referrals/${referral.id}/handoff`} className={referral.status === "approved" ? "btn-primary" : "btn-secondary"}>
+            Admission summary
+          </Link>
+          {canDelete && <DeleteReferral id={referral.id} />}
+        </span>
       </div>
       <ReviewClient
         key={referral.updated_at}

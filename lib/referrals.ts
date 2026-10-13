@@ -1,6 +1,7 @@
 import "server-only";
 import type { FormData } from "@/lib/form";
 import type { Extraction, Flag } from "@/lib/validate";
+import type { Assessment } from "@/lib/assessment";
 import type { SupportingDoc } from "@/lib/documents";
 import type { PipelineResult } from "@/lib/extract";
 import { loadSupporting } from "@/lib/extract-docs";
@@ -51,6 +52,19 @@ export async function listReferrals(): Promise<Referral[]> {
   return data as Referral[];
 }
 
+/** Approved referrals, for the admissions list: soonest admission first, then those with no date set yet. */
+export async function listAdmissions(): Promise<Referral[]> {
+  const { data, error } = await db()
+    .from(T.referrals)
+    .select("id, created_at, updated_at, source, status, patient_name, referring_hospital, data, flags, doc_flags, reviewed_at")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  const date = (r: Referral) => (typeof r.data.admission_date === "string" ? r.data.admission_date : "9999");
+  return (data as Referral[]).sort((a, b) => date(a).localeCompare(date(b)));
+}
+
 export async function getReferral(
   id: string,
 ): Promise<{ referral: Referral; documents: DocumentRow[]; supporting: SupportingDoc[] } | null> {
@@ -69,6 +83,20 @@ export async function getReferral(
   const urls = await signedUrls((docs ?? []).map((d) => d.storage_path));
   const documents = (docs ?? []).map((d) => ({ ...d, url: urls.get(d.storage_path) })) as DocumentRow[];
   return { referral: referral as Referral, documents, supporting: await loadSupporting(id) };
+}
+
+export async function getAssessment(referralId: string): Promise<Assessment | null> {
+  const { data, error } = await db().from(T.assessments).select("*").eq("referral_id", referralId).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data as Assessment | null;
+}
+
+/** Assessment status for each referral, for lists. */
+export async function assessmentStatuses(referralIds: string[]): Promise<Map<string, Assessment["status"]>> {
+  if (!referralIds.length) return new Map();
+  const { data, error } = await db().from(T.assessments).select("referral_id, status").in("referral_id", referralIds);
+  if (error) throw new Error(error.message);
+  return new Map((data ?? []).map((r) => [r.referral_id as string, r.status as Assessment["status"]]));
 }
 
 export function summaryColumns(data: FormData) {

@@ -77,11 +77,24 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | Q-5 | The Illumination Staff Only section records the decision (approved/denied, auth #, denial reason, admission and extension details) and sets the status. | ✅ |
 | Q-6 | **Delete referral** on the review screen deletes a referral and every file uploaded for it (e.g. the wrong file or an unreadable scan) so it can be uploaded again. Approved or denied referrals can only be deleted by an admin. | ✅ |
 
+### 3.5a Admission handoff
+
+| ID | Requirement | Status |
+|---|---|---|
+| H-1 | An **Admission summary** for the nurse (LVN) who admits an approved patient (`/referrals/[id]/handoff`, built by `lib/handoff.ts` in plain code). It has: patient and stay header (arrival, referrer contact, insurance and member ID, authorization number, days approved vs. requested, authorized-through date); alerts, high first (active infection / contact precautions, possible allergy on a listed medication, oxygen, wound care not independent, no 30-day supply), then the rest (unclear or missing allergies, insulin, fall risk, ADL help, behavioral, Foley/ostomy, hospice); records that contradict the form; situation; hospital baseline (newest vitals and mobility note, orientation, TB); medications with handling notes (controlled, refrigerate, possible allergy) and a Received column for reconciliation; an arrival checklist; plans and recommendations for the care plan; and links to every source document. It prints on letter paper without the app header. | ✅ |
+| H-2 | The review screen links to the summary (highlighted once approved). An unapproved referral's summary shows as a preview. | ✅ |
+| H-3 | An **Admissions** page lists approved referrals in two tables: **Arriving** (soonest first, Today marker, high alerts) for the admitting nurse, and **In recuperative care** (days left on the authorization, red at 7 or fewer) for the Care Coordinator. Both show each patient's housing assessment status. Not restricted by role yet. | ✅ |
+| H-4 | Follow-up appointments, PCP and care team aren't captured; the summary says to get the discharge orders. Needs a discharge summary document type. | 📋 |
+| H-6 | A **Housing & Services Assessment** for the Care Coordinator during the stay (`/referrals/[id]/assessment`, fields in `lib/assessment.ts`, table `ILLINTAKE_assessments`), linked from the admission summary and the Admissions page. Questions follow the HUD HMIS data elements: veteran status, household, prior living situation, homeless history, disabling conditions, insurance and PCP, income and non-cash benefits, ID documents, housing goal, Coordinated Entry, barriers, services needed, client goals, HMIS consent and release of information. It is pre-filled from the referral and records (episodes of homelessness, insurance, phone, conditions from mobility, diabetes, mental health and the H&P's substance use). Drafts save with gaps; completing needs every required answer. | ✅ |
+| H-7 | A **Housing & Services Summary** (`/referrals/[id]/housing-summary`, built by `lib/housing.ts` in plain code) once the assessment exists: client and stay header with days left on the authorization; chronic homelessness determination (HUD definition, simplified) with the reason; HMIS readiness (consent, release, missing answers); homeless history, health, income and documents, housing; a service plan with a measurable goal, first step and target date for each need, adding needs the answers imply (no PCP, no income, missing ID, not in Coordinated Entry, home health). Items housing depends on are due before the stay ends; others in 30 days. Prints like the admission summary. | ✅ |
+| H-8 | A public **How it works** page (`/how-it-works`) describing each role (referrer, referral coordinator, Medical Coordinator LVN, Care Coordinator, admin): the pages they use, what they use and produce, and what happens outside the app; what information carries forward; links to the mock patients; and what isn't built. | ✅ |
+| H-5 | Recording arrival (time, nurse, checklist) in the app and an Admitted status. The checklist is on paper for now. | 📋 |
+
 ### 3.6 Staff accounts and sign-in
 
 | ID | Requirement | Status |
 |---|---|---|
-| A-1 | Staff accounts live in the `ILLINTAKE_users` table, not Supabase Auth. Fields: first name, last name, email (unique, case-insensitive), role (user or admin), active/inactive. | ✅ |
+| A-1 | Staff accounts live in the `ILLINTAKE_users` table, not Supabase Auth. Fields: first name, last name, email (unique, case-insensitive), role (user, clinical or admin), active/inactive. Clinical is for nursing staff such as the LVN medical coordinator who admits approved patients; for now it has the same access as user, ahead of the admission handoff. Imports accept `clinical`, `nurse`, `LVN` or `RN` in the role column. | ✅ |
 | A-2 | Passwords are stored only as salted scrypt hashes, which are one-way: they can't be decrypted even with database access. Minimum 8 characters. | ✅ |
 | A-3 | Signing in creates a 12-hour session: a random token in an HTTP-only cookie, with only its SHA-256 hash stored (`ILLINTAKE_sessions`). Every request re-checks that the user is still active. | ✅ |
 | A-4 | Sign-in is required for the referral queue, review screens, fax upload, My account and user admin, and for their server actions and APIs. The online referral form stays public for hospital referrers; its pre-fill and submit steps only touch the referrer's own draft. | ✅ |
@@ -94,7 +107,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 
 | ID | Requirement | Status |
 |---|---|---|
-| S-1 | Supabase (project supabase-cobalt-saddle). Every table is prefixed `ILLINTAKE_`: `referrals`, `documents`, `supporting_docs`, `users` and `sessions`. Migrations live in `supabase/migrations/` (0001–0005, all applied). | ✅ |
+| S-1 | Supabase (project supabase-cobalt-saddle). Every table is prefixed `ILLINTAKE_`: `referrals`, `documents`, `supporting_docs`, `users`, `sessions` and `assessments`. Migrations live in `supabase/migrations/` (0001–0007, all applied). | ✅ |
 | S-2 | Files are stored in the private bucket `illintake-files`, one folder per referral. The app opens them with signed links that expire after an hour. | ✅ |
 | S-3 | Uploads not attached to an intake record (unsubmitted pre-fill drafts, orphaned folders) are deleted daily once they're a day old. Fax scans and submitted referrals are never deleted. | ✅ |
 | S-4 | Only server code reads or writes data, using the service-role key. Row-level security blocks the public key. | ✅ |
@@ -115,6 +128,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | T-2 | Fake supporting documents for the same patients, with answer keys and the flags they should raise (`scripts/make_documents.py`). Typed printouts of all eight types, plus handwritten versions of the ones that often arrive filled in by hand: bedside vitals flowsheet, nursing mobility assessment, CalOptima authorization request, and a medication list with handwritten dose corrections and additions. | ✅ |
 | T-3 | Unit tests: validation (including crossed-out answers), conditional fields, strict-mode validity of the AI schemas, cleanup safety, the document checks against the answer keys (including "if needed" items and newest vitals), field positions on the form, passwords, and the staff list import. | ✅ |
 | T-4 | `npm run eval` scores the real models against the answer keys, including wrong answers the model was confident about, and saves the misses to `samples/eval-*.json`. It reads `OPENAI_API_KEY` from `.env.local` and needs `pdftoppm` (poppler). Latest run: form page found in all 3 samples, 146/147 fields correct, none confidently wrong (the one miss, sample 1's MRN, is highlighted for review); every expected document flag raised. | ✅ |
+| T-6 | Five fictional approved patients for the admission and housing workflow (`scripts/mock-patients.ts`): arriving today, tomorrow (controlled medication) and in two days (housing assessment in draft), and two mid-stay with completed assessments (one ready for HMIS, one missing consent). `npm run mock` checks them with the real validation and cross-checks and writes `supabase/seed/mock-patients.sql`, which replaces only those rows (fixed ids). Loaded in production. | ✅ |
 | T-5 | Sample 2 as a single 10-page faxed packet (`samples/synthetic/packets/sample-2-messy-packet.pdf`) and as separate files, the form alone plus one file per document (`samples/synthetic/packets/sample-2-messy-separate/`), for trying the whole flow and **Add documents**. | ✅ |
 
 ## 4. Deferred past the prototype
@@ -134,6 +148,6 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 
 - **Live use so far:** sample referrals have been uploaded to the live app and read. Real handwriting from actual faxes is still untested.
 - **Known reading weak spot:** handwriting that runs into printed text (e.g. a digit touching a label) can be misread with high confidence; patient identity fields are always re-read and highlighted when the two readings disagree, but other fields aren't.
-- **Test accounts:** 20 mock staff accounts (from `MOCK_DATA.csv`) exist in production with no password, so anyone who enters one of those emails can sign in. Remove or deactivate them before real referrals arrive.
+- **Test accounts:** 20 mock staff accounts (6 picked at random as clinical) (from `MOCK_DATA.csv`) exist in production with no password, so anyone who enters one of those emails can sign in. Remove or deactivate them before real referrals arrive.
 - **Real staff list:** import current staff from Illumination's HR or email admin rather than LinkedIn, and confirm the firstname+lastname email format matches their real addresses.
 - **Fillable PDF bug** to report to the form's owner: all 52 Yes/No boxes on page 2 are one field (`Check Box1`), so ticking one ticks all of them in a PDF reader.

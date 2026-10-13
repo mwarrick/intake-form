@@ -1,4 +1,4 @@
-import type { Role } from "@/lib/auth";
+import { type Role, parseRole } from "@/lib/roles";
 
 /** Staff emails are first and last name run together at this domain, e.g. danawhitfield@illuminationhealthhome.org. */
 export const STAFF_EMAIL_DOMAIN = "illuminationhealthhome.org";
@@ -79,7 +79,7 @@ export function parseStaffList(text: string): ParsedImport {
       continue;
     }
     seen.add(email);
-    const role: Role = /^admin(istrator)?$/i.test(cell(cols.role)) ? "admin" : "user";
+    const role: Role = parseRole(cell(cols.role));
     rows.push({ first_name: first, last_name: last, email, role, ...(generatedEmail ? { generatedEmail } : {}) });
   }
 

@@ -1,4 +1,5 @@
 import { fullName, requireUser } from "@/lib/auth";
+import { ROLE_LABELS } from "@/lib/roles";
 import { userHasPassword } from "@/lib/users";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 
@@ -12,7 +13,7 @@ export default async function AccountPage() {
       <div>
         <h1 className="text-xl font-semibold text-brand-900">My account</h1>
         <p className="text-sm text-slate-600">
-          {fullName(me)} · {me.email} · {me.role === "admin" ? "Admin" : "User"}
+          {fullName(me)} · {me.email} · {ROLE_LABELS[me.role]}
         </p>
       </div>
       {me.must_change_password && (

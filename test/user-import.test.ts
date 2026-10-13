@@ -22,6 +22,11 @@ describe("parseStaffList", () => {
     ]);
   });
 
+  it("reads clinical roles under their common names", () => {
+    const roles = parseStaffList("Ana,Ruiz,,LVN\nBo,Li,,nurse\nCy,Do,,Clinical\nDi,Ek,,staff").rows.map((r) => r.role);
+    expect(roles).toEqual(["clinical", "clinical", "clinical", "user"]);
+  });
+
   it("finds columns by header name in any order, and reads tab-separated rows without a header", () => {
     expect(parseStaffList("Email\tLast Name\tFirst Name\n\tWhitfield\tDana").rows[0]).toMatchObject({
       first_name: "Dana",

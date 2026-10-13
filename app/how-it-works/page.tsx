@@ -88,10 +88,28 @@ const ROLES: Role[] = [
     outside: "Works with landlords and property managers, enrolls clients in HMIS through CES, and logs every contact in the EHR within 24–48 hours.",
   },
   {
+    name: "Sr. Director of Services and Care Transitions",
+    who: "Senior RN leader over all Recuperative Care clinical staff and ECM; owns clinical standards, KPIs and quality improvement",
+    account: "Admin",
+    pages: [
+      {
+        label: "Dashboard",
+        href: "/dashboard",
+        what: "Totals across all referrals, no patient names: referrals per week, approval rate, the two-hour decision promise and its weekly trend, missing documents and conflicts by hospital, denial categories, admission criteria not met, acuity of approved patients, beds in use and stays ending, and housing assessment progress.",
+      },
+    ],
+    uses: "Every referral’s decision time and category, the cross-check flags, the nurse’s alerts and the housing assessments.",
+    produces: "Quality improvement priorities, staffing and capacity plans, reports to payers and partners.",
+    outside: "Supervises the RNs, LVNs and medical assistants; works with CalOptima and hospital partners on the measures.",
+  },
+  {
     name: "Admin",
     who: "Program lead or IT",
     account: "Admin",
-    pages: [{ label: "Users", href: "/admin/users", what: "Add or import staff, set roles (User, Clinical, Admin), reset passwords, deactivate accounts." }],
+    pages: [
+      { label: "Users", href: "/admin/users", what: "Add or import staff, set roles (User, Clinical, Admin), reset passwords, deactivate accounts." },
+      { label: "Dashboard", href: "/dashboard", what: "Only admins can open it for now." },
+    ],
     uses: "Staff list.",
     produces: "Accounts and roles. Only admins can delete a referral that has a decision.",
     outside: "",
@@ -107,6 +125,7 @@ const CARRIES = [
   ["Behavioral health, substance use, mobility", "Referral + H&P", "Pre-fills disabling conditions"],
   ["Homeless history, income, documents, goals, consent", "Housing assessment", "Housing summary, HMIS"],
   ["Housing goal, budget, barriers, unit needs, documents", "Assessment + nurse’s records", "Housing search packet"],
+  ["Decision times, denial categories, flags, alerts, assessments (totals)", "Every step above", "Program dashboard"],
 ];
 
 const DEMO = [
@@ -220,7 +239,8 @@ export default function HowItWorks() {
             <li>Discharge summary reading, for follow-up appointments and the PCP</li>
             <li>Recording the arrival and an Admitted status in the app</li>
             <li>Export to KIPU and HMIS; both are entered by hand today</li>
-            <li>Pages limited by role; every staff account sees everything for now</li>
+            <li>Pages limited by role; only the dashboard is restricted so far</li>
+            <li>Outcome measures: arrivals, exits and where people went, hospital returns, ECM enrollment</li>
           </ul>
         </section>
       </div>

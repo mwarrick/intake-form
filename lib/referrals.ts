@@ -5,6 +5,7 @@ import type { Assessment } from "@/lib/assessment";
 import type { SupportingDoc } from "@/lib/documents";
 import type { PipelineResult } from "@/lib/extract";
 import { loadSupporting } from "@/lib/extract-docs";
+import type { MetricReferral } from "@/lib/metrics";
 import { T, db, signedUrls } from "@/lib/supabase";
 
 export type Status = "draft" | "processing" | "needs_review" | "reviewed" | "approved" | "denied" | "failed";
@@ -25,6 +26,8 @@ export interface Referral {
   pipeline: Partial<PipelineResult["pipeline"]>;
   error: string | null;
   reviewed_at: string | null;
+  /** When the approve/deny decision was recorded; null for undecided referrals and decisions made before it was kept. */
+  decided_at: string | null;
 }
 
 export interface DocumentRow {
@@ -102,4 +105,26 @@ export async function assessmentStatuses(referralIds: string[]): Promise<Map<str
 export function summaryColumns(data: FormData) {
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
   return { patient_name: str(data.patient_name), referring_hospital: str(data.referring_hospital) };
+}
+
+/** Everything the program dashboard counts: referrals (no drafts), assessments, and medication lists for acuity. */
+export async function loadMetricsData(): Promise<{
+  referrals: MetricReferral[];
+  assessments: Pick<Assessment, "referral_id" | "status" | "data" | "completed_at">[];
+  docs: Map<string, SupportingDoc[]>;
+}> {
+  const [refs, asmts, meds] = await Promise.all([
+    db()
+      .from(T.referrals)
+      .select("id, created_at, status, source, referring_hospital, data, doc_flags, decided_at")
+      .not("status", "in", "(draft,processing)")
+      .order("created_at", { ascending: false })
+      .limit(5000),
+    db().from(T.assessments).select("referral_id, status, data, completed_at").limit(5000),
+    db().from(T.supporting).select("id, referral_id, doc_type, label, document_id, pages, status, data, error").eq("doc_type", "medications").eq("status", "done").limit(5000),
+  ]);
+  for (const r of [refs, asmts, meds]) if (r.error) throw new Error(r.error.message);
+  const docs = new Map<string, SupportingDoc[]>();
+  for (const d of meds.data ?? []) docs.set(d.referral_id, [...(docs.get(d.referral_id) ?? []), d as SupportingDoc]);
+  return { referrals: (refs.data ?? []) as MetricReferral[], assessments: asmts.data ?? [], docs };
 }

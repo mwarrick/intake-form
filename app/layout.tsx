@@ -24,6 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/refer" className="hover:text-brand-700">Online referral</Link>
               {user && <Link href="/referrals" className="hover:text-brand-700">Referral queue</Link>}
               {user && <Link href="/admissions" className="hover:text-brand-700">Admissions</Link>}
+              {user?.role === "admin" && <Link href="/dashboard" className="hover:text-brand-700">Dashboard</Link>}
               {user?.role === "admin" && <Link href="/admin/users" className="hover:text-brand-700">Users</Link>}
               <Link href="/how-it-works" className="hover:text-brand-700">How it works</Link>
             </div>

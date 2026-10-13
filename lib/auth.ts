@@ -81,8 +81,8 @@ export async function requireUser(next = "/referrals", opts: { allowTemporaryPas
   return user;
 }
 
-export async function requireAdmin(): Promise<User> {
-  const user = await requireUser("/admin/users");
+export async function requireAdmin(next = "/admin/users"): Promise<User> {
+  const user = await requireUser(next);
   if (user.role !== "admin") redirect("/referrals");
   return user;
 }

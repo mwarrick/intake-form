@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { addUser, editUser, resetUserPassword } from "@/app/admin-actions";
+import { addUser, clearUserPassword, editUser, resetUserPassword } from "@/app/admin-actions";
 import { Field, Message } from "@/app/login/forms";
-import type { User } from "@/lib/auth";
+import type { ListedUser as User } from "@/lib/users";
 import { ImportUsers } from "./ImportUsers";
 
 export function UsersAdmin({ users, meId }: { users: User[]; meId: string }) {
@@ -60,7 +60,9 @@ function UserRow({ user, isMe }: { user: User; isMe: boolean }) {
             {user.role === "admin" ? "Admin" : "User"}
           </span>
         </td>
-        <td className="px-4 py-2.5 text-xs">{user.active ? <span className="text-emerald-700">Active</span> : "Inactive"}</td>
+        <td className="px-4 py-2.5 text-xs">
+          {!user.active ? "Inactive" : user.has_password ? <span className="text-emerald-700">Active</span> : <span className="text-amber-700">Password not set</span>}
+        </td>
         <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-500">
           {user.last_login_at ? new Date(user.last_login_at).toLocaleString() : "Never"}
         </td>
@@ -75,7 +77,7 @@ function UserRow({ user, isMe }: { user: User; isMe: boolean }) {
           <td colSpan={6} className="bg-slate-50 px-4 py-4">
             <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
               <EditUser user={user} isMe={isMe} />
-              <ResetPassword user={user} />
+              <ResetPassword user={user} isMe={isMe} />
             </div>
           </td>
         </tr>
@@ -123,16 +125,36 @@ function EditUser({ user, isMe }: { user: User; isMe: boolean }) {
   );
 }
 
-function ResetPassword({ user }: { user: User }) {
+function ResetPassword({ user, isMe }: { user: User; isMe: boolean }) {
   const [state, action, pending] = useActionState(resetUserPassword, {});
+  const [cleared, clear, clearing] = useActionState(clearUserPassword, {});
+  if (isMe) return <p className="text-sm text-slate-600">Change your own password on your Account page.</p>;
   return (
-    <form action={action} className="space-y-3">
-      <input type="hidden" name="id" value={user.id} />
-      <Field label="New password" name="password" type="password" autoComplete="new-password" />
-      <p className="text-xs text-slate-500">Signs them out everywhere. Tell them the new password.</p>
-      <button className="btn-secondary" disabled={pending}>{pending ? "Resetting…" : "Reset password"}</button>
-      <Message state={state} />
-    </form>
+    <div className="space-y-4">
+      <form
+        action={clear}
+        className="space-y-2"
+        onSubmit={(e) => {
+          if (!window.confirm(`Clear ${user.first_name}'s password? They'll sign in with just their email and choose a new one.`)) e.preventDefault();
+        }}
+      >
+        <input type="hidden" name="id" value={user.id} />
+        <button className="btn-secondary" disabled={clearing}>
+          {clearing ? "Clearing…" : "Clear password"}
+        </button>
+        <p className="text-xs text-slate-500">
+          For a forgotten password: signs them out everywhere; they sign in with just their email and choose a new one.
+        </p>
+        <Message state={cleared} />
+      </form>
+      <form action={action} className="space-y-2 border-t border-slate-200 pt-3">
+        <input type="hidden" name="id" value={user.id} />
+        <Field label="Or set a temporary password" name="password" type="password" autoComplete="new-password" />
+        <p className="text-xs text-slate-500">Signs them out everywhere; they must choose their own at the next sign-in.</p>
+        <button className="btn-secondary" disabled={pending}>{pending ? "Resetting…" : "Set temporary password"}</button>
+        <Message state={state} />
+      </form>
+    </div>
   );
 }
 
@@ -146,8 +168,12 @@ function AddUser({ onDone }: { onDone: () => void }) {
         <Field label="Last name" name="last_name" />
         <Field label="Email" name="email" type="email" />
         <RoleSelect defaultValue="user" />
-        <Field label="Temporary password (8+ characters)" name="password" type="password" autoComplete="new-password" />
+        <Field label="Temporary password (optional)" name="password" type="password" autoComplete="new-password" required={false} />
       </div>
+      <p className="text-xs text-slate-500">
+        Leave the password blank and they sign in with just their email the first time and choose one. Either way they set
+        their own password at first sign-in.
+      </p>
       <div className="flex items-center gap-3">
         <button className="btn-primary" disabled={pending}>{pending ? "Adding…" : "Add user"}</button>
         <button type="button" className="btn-secondary" onClick={onDone}>Done</button>

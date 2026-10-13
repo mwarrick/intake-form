@@ -1,5 +1,5 @@
 import { after, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { apiUser } from "@/lib/auth";
 import { processScan } from "@/lib/process";
 import type { ReadProgress } from "@/lib/progress";
 import { T, db } from "@/lib/supabase";
@@ -13,7 +13,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
   // Faxed scans are staff-only; the public online form may only (re)read its own unsubmitted draft.
-  if (data.source === "scan" && !(await currentUser())) {
+  if (data.source === "scan" && !(await apiUser())) {
     return NextResponse.json({ error: "Please sign in" }, { status: 401 });
   }
   if (data.source === "portal" && !["processing", "draft"].includes(data.status)) {

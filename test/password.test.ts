@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hashPassword, hashToken, newSessionToken, passwordProblem, temporaryPassword, verifyPassword } from "@/lib/password";
+import { hashPassword, hashToken, newSessionToken, passwordProblem, verifyPassword } from "@/lib/password";
 
 describe("passwords", () => {
   it("hashes one-way with a random salt and verifies", async () => {
@@ -29,15 +29,5 @@ describe("passwords", () => {
     expect(hashToken(t)).toMatch(/^[0-9a-f]{64}$/);
     expect(hashToken(t)).toBe(hashToken(t));
     expect(newSessionToken()).not.toBe(t);
-  });
-});
-
-describe("temporary passwords", () => {
-  it("are random, readable and long enough", () => {
-    const pw = temporaryPassword();
-    expect(pw).toMatch(/^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/);
-    expect(pw).not.toMatch(/[01ilo]/);
-    expect(passwordProblem(pw)).toBeNull();
-    expect(new Set(Array.from({ length: 50 }, temporaryPassword)).size).toBe(50);
   });
 });

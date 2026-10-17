@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
+import { type SyntheticEvent, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { saveDecision, saveReview } from "@/app/actions";
 import { DeleteReferral } from "@/components/DeleteReferral";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
@@ -116,8 +116,15 @@ function ScanViewer({
   const formPage = pages.find((p) => formPages.includes(p.page_number ?? -1));
   const [current, setCurrent] = useState(formPage?.page_number ?? pages[0]?.page_number ?? 1);
   const [zoom, setZoom] = useState(1);
+  // Pages the coordinator turned to read a sideways scan, in degrees clockwise. Only the view turns, not the file.
+  const [turns, setTurns] = useState<Record<number, number>>({});
+  const turn = turns[current] ?? 0;
+  const setTurn = (pageNumber: number, degrees: number) => setTurns((t) => ({ ...t, [pageNumber]: degrees % 360 }));
+  // The page image's natural size, to lay out a quarter-turned page at the right height.
+  const [natural, setNatural] = useState<[number, number] | null>(null);
   const page = pages.find((p) => p.page_number === current);
   const scroller = useRef<HTMLDivElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
   const card = useRef<HTMLDivElement>(null);
   // Centre of the area to scroll to once the page has laid out at the new zoom, as fractions of the page.
   const pendingCenter = useRef<[number, number] | null>(null);
@@ -136,6 +143,8 @@ function ScanViewer({
     const fit = 0.6 / width;
     const level = [...ZOOMS].reverse().find((z) => z <= fit && z <= 2) ?? 1;
     setCurrent(formPage.page_number!);
+    // Field positions are on the upright form, so show it upright.
+    setTurn(formPage.page_number!, 0);
     setZoom((z) => Math.max(z, level, 1.5));
     pendingCenter.current = [(region[0] + region[2]) / 2, (region[1] + region[3]) / 2];
     setScrollTick((t) => t + 1);
@@ -145,31 +154,48 @@ function ScanViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locate]);
 
+  function onImageLoad(e: SyntheticEvent<HTMLImageElement>) {
+    const img = e.currentTarget;
+    setNatural([img.naturalWidth, img.naturalHeight]);
+    scrollToPending();
+  }
+
+  // Positions are fractions of the page as shown (after any turn), so they hold across zoom changes.
   function scrollToPending() {
     const el = scroller.current;
     const img = el?.querySelector("img");
-    if (!el || !img || !pendingCenter.current || !img.complete || !img.naturalWidth) return;
+    const box = sheet.current;
+    if (!el || !img || !box || !pendingCenter.current || !img.complete || !img.naturalWidth) return;
     const [cx, cy] = pendingCenter.current;
     el.scrollTo({
-      left: cx * img.clientWidth - el.clientWidth / 2,
-      top: cy * img.clientHeight - el.clientHeight / 2,
+      left: cx * box.clientWidth - el.clientWidth / 2,
+      top: cy * box.clientHeight - el.clientHeight / 2,
     });
     pendingCenter.current = null;
   }
-  useLayoutEffect(scrollToPending, [zoom, current, scrollTick]);
+  useLayoutEffect(scrollToPending, [zoom, current, scrollTick, turn]);
+  // An image already loaded before hydration never fires onLoad, so read its size here too.
+  useLayoutEffect(() => {
+    const img = scroller.current?.querySelector("img");
+    if (img?.complete && img.naturalWidth) setNatural([img.naturalWidth, img.naturalHeight]);
+  }, [page?.url]);
 
   // Zoom around the centre of what's on screen rather than jumping to the top left.
   function changeZoom(next: number) {
     const el = scroller.current;
-    const img = el?.querySelector("img");
-    if (el && img?.clientWidth) {
+    const box = sheet.current;
+    if (el && box?.clientWidth) {
       pendingCenter.current = [
-        (el.scrollLeft + el.clientWidth / 2) / img.clientWidth,
-        (el.scrollTop + el.clientHeight / 2) / img.clientHeight,
+        (el.scrollLeft + el.clientWidth / 2) / box.clientWidth,
+        (el.scrollTop + el.clientHeight / 2) / box.clientHeight,
       ];
     }
     setZoom(next);
   }
+  // A quarter turn swaps the page's width and height: the sheet takes the turned shape and the image,
+  // centred inside it, is sized to the sheet's height before turning.
+  const quarter = turn % 180 !== 0 && natural;
+  const aspect = natural ? natural[0] / natural[1] : 1;
   const zoomIndex = ZOOMS.indexOf(zoom);
 
   return (
@@ -222,6 +248,23 @@ function ScanViewer({
           >
             +
           </button>
+          <button
+            className="btn-secondary ml-1 px-2 py-0.5 text-xs"
+            onClick={() => setTurn(current, turn + 90)}
+            aria-label="Rotate page 90 degrees clockwise"
+            title="Rotate this page 90° clockwise (view only)"
+          >
+            ⟳ Rotate
+          </button>
+          {turn !== 0 && (
+            <button
+              className="btn-secondary px-2 py-0.5 text-xs"
+              onClick={() => setTurn(current, 0)}
+              title="Show this page as scanned"
+            >
+              Reset
+            </button>
+          )}
           {originalUrl && (
             <a className="btn-secondary ml-1 px-2 py-0.5 text-xs" href={originalUrl} target="_blank" rel="noreferrer">
               Original
@@ -231,9 +274,23 @@ function ScanViewer({
       </div>
       <div ref={scroller} className="h-[70vh] overflow-auto bg-slate-100 lg:h-auto lg:min-h-0 lg:flex-1">
         {page?.url ? (
-          <div className="relative mx-auto" style={{ width: `${zoom * 100}%` }}>
+          <div
+            ref={sheet}
+            className="relative mx-auto overflow-hidden"
+            style={{ width: `${zoom * 100}%`, ...(quarter ? { aspectRatio: `${1 / aspect}` } : {}) }}
+          >
+            <div
+              className={quarter ? "absolute left-1/2 top-1/2" : "relative"}
+              style={
+                quarter
+                  ? { width: `${aspect * 100}%`, transform: `translate(-50%, -50%) rotate(${turn}deg)` }
+                  : turn
+                    ? { transform: `rotate(${turn}deg)` }
+                    : undefined
+              }
+            >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={page.url} alt={`Scanned page ${page.page_number}`} className="block w-full" onLoad={scrollToPending} />
+            <img src={page.url} alt={`Scanned page ${page.page_number}`} className="block w-full" onLoad={onImageLoad} />
             {box && (
               <div
                 className="pointer-events-none absolute rounded-sm bg-sky-400/15 ring-2 ring-sky-500"
@@ -245,6 +302,7 @@ function ScanViewer({
                 }}
               />
             )}
+            </div>
           </div>
         ) : (
           <p className="p-6 text-sm text-slate-500">Page image not available.</p>

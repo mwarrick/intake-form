@@ -88,6 +88,53 @@ export const RULE_GROUPS: Record<string, { label: string; rules: string[] }> = {
       "MOB-1", "MOB-2", "MOB-3", "MOB-4", "NEU-X1",
     ],
   },
+  diabetes: {
+    label: "Diabetes and endocrine",
+    rules: [
+      "DM-1", "DM-2", "DM-3", "DM-4", "DM-5", "DM-6", "DM-Q1", "DM-Q2", "DM-Q3",
+      "END-E1", "END-E2", "END-E3", "END-X1", "END-X2", "END-X3",
+    ],
+  },
+  cardiac: {
+    label: "Cardiac and circulatory",
+    rules: [
+      "CARD-1", "CARD-2", "CARD-3", "CARD-4", "CARD-5", "CARD-6",
+      "CIR-E1", "CIR-E2", "CIR-E3", "CIR-E4", "CIR-E5", "CIR-E6", "CIR-E7", "CIR-X1", "CIR-X2",
+    ],
+  },
+  respiratory: {
+    label: "Respiratory",
+    rules: [
+      "RESP-1", "RESP-2", "RESP-3", "RESP-4", "RESP-Q1", "RESP-Q2",
+      "RSP-E1", "RSP-E2", "RSP-E3", "RSP-E4", "RSP-E5", "RSP-E6", "RSP-E7",
+      "RSP-X1", "RSP-X2", "RSP-X3", "RSP-X4", "RSP-X5",
+    ],
+  },
+  wounds_bones: {
+    label: "Wounds, bones and joints",
+    rules: [
+      "INT-E2", "INT-E4", "INT-E5", "INT-E6", "INT-E7", "INT-X1", "INT-X2", "INT-X3",
+      "MSK-E1", "MSK-E2", "MSK-E3", "MSK-E4", "MSK-X1", "MSK-X2", "MSK-X3", "MSK-X4", "MSK-X5",
+    ],
+  },
+  neuro_gi: {
+    label: "Neurology and GI",
+    rules: [
+      "NEU-E1", "NEU-E2", "NEU-E3", "NEU-E4", "NEU-X2", "NEU-X4", "NEU-X6",
+      "GI-E1", "GI-E2", "GI-E3", "GI-E4", "GI-E5", "GI-E6", "GI-E7", "GI-X1", "GI-X2",
+    ],
+  },
+  urinary_eyes: {
+    label: "Kidney, urinary and eyes",
+    rules: [
+      "GU-E1", "GU-E2", "GU-E3", "GU-E4", "GU-E5", "GU-E6", "GU-E7", "GU-X1",
+      "OPH-E1", "OPH-E2", "OPH-E3", "OPH-E4", "OPH-E5", "OPH-E6", "OPH-E7",
+    ],
+  },
+  general: {
+    label: "Eligibility, hospice and case by case",
+    rules: ["GEN-1", "GEN-2", "GEN-3", "FORM-M1", "EOL-1", "OTH-2"],
+  },
 };
 
 /** A referral's criteria check, stored in its `criteria` column. */

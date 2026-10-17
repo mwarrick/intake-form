@@ -46,6 +46,7 @@ export function CriteriaPanel({
 
   const checkedGroups = (check?.groups ?? Object.keys(RULE_GROUPS)).filter((g) => RULE_GROUPS[g]);
   const checkedRules = new Set(checkedGroups.flatMap((g) => RULE_GROUPS[g].rules)).size;
+  const uncheckedGroups = Object.keys(RULE_GROUPS).filter((g) => !checkedGroups.includes(g));
 
   return (
     <div className="card space-y-3 p-4">
@@ -78,7 +79,9 @@ export function CriteriaPanel({
       {check && (
         <p className="text-xs text-slate-500">
           Checked: {checkedGroups.map((g) => RULE_GROUPS[g].label.toLowerCase()).join("; ")} ({checkedRules} of {RULES.length}{" "}
-          rules). Not checked yet: diabetes, cardiac, respiratory, wounds and conditions by body system.
+          rules).
+          {uncheckedGroups.length > 0 &&
+            ` Not checked: ${uncheckedGroups.map((g) => RULE_GROUPS[g].label.toLowerCase()).join("; ")} (added since; use Run again).`}
           {check.status === "done" && check.finishedAt && ` Checked ${new Date(check.finishedAt).toLocaleString()} with ${check.model}.`}{" "}
           The coordinator decides; this shows where to look.
         </p>

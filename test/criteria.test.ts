@@ -21,6 +21,12 @@ describe("admission criteria", () => {
     for (const g of Object.values(RULE_GROUPS)) for (const id of g.rules) expect(rulesById.has(id), id).toBe(true);
   });
 
+  it("checks every rule, each in exactly one group", () => {
+    const grouped = Object.values(RULE_GROUPS).flatMap((g) => g.rules);
+    expect(new Set(grouped).size).toBe(grouped.length);
+    expect(new Set(grouped)).toEqual(new Set(RULES.map((r) => r.id)));
+  });
+
   it("puts exclusions first, lists missing documents to request, and never counts unknown as fine", () => {
     const s = summarize([
       result("INF-1", "concern"),

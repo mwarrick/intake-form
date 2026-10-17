@@ -94,7 +94,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | ID | Requirement | Status |
 |---|---|---|
 | T-1 | Fake hand-filled faxed forms with answer keys (`scripts/make_samples.py`): a clean single page, messy writing with a crossed-out answer and an ambiguous DOB, and a three-page ineligible packet. | ✅ |
-| T-2 | Fake supporting documents for the same patients, with answer keys and the flags they should raise (`scripts/make_documents.py`). | 🔄 |
+| T-2 | Fake supporting documents for the same patients, with answer keys and the flags they should raise (`scripts/make_documents.py`). Typed printouts of all eight types, plus handwritten versions of the ones that often arrive filled in by hand: bedside vitals flowsheet, nursing mobility assessment, CalOptima authorization request, and a medication list with handwritten dose corrections and additions. | 🔄 |
 | T-3 | Unit tests: validation, conditional fields, strict-mode validity of the AI schemas, cleanup safety, and the checks against the answer keys. | ✅ / 🔄 |
 | T-4 | `npm run eval` scores the real models against the answer keys, including wrong answers the model was confident about. **Not yet run**; it needs `OPENAI_API_KEY`. | ✅ built |
 

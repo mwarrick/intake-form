@@ -12,7 +12,7 @@ const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)}%
 const share = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` : "—");
 
 /** Leadership view across all referrals: totals only, no patient names. */
-export function DashboardView({ m, range }: { m: Metrics; range: string }) {
+export function DashboardView({ m, range, toFix }: { m: Metrics; range: string; toFix?: number }) {
   const t = m.totals;
   const hs = m.housing;
   return (
@@ -23,6 +23,13 @@ export function DashboardView({ m, range }: { m: Metrics; range: string }) {
           <p className="text-sm text-slate-600">
             Referrals received {m.range.from} to {m.range.to}. Totals only; capacity is as of today.
           </p>
+          {toFix ? (
+            <p className="mt-1 text-sm">
+              <Link href="/data-to-fix" className="font-medium text-amber-700 hover:underline">
+                {toFix} record{toFix === 1 ? "" : "s"} need fixing before reporting →
+              </Link>
+            </p>
+          ) : null}
         </div>
         <nav className="flex gap-1 rounded-md border border-slate-200 bg-white p-1 text-sm" aria-label="Date range">
           {RANGES.map((r) => (

@@ -103,6 +103,22 @@ const ROLES: Role[] = [
     outside: "Supervises the RNs, LVNs and medical assistants; works with CalOptima and hospital partners on the measures.",
   },
   {
+    name: "Manager of Care Coordination & Case Management",
+    who: "Supervises the case managers at the LA County recuperative care sites; decides intakes, extensions and exits with Site Managers",
+    account: "User",
+    pages: [
+      {
+        label: "Data to fix",
+        href: "/data-to-fix",
+        what: "Records that would fail a contract or grant report (no denial category, approved without authorization or admission details, documents missing or conflicts at approval, housing assessment late or without HMIS consent), each linked to where it gets fixed.",
+      },
+      { label: "Admissions → In recuperative care", href: "/admissions", what: "Days left and housing assessment status for current clients, for extension and exit decisions." },
+    ],
+    uses: "Decisions, authorizations, cross-check flags and assessments for every client.",
+    produces: "Clean data for contract and grant reports; decisions on extensions and exits.",
+    outside: "Supervision, case consultation, crisis plans and exits are recorded in KIPU and HMIS.",
+  },
+  {
     name: "Admin",
     who: "Program lead or IT",
     account: "Admin",
@@ -126,6 +142,7 @@ const CARRIES = [
   ["Homeless history, income, documents, goals, consent", "Housing assessment", "Housing summary, HMIS"],
   ["Housing goal, budget, barriers, unit needs, documents", "Assessment + nurse’s records", "Housing search packet"],
   ["Decision times, denial categories, flags, alerts, assessments (totals)", "Every step above", "Program dashboard"],
+  ["Gaps that would fail a report", "Every step above", "Data to fix"],
 ];
 
 const DEMO = [

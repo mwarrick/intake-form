@@ -2,7 +2,7 @@
 
 Use cases and requirements found while looking at how Illumination's roles would use the intake system, collected for planning. Nothing here is built. What is built is in [REQUIREMENTS.md](REQUIREMENTS.md); its section 4 (X-1 to X-8: HIPAA, audit log, login hardening, notifications, automatic fax intake, export, bulk upload, other form types) is still deferred and isn't repeated here.
 
-**Where these came from:** Illumination job postings for the Medical Coordinator (LVN), Care Coordinator (Permanent Supportive Housing), Housing Case Manager and Sr. Director of Services and Care Transitions, compared against what the app captures.
+**Where these came from:** Illumination job postings for the Medical Coordinator (LVN), Care Coordinator (Permanent Supportive Housing), Housing Case Manager, Sr. Director of Services and Care Transitions and Manager of Care Coordination & Case Management, compared against what the app captures.
 
 **Priority key:** **P1** next, small, and it unblocks a role · **P2** valuable, needs a decision or more work · **P3** later, or outside the app's purpose.
 
@@ -10,9 +10,31 @@ Use cases and requirements found while looking at how Illumination's roles would
 
 The app's job is the **handoff between roles**: referral → admitting nurse → Care Coordinator → Housing Case Manager. Each handoff is a page built from what the last role recorded (admission summary, housing summary, housing search packet).
 
-Ongoing case management belongs in the systems Illumination already runs: **KIPU** (the EHR) and **HMIS** / **Coordinated Entry**. That covers daily nursing notes, the contact log, unit application tracking, and service plan progress. Building those here would duplicate those systems and split the record. Several items below are marked *outside the app* for that reason. The better path for them is export or integration (section 7).
+Ongoing case management belongs in the systems Illumination already runs: **KIPU** (the EHR) and **HMIS** / **Coordinated Entry**. That covers daily nursing notes, the contact log, unit application tracking, and service plan progress. Building those here would duplicate those systems and split the record. Several items below are marked *outside the app* for that reason. The better path for them is export or integration (section 8).
 
 Decision needed: **confirm this boundary with Illumination** before building any tracking features.
+
+### Program coverage
+
+Compared with the services on Illumination's website (illuminationhealthhome.org/services, reviewed 2026-10-12), the app covers **one program, from one kind of referrer, on one county's paperwork**: hospital referrals to **Recuperative Care**, on Orange County's RC0725-SH form with a CalOptima authorization, followed through the stay's handoffs to housing.
+
+| Service on the site | Covered |
+|---|---|
+| Recuperative Care Centers: Broadway (Anaheim), Fullerton, Olive View/Sylmar and Whittier (LA County), Riverside, Colton | **Yes**, for Orange County hospital referrals |
+| Permanent Supportive Housing | **Partly**: as a destination (housing assessment, packet), not PSH's own intake through Coordinated Entry |
+| Navigation Centers / emergency shelter (Carnegie, Fullerton) | No |
+| Family Emergency Homes (5 sites, incl. Plumeria House for children with chronic illness or disability) | No; families come in through the Family Solutions Collaborative line |
+| Micro-Communities (19 Orange County sites) | No |
+| Multi-Service Center; Richard Lehn Intergenerational Campus | No |
+| Behavioral Health & Substance Use Counseling | No |
+| Children & Families (Parent and Me, developmental screening, tutoring, classes) | No |
+
+| ID | Priority | Item | Notes |
+|---|---|---|---|
+| F-PRG-1 | P1 | **Recuperative care in every county:** referral forms and authorizations for the LA County, Riverside and San Bernardino centers (other health plans than CalOptima), with the site and county on each referral. | Extends X-8 (other form types) and F-MGR-1 (site). The Manager of Care Coordination role is LA County, so this matters as soon as that team uses the app. |
+| F-PRG-2 | P2 | **Rename to match the scope:** "Recuperative Care Referrals" rather than "Intake", unless F-PRG-3 is taken on. | Sets expectations with staff and partners. |
+| F-PRG-3 | P3 | **A front door for everyone else:** self, family and partner referrals (2-1-1, Chrysalis, walk-ins), screened and routed by county and service (housing, shelter, recuperative care, family, behavioral health). | A different product from hospital referrals. The website's contact form already asks for county and service type, and its "Apply Now" buttons link nowhere. Most of these programs are entered through Coordinated Entry / HMIS or the family line, so Illumination doesn't control intake for them the way it does for recuperative care. |
+| F-PRG-4 | P3 | **Program-specific intake** for Family Emergency Homes, behavioral health counseling or Children & Families, if any lacks a system. | Ask which programs have no intake tool today. |
 
 ## 2. Admission (Medical Coordinator, LVN)
 
@@ -59,7 +81,20 @@ The program dashboard covers referral flow, the two-hour promise, referral quali
 | F-LEAD-10 | P3 | **Targets set in the app** (e.g. 90% within two hours) instead of fixed in code, and alerts when a measure slips. | The dashboard's on-target thresholds are fixed at 90% and 75%. |
 | F-LEAD-11 | P3 | **Dashboard denominators reviewed** with leadership: what counts as a referral (duplicates, re-sends), when the two-hour clock starts for faxes received after hours. | The clock starts at upload today, not at fax receipt. |
 
-## 5. Access and roles
+## 5. Supervising case management (Manager of Care Coordination & Case Management)
+
+This role supervises the case managers at the LA County recuperative care sites, decides intakes, extensions and exits with Site Managers, and is accountable for data accuracy in contract and grant reports. It is the furthest from intake of the roles reviewed: most of its work is case management during the stay, which section 1 places in KIPU and HMIS. The one intake-related piece, a **Data to fix** list, is built (REQUIREMENTS L-5). The rest is recorded here so the decision is explicit.
+
+| ID | Priority | Item | Notes |
+|---|---|---|---|
+| F-MGR-1 | P1 | **Site on each admission and a case manager on each client**, so a manager can filter to their sites and see each person's caseload. | Raises F-LEAD-7 and F-ROLE-2 to P1 if any supervisor view is built. Today the assessor's name is the only stand-in. |
+| F-MGR-2 | *Outside the app, unless decided otherwise* | **Case management board:** decisions due this week (stays ending in ~10 days with housing readiness: CES status, income, ID, chronic status), caseloads with overdue counts, extension or exit recorded. | Designed but not built. Recording extensions and exits overlaps F-ADM-6 and F-LEAD-2. |
+| F-MGR-3 | *Outside the app, unless decided otherwise* | **Overdue work per case manager:** assessments not started or not done within 7 days, service plan reviews past their date, drafts left idle. | The assessment already stores a next review date. The data-to-fix list covers the reporting side. |
+| F-MGR-4 | *Outside the app* | **Crisis and self-sufficiency plans:** safety and self-harm contracts, sobriety, housing retention, income growth, child safety. | KIPU. |
+| F-MGR-5 | P2 | **More data-to-fix checks** once the data exists: no exit destination, no arrival recorded, extension past authorization with no new approval, missing site or case manager. | Each needs the field it checks (F-ADM-1, F-ADM-6, F-ADM-9, F-MGR-1). |
+| F-MGR-6 | P2 | **Dismiss a data-to-fix item with a reason**, for conflicts the coordinator reviewed and accepted. | Today a conflict stays listed until the form or the documents change. |
+
+## 6. Access and roles
 
 | ID | Priority | Item | Notes |
 |---|---|---|---|
@@ -67,7 +102,7 @@ The program dashboard covers referral flow, the two-hour promise, referral quali
 | F-ROLE-2 | P2 | **Separate Care Coordinator and Housing Case Manager roles** (both are "User" today), and assigning clients to a caseload owner. | Caseloads are 30–35+ per person in both postings. |
 | F-ROLE-3 | P2 | **Who did what:** record the signed-in user on assessments and arrivals, not just a typed name. | Overlaps with the audit log (X-2). |
 
-## 6. Clinical safety logic
+## 7. Clinical safety logic
 
 The alerts are plain-code rules written for the demo. Before clinical use:
 
@@ -78,7 +113,7 @@ The alerts are plain-code rules written for the demo. Before clinical use:
 | F-SAFE-3 | P2 | **Chronic homelessness, full HUD rules:** breaks of 7+ nights, institutional stays under 90 days, documentation standards. | `chronicStatus` in `lib/housing.ts` is simplified and only says "Yes / No / can't tell". |
 | F-SAFE-4 | P2 | **Service plan rules reviewed by housing staff:** which needs are due before the move, and the goal and first-step wording. | Fixed rules in `lib/housing.ts`. |
 
-## 7. Integration
+## 8. Integration
 
 | ID | Priority | Item | Notes |
 |---|---|---|---|
@@ -86,7 +121,7 @@ The alerts are plain-code rules written for the demo. Before clinical use:
 | F-INT-2 | P2 | **HMIS export** of the assessment's universal data elements. | Find out which HMIS vendor Orange County uses and its import format. |
 | F-INT-3 | P3 | **Coordinated Entry status** pulled in instead of typed. | Depends on the CES system's access. |
 
-## 8. Engineering
+## 9. Engineering
 
 | ID | Priority | Item | Notes |
 |---|---|---|---|
@@ -95,7 +130,7 @@ The alerts are plain-code rules written for the demo. Before clinical use:
 | F-ENG-3 | P2 | **Re-run the cross-checks** when supporting documents change after approval, and show what changed since the decision on the admission summary. | |
 | F-ENG-4 | P3 | **Print layout tested on paper:** page breaks, and black-and-white printing of the red/amber alerts. | Checked on screen only. |
 
-## 9. Before real patient data
+## 10. Before real patient data
 
 These are not features but must happen first. They're also tracked in REQUIREMENTS section 5 and X-1 to X-3.
 
@@ -103,12 +138,14 @@ These are not features but must happen first. They're also tracked in REQUIREMEN
 - HIPAA: BAAs and plan tiers for every service that touches patient data (X-1), the audit log (X-2) and login hardening (X-3).
 - Test on real faxed handwriting.
 
-## 10. Questions for Illumination
+## 11. Questions for Illumination
 
 1. Is the boundary in section 1 right: handoff pages here, case management in KIPU and HMIS?
 2. Does the LVN also review referrals at some sites, or is that always a separate coordinator?
 3. Does KIPU have an import API, or accept CCD / HL7? Which HMIS does Orange County use?
 4. Which compliance forms are given out at admission?
 5. Who receives a client after recuperative care: the PSH Care Coordinator, a Housing Case Manager, or both? Do the two roles overlap?
-6. Who should review the clinical alerts and the housing rules (section 6)?
+6. Who should review the clinical alerts and the housing rules (section 7)?
 7. Which measures does leadership report to CalOptima and hospital partners today, and how are they defined? The dashboard should match them.
+8. Should the app grow toward case management (section 5's board, caseloads, exits), or stop at handoffs and reporting data? The Manager of Care Coordination role is where that choice becomes concrete.
+9. Is Recuperative Care the only program this tool should serve? If so, which other counties' referral forms and payers come next; if not, which programs lack an intake tool today (Program coverage, section 1)?

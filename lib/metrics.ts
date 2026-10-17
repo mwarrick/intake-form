@@ -226,7 +226,8 @@ export function pacificDayStart(day: string): string {
 export function addDays(iso: string, days: number): string {
   return new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }
-function weekStart(iso: string): string {
+/** The Monday that starts the week containing a YYYY-MM-DD day. */
+export function weekStart(iso: string): string {
   const day = new Date(`${iso}T00:00:00Z`).getUTCDay();
   return addDays(iso, -((day + 6) % 7));
 }

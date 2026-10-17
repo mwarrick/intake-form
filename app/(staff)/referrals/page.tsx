@@ -2,7 +2,7 @@ import Link from "next/link";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { StatusBadge } from "@/components/StatusBadge";
 import { requireUser } from "@/lib/auth";
-import { addDays, localDate } from "@/lib/metrics";
+import { addDays, localDate, weekStart } from "@/lib/metrics";
 import { listReferrals, neighborDays, undecidedBefore, withOriginalScan } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,20 @@ const spanLabel = (from: string, to: string) => (from === to ? shortDay(from) : 
 const days = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1;
 // Every link names its days; plain /referrals is the default view, which falls back to the latest day with referrals.
 const rangeHref = (from: string, to: string) => (from === to ? `/referrals?date=${from}` : `/referrals?from=${from}&to=${to}`);
-const validDay = (d: string | undefined, today: string) =>
+/** Preset spans ending no later than today; weeks start Monday, as on the dashboard. */
+function quickRanges(today: string) {
+  const week = weekStart(today);
+  const month = `${today.slice(0, 7)}-01`;
+  const lastMonth = `${addDays(month, -1).slice(0, 7)}-01`;
+  return [
+    { label: "Today", from: today, to: today },
+    { label: "This week", from: week, to: today },
+    { label: "Last week", from: addDays(week, -7), to: addDays(week, -1) },
+    { label: "This month", from: month, to: today },
+    { label: "Last month", from: lastMonth, to: addDays(month, -1) },
+  ];
+}
+const validDay =(d: string | undefined, today: string) =>
   d && /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d)) && d <= today ? d : null;
 
 export default async function Queue({ searchParams }: { searchParams: Promise<{ date?: string; from?: string; to?: string }> }) {
@@ -91,11 +104,21 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
             Next <span aria-hidden="true">→</span>
           </span>
         )}
-        {!isToday && (
-          <Link href={rangeHref(today, today)} className="btn-secondary">
-            Today
-          </Link>
-        )}
+        <span className="flex gap-1 rounded-md border border-slate-200 bg-white p-1 text-sm">
+          {quickRanges(today).map((q) => {
+            const active = from === q.from && to === q.to;
+            return (
+              <Link
+                key={q.label}
+                href={rangeHref(q.from, q.to)}
+                className={`rounded px-2.5 py-1 ${active ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+                aria-current={active ? "page" : undefined}
+              >
+                {q.label}
+              </Link>
+            );
+          })}
+        </span>
         <h2 className="ml-1 text-sm font-medium text-slate-700" aria-live="polite">
           {isRange ? `${longDay(from)} – ${longDay(to)}` : `${isToday ? "Today, " : ""}${longDay(from)}`}: {referrals.length} referral
           {referrals.length === 1 ? "" : "s"}

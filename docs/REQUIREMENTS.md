@@ -91,6 +91,15 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | H-8 | A public **How it works** page (`/how-it-works`) describing each role (referrer, referral coordinator, Medical Coordinator LVN, Care Coordinator, Housing Case Manager, admin): the pages they use, what they use and produce, and what happens outside the app; what information carries forward; links to the mock patients; and what isn't built. | ✅ |
 | H-5 | Recording arrival (time, nurse, checklist) in the app and an Admitted status. The checklist is on paper for now. | 📋 |
 
+### 3.5b Program dashboard (leadership)
+
+| ID | Requirement | Status |
+|---|---|---|
+| L-1 | The decision time is recorded (`decided_at`, migration 0008) when a referral is first approved or denied, or the decision changes. Earlier decisions stay null rather than guessing a time. | ✅ |
+| L-2 | A **Denial category** (single choice, required when Approved = No, online only) alongside the free-text reason: active infection, mobility, cognition, meds/IV, not medically stable, behavioral or safety, sex offender registry, missing documents or authorization, no bed, patient declined, other. | ✅ |
+| L-3 | A **Program dashboard** (`/dashboard`, admin only, the first page restricted by role; built by `lib/metrics.ts` in plain code) for the Sr. Director of Services and Care Transitions. Totals only, no patient names, over the last 30 or 90 days or all time: referrals received (fax vs online), approval rate, share decided within two hours and median time to decision (with untimed decisions counted separately), beds in use, arrivals in 7 days, stays ending in 7 days; referrals per week by outcome and median decision time per week against the two-hour line (hover tooltips and a table view); a per-hospital table (referrals, approval rate, missing documents, records that conflict, median decision time); denial categories; admission criteria flagged in the records; acuity of approved patients (wound care, insulin, fall risk, behavioral, oxygen, controlled medication where a med list was read); housing progress (assessment started, completed within a week, chronically homeless, ready for HMIS, top barriers and services). | ✅ |
+| L-4 | Admissions lists only stays that haven't ended (admission plus authorized days), and both it and the dashboard use Pacific time for "today". | ✅ |
+
 ### 3.6 Staff accounts and sign-in
 
 | ID | Requirement | Status |
@@ -108,7 +117,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 
 | ID | Requirement | Status |
 |---|---|---|
-| S-1 | Supabase (project supabase-cobalt-saddle). Every table is prefixed `ILLINTAKE_`: `referrals`, `documents`, `supporting_docs`, `users`, `sessions` and `assessments`. Migrations live in `supabase/migrations/` (0001–0007, all applied). | ✅ |
+| S-1 | Supabase (project supabase-cobalt-saddle). Every table is prefixed `ILLINTAKE_`: `referrals`, `documents`, `supporting_docs`, `users`, `sessions` and `assessments`. Migrations live in `supabase/migrations/` (0001–0008, all applied). | ✅ |
 | S-2 | Files are stored in the private bucket `illintake-files`, one folder per referral. The app opens them with signed links that expire after an hour. | ✅ |
 | S-3 | Uploads not attached to an intake record (unsubmitted pre-fill drafts, orphaned folders) are deleted daily once they're a day old. Fax scans and submitted referrals are never deleted. | ✅ |
 | S-4 | Only server code reads or writes data, using the service-role key. Row-level security blocks the public key. | ✅ |
@@ -130,6 +139,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | T-3 | Unit tests: validation (including crossed-out answers), conditional fields, strict-mode validity of the AI schemas, cleanup safety, the document checks against the answer keys (including "if needed" items and newest vitals), field positions on the form, passwords, and the staff list import. | ✅ |
 | T-4 | `npm run eval` scores the real models against the answer keys, including wrong answers the model was confident about, and saves the misses to `samples/eval-*.json`. It reads `OPENAI_API_KEY` from `.env.local` and needs `pdftoppm` (poppler). Latest run: form page found in all 3 samples, 146/147 fields correct, none confidently wrong (the one miss, sample 1's MRN, is highlighted for review); every expected document flag raised. | ✅ |
 | T-6 | Five fictional approved patients for the admission and housing workflow (`scripts/mock-patients.ts`): arriving today, tomorrow (controlled medication) and in two days (housing assessment in draft), and two mid-stay with completed assessments (one ready for HMIS, one missing consent). `npm run mock` checks them with the real validation and cross-checks and writes `supabase/seed/mock-patients.sql`, which replaces only those rows (fixed ids). Loaded in production. | ✅ |
+| T-7 | 90 days of fictional referral history for the dashboard (`supabase/seed/mock-history.sql`): 120 referrals from five hospitals, with decision times that improve over the period, denial categories, cross-check flags (one hospital sends weaker packets) and housing assessments. Generated inside Postgres from md5 of the row number, so every run gives the same rows; re-running replaces only ids starting `b2000000-`. Loaded in production. | ✅ |
 | T-5 | Sample 2 as a single 10-page faxed packet (`samples/synthetic/packets/sample-2-messy-packet.pdf`) and as separate files, the form alone plus one file per document (`samples/synthetic/packets/sample-2-messy-separate/`), for trying the whole flow and **Add documents**. | ✅ |
 
 ## 4. Deferred past the prototype
@@ -152,6 +162,6 @@ Use cases found since (admission, housing, roles, integration, safety logic) are
 - **Live use so far:** sample referrals have been uploaded to the live app and read. Real handwriting from actual faxes is still untested.
 - **Known reading weak spot:** handwriting that runs into printed text (e.g. a digit touching a label) can be misread with high confidence; patient identity fields are always re-read and highlighted when the two readings disagree, but other fields aren't.
 - **Test accounts:** 20 mock staff accounts (from `MOCK_DATA.csv`; 6 picked at random as clinical) exist in production with no password, so anyone who enters one of those emails can sign in. Remove or deactivate them before real referrals arrive.
-- **Mock patients:** 5 fictional approved patients (ids starting `a1000000-`) are in production for demos. Delete them before real referrals arrive.
+- **Mock patients:** 5 fictional approved patients (ids starting `a1000000-`) and 120 history referrals (ids starting `b2000000-`) are in production for demos. Delete them before real referrals arrive.
 - **Real staff list:** import current staff from Illumination's HR or email admin rather than LinkedIn, and confirm the firstname+lastname email format matches their real addresses.
 - **Fillable PDF bug** to report to the form's owner: all 52 Yes/No boxes on page 2 are one field (`Check Box1`), so ticking one ticks all of them in a PDF reader.

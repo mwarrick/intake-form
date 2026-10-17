@@ -36,10 +36,13 @@ export function ReviewClient({ referral, documents, threshold }: Props) {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start">
-        {referral.source === "scan" ? (
+        {pages.length > 0 && (
           <ScanViewer pages={pages} formPages={referral.pipeline?.formPages ?? []} originalUrl={original?.url} />
-        ) : (
-          <AttachmentList attachments={attachments} />
+        )}
+        {referral.source === "portal" && (
+          <div className={pages.length ? "mt-4" : ""}>
+            <AttachmentList attachments={attachments} />
+          </div>
         )}
       </div>
 
@@ -175,13 +178,15 @@ function PipelineSummary({ referral }: { referral: Referral }) {
   const toCheck = (referral.flags ?? []).filter((f) => f.kind !== "eligibility");
   const tokens = p?.usage?.reduce((s, u) => s + u.input_tokens + u.output_tokens, 0) ?? 0;
   const seconds = (p?.usage?.reduce((s, u) => s + u.ms, 0) ?? 0) / 1000;
+  const wasRead = !!p?.usage?.length;
+  const edits = p?.referrerEdits;
 
   return (
     <div className="card space-y-3 p-4">
       <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
         <Stat label="Admission criteria" value={eligibility.length ? `${eligibility.length} concern${eligibility.length > 1 ? "s" : ""}` : "None flagged"} tone={eligibility.length ? "purple" : "green"} />
         <Stat label="Fields to check" value={String(toCheck.length)} tone={toCheck.length ? "amber" : "green"} />
-        {referral.source === "scan" && <Stat label="Reader" value={`${seconds.toFixed(0)} s · ${tokens.toLocaleString()} tokens`} />}
+        {wasRead && <Stat label="Reader" value={`${seconds.toFixed(0)} s · ${tokens.toLocaleString()} tokens`} />}
       </div>
       {eligibility.length > 0 && (
         <ul className="space-y-1 rounded-md bg-purple-50 p-3 text-sm text-purple-800">
@@ -190,7 +195,15 @@ function PipelineSummary({ referral }: { referral: Referral }) {
           ))}
         </ul>
       )}
-      {referral.source === "scan" && p && (
+      {referral.source === "portal" && wasRead && (
+        <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+          Filled in from the referrer’s paper form and checked by the referrer before submitting.
+          {edits?.length
+            ? ` They corrected ${edits.length} field${edits.length > 1 ? "s" : ""}: ${edits.map(fieldLabel).join(", ")}.`
+            : " They made no corrections."}
+        </p>
+      )}
+      {wasRead && p && (
         <details className="text-xs text-slate-600">
           <summary className="cursor-pointer select-none font-medium text-slate-700">How this was read</summary>
           <ul className="mt-2 space-y-1">
@@ -229,7 +242,8 @@ function FieldsEditor({ referral, threshold }: { referral: Referral; threshold: 
   const [saveError, setSaveError] = useState<string | null>(null);
   const confirmed = !!referral.reviewed_at;
 
-  const extraction = confirmed ? undefined : referral.extraction;
+  // Read confidence stops mattering once a person has checked the fields: the coordinator, or the referrer on the portal.
+  const extraction = confirmed || referral.source === "portal" ? undefined : referral.extraction;
   // Recompute live so fixing a field clears its "missing"/"invalid" flag as you type.
   const flags: Flag[] = useMemo(() => validate(data, { extraction, confidenceThreshold: threshold }), [data, extraction, threshold]);
   const flagged = new Set(flags.map((f) => f.field));

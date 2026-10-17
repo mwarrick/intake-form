@@ -1,6 +1,7 @@
 import type { Status } from "@/lib/referrals";
 
 const STYLES: Record<Status, [string, string]> = {
+  draft: ["Draft", "bg-slate-100 text-slate-600"],
   processing: ["Reading…", "bg-sky-100 text-sky-800"],
   needs_review: ["Needs review", "bg-amber-100 text-amber-800"],
   reviewed: ["Reviewed", "bg-slate-200 text-slate-700"],

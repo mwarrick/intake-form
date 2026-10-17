@@ -17,6 +17,8 @@ export interface PipelineResult {
     classifyNotes?: string;
     extractNotes?: string;
     rereadFields: string[];
+    /** Portal referrals pre-filled from a scan: fields the referrer changed before submitting. */
+    referrerEdits?: string[];
     models: { classify: string | null; extract: string; reread: string | null };
     usage: { step: string; model: string; input_tokens: number; output_tokens: number; ms: number }[];
   };

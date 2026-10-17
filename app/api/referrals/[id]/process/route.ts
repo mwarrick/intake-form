@@ -7,9 +7,13 @@ export const maxDuration = 300;
 
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const { data, error } = await db().from(T.referrals).select("id, source").eq("id", id).maybeSingle();
+  const { data, error } = await db().from(T.referrals).select("id, source, status").eq("id", id).maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data || data.source !== "scan") return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // Online referrals are only read while they are still the referrer's draft.
+  if (data.source === "portal" && !["processing", "draft"].includes(data.status)) {
+    return NextResponse.json({ error: "This referral was already submitted" }, { status: 409 });
+  }
 
   await db()
     .from(T.referrals)

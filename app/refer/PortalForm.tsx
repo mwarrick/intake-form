@@ -1,38 +1,75 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { submitPortalReferral } from "@/app/actions";
 import { FormSections } from "@/components/FormSections";
 import { uploadSigned } from "@/lib/client-upload";
-import { type FieldValue, type FormData, emptyData, referrerFields, referrerSections, schema } from "@/lib/form";
-import { validate } from "@/lib/validate";
+import { type FieldValue, type FormData, emptyData, fieldsById, isEmpty, referrerFields, referrerSections, schema } from "@/lib/form";
+import { type Extraction, isAmbiguousDate, validate } from "@/lib/validate";
+import { type Prefill, ScanPrefill } from "./ScanPrefill";
 
 interface Attachment {
   label: string;
   file: File;
 }
 
-export function PortalForm() {
+export function PortalForm({ threshold }: { threshold: number }) {
   const router = useRouter();
   const [data, setData] = useState<FormData>(() => emptyData(referrerFields));
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
   const [serverErrors, setServerErrors] = useState<string[]>([]);
+  const [prefill, setPrefill] = useState<Prefill | null>(null);
+  // Fields the referrer has edited since the scan was read; their read confidence no longer matters.
+  const [touched, setTouched] = useState<Set<string>>(new Set());
+  const [checked, setChecked] = useState(false);
 
-  const flags = validate(data);
+  // Show read details only where the referrer should look: unclear, disputed or ambiguous answers they haven't touched.
+  const toCheck: Extraction = useMemo(() => {
+    if (!prefill) return {};
+    const out: Extraction = {};
+    for (const [id, ex] of Object.entries(prefill.extraction)) {
+      if (touched.has(id)) continue;
+      const ambiguousDate = fieldsById.get(id)?.type === "date" && isAmbiguousDate(ex.raw);
+      const doubtful = ex.confidence < threshold || ex.firstPass || ambiguousDate;
+      if (doubtful) out[id] = ex;
+    }
+    return out;
+  }, [prefill, touched, threshold]);
+
+  const flags = validate(data, { extraction: toCheck, confidenceThreshold: threshold });
   const blocking = flags.filter((f) => f.kind === "missing" || f.kind === "invalid");
   const eligibility = flags.filter((f) => f.kind === "eligibility");
+  const readFlags = flags.filter((f) => f.kind === "low_confidence" || f.kind === "disagreement" || f.kind === "ambiguous");
+  const shown = showErrors ? flags : [...eligibility, ...readFlags];
+  const needsConfirm = !!prefill && !prefill.error;
 
   function set(id: string, v: FieldValue) {
     setData((d) => ({ ...d, [id]: v }));
+    setTouched((t) => (t.has(id) ? t : new Set(t).add(id)));
+  }
+
+  function applyPrefill(p: Prefill) {
+    setPrefill(p);
+    setTouched(new Set());
+    // Never overwrite anything the referrer already typed.
+    setData((d) => {
+      const next = { ...d };
+      for (const f of referrerFields) if (isEmpty(next[f.id]) && !isEmpty(p.data[f.id])) next[f.id] = p.data[f.id];
+      return next;
+    });
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setShowErrors(true);
     setServerErrors([]);
+    if (needsConfirm && !checked) {
+      document.getElementById("confirm-checked")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     if (blocking.length) {
       document.querySelector(`[data-field="${blocking[0].field}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
@@ -42,6 +79,7 @@ export function PortalForm() {
       const res = await submitPortalReferral(
         data,
         attachments.map((a) => ({ label: a.label, fileName: a.file.name, mimeType: a.file.type })),
+        prefill?.draftId,
       );
       if ("error" in res) throw new Error(res.error);
       if ("errors" in res) {
@@ -59,12 +97,23 @@ export function PortalForm() {
 
   return (
     <form onSubmit={submit} className="space-y-4" noValidate>
+      <ScanPrefill onPrefill={applyPrefill} disabled={busy || !!prefill} />
+
+      {needsConfirm && readFlags.length > 0 && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          {readFlags.length} answer{readFlags.length > 1 ? "s were" : " was"} hard to read. They’re highlighted below; fix or
+          re-enter any that are wrong.
+        </div>
+      )}
+
       <FormSections
         sections={referrerSections}
         data={data}
         onChange={set}
         mode="portal"
-        flags={showErrors ? flags : eligibility}
+        flags={shown}
+        extraction={toCheck}
+        threshold={threshold}
         disabled={busy}
       />
 
@@ -129,8 +178,20 @@ export function PortalForm() {
         </div>
       )}
 
+      {needsConfirm && (
+        <label id="confirm-checked" className="card flex items-start gap-2 p-3 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 accent-brand-600"
+            checked={checked}
+            onChange={(e) => setChecked(e.target.checked)}
+          />
+          I’ve checked the answers filled in from my paper form against the original.
+        </label>
+      )}
+
       <div className="flex justify-end">
-        <button type="submit" className="btn-primary" disabled={busy}>
+        <button type="submit" className="btn-primary" disabled={busy || (needsConfirm && !checked)}>
           {busy ? "Submitting…" : "Submit referral"}
         </button>
       </div>

@@ -1,3 +1,4 @@
+import { rereadThreshold } from "@/lib/extract";
 import { PortalForm } from "./PortalForm";
 
 export default function ReferPage() {
@@ -10,7 +11,7 @@ export default function ReferPage() {
           decision within two hours.
         </p>
       </div>
-      <PortalForm />
+      <PortalForm threshold={rereadThreshold} />
     </div>
   );
 }

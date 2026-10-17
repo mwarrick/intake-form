@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { rereadThreshold } from "@/lib/extract";
 import { type FormData, allFields, emptyData, normalize, referrerFields, schema, staffFields } from "@/lib/form";
+import { refreshDocFlags } from "@/lib/extract-docs";
 import { summaryColumns } from "@/lib/referrals";
 import { T, createUploadTargets, db, safeName, type UploadTarget } from "@/lib/supabase";
 import { type Extraction, validate } from "@/lib/validate";
@@ -173,6 +174,8 @@ async function createPortalReferral(
     if (docErr) throw new Error(docErr.message);
   }
 
+  // Shows missing checklist items right away; attachments are read once uploaded (see /documents route).
+  await refreshDocFlags(id, data);
   revalidatePath("/referrals");
   return { id, uploads: await createUploadTargets(paths) };
 }
@@ -210,6 +213,7 @@ async function updateReview(id: string, raw: Record<string, unknown>, confirm: b
     })
     .eq("id", id);
   if (error) throw new Error(error.message);
+  await refreshDocFlags(id, data);
   revalidatePath(`/referrals/${id}`);
   revalidatePath("/referrals");
   return { ok: true as const };

@@ -1,0 +1,60 @@
+{
+  "received_at": "2026-10-10T14:20",
+  "documents": {
+    "demographics": {
+      "file": "demographics.pdf",
+      "expected": {
+        "patient_name": "DELGADO, MARCUS",
+        "dob": "1968-11-23",
+        "mrn": "OC4471209",
+        "insurance": "CalOptima"
+      }
+    },
+    "authorization": {
+      "file": "authorization.pdf",
+      "expected": {
+        "authorization_number": "RC-2026-118842",
+        "approved_days": 14,
+        "status": "Approved",
+        "end_date": "2026-10-24"
+      }
+    },
+    "history_physical": {
+      "file": "history_physical.pdf",
+      "expected": {
+        "cognitive_impairment": false,
+        "oriented_x4": true,
+        "infections": []
+      }
+    },
+    "progress_notes": {
+      "file": "progress_notes.pdf",
+      "expected": {
+        "medically_stable": true,
+        "oriented_x4": true
+      }
+    },
+    "vitals": {
+      "file": "vitals.pdf",
+      "expected": {
+        "taken_at": "2026-10-10T08:00",
+        "oxygen": "Room air"
+      }
+    },
+    "medications": {
+      "file": "medications.pdf",
+      "expected": {
+        "medications": 4
+      }
+    },
+    "therapy_notes": {
+      "file": "therapy_notes.pdf",
+      "expected": {
+        "ambulation_distance_ft": 300,
+        "transfers_independent": true,
+        "adls_independent": true
+      }
+    }
+  },
+  "expected_flags": []
+}

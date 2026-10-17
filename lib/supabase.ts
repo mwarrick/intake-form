@@ -5,6 +5,7 @@ export const BUCKET = "illintake-files";
 export const T = {
   referrals: "ILLINTAKE_referrals",
   documents: "ILLINTAKE_documents",
+  supporting: "ILLINTAKE_supporting_docs",
 } as const;
 
 let admin: SupabaseClient | undefined;

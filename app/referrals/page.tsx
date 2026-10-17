@@ -48,8 +48,10 @@ export default async function Queue() {
             )}
             {referrals.map((r) => {
               const flags = r.flags ?? [];
-              const elig = flags.filter((f) => f.kind === "eligibility").length;
-              const attention = flags.length - elig;
+              const docFlags = r.doc_flags ?? [];
+              const elig = new Set([...flags, ...docFlags].filter((f) => f.kind === "eligibility").map((f) => f.message)).size;
+              const attention = flags.filter((f) => f.kind !== "eligibility").length;
+              const conflicts = docFlags.filter((f) => f.kind === "conflict").length;
               const overdue =
                 (r.status === "needs_review" || r.status === "reviewed") &&
                 Date.now() - new Date(r.created_at).getTime() > 2 * 3600 * 1000;
@@ -72,9 +74,10 @@ export default async function Queue() {
                     <StatusBadge status={r.status} />
                   </td>
                   <td className="px-4 py-2.5 text-xs">
+                    {conflicts > 0 && <span className="mr-2 font-medium text-red-700">{conflicts} conflict{conflicts > 1 ? "s" : ""}</span>}
                     {elig > 0 && <span className="mr-2 text-purple-700">{elig} criteria</span>}
                     {attention > 0 && <span className="text-amber-700">{attention} to check</span>}
-                    {flags.length === 0 && r.status !== "processing" && <span className="text-slate-400">—</span>}
+                    {flags.length + docFlags.length === 0 && r.status !== "processing" && <span className="text-slate-400">—</span>}
                   </td>
                 </tr>
               );

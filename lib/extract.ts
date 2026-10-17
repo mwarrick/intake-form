@@ -184,11 +184,15 @@ export function fieldsJsonSchema(fields: Field[]): Record<string, unknown> {
             {
               type: "object",
               additionalProperties: false,
-              required: ["value", "raw", "confidence"],
+              required: ["value", "raw", "confidence", "corrected"],
               properties: {
                 value: valueSchema(f),
                 raw: { type: ["string", "null"], description: "Exactly what is handwritten or marked, before normalizing. null if blank." },
                 confidence: { type: "number", description: "0 to 1: how sure you are that value is what the referrer wrote." },
+                corrected: {
+                  type: "boolean",
+                  description: "true if anything in this field was crossed out, scribbled over, struck through or written over.",
+                },
               },
             },
           ]),
@@ -203,7 +207,8 @@ const EXTRACT_INSTRUCTIONS = `You transcribe hand-filled "${schema.form}" (${sch
 Rules:
 - Read only what is written or marked on the form. Never infer or invent a value. If a field is blank, value is null (or [] for check-all lists).
 - Yes/No questions are answered by circling "Yes" or "No", ticking a box, or writing a mark next to one option. A word with an asterisk (Yes* / No*) means that answer requires an explanation; the asterisk is printed, not part of the answer.
-- If both options look marked, or an answer is crossed out and replaced, use the final intended answer, lower confidence, and mention it in notes.
+- Crossed-out answers: a mark or option that is scribbled over, struck through, crossed out with lines or zigzags, or blacked out is CANCELLED. It is never the answer, even if it was also circled or ticked. The answer is the remaining clean mark on the other option; if every mark is cancelled, value is null. Set corrected to true for that field, describe both marks in raw (e.g. "Yes circled and scribbled out; No circled"), and mention it in notes.
+- If both options look marked and neither is crossed out, use the one that looks intended, keep confidence below 0.6, and set corrected to true.
 - Checkbox groups ("c Male c Female ...") use a check, X, fill or circle on the box or label.
 - Dates: return ISO yyyy-mm-dd. Assume US month/day/year order unless the writing makes day/month order unambiguous (a first number above 12). Put the date exactly as written in raw.
 - Times: return HH:MM 24-hour.
@@ -219,7 +224,7 @@ async function readFields(opts: {
   pages: PageImage[];
   extraText?: string;
   usage: Usage;
-}): Promise<{ fields: Record<string, { value: unknown; raw: string | null; confidence: number }>; notes: string }> {
+}): Promise<{ fields: Record<string, { value: unknown; raw: string | null; confidence: number; corrected?: boolean }>; notes: string }> {
   return jsonCall({
     step: opts.step,
     model: opts.model,
@@ -271,12 +276,18 @@ export async function runPipeline(pages: PageImage[], onProgress?: (p: ProgressS
   const extraction: Extraction = Object.fromEntries(
     fields.map((f) => {
       const r = first.fields[f.id];
-      return [f.id, { confidence: clamp(r?.confidence ?? 0), raw: r?.raw ?? null, model: models.extract }];
+      return [
+        f.id,
+        { confidence: clamp(r?.confidence ?? 0), raw: r?.raw ?? null, model: models.extract, ...(r?.corrected ? { corrected: true } : {}) },
+      ];
     }),
   );
 
-  // Step 3: an independent second reading of the uncertain fields, and the patient identity fields, by a stronger model.
-  const unsure = fields.filter((f) => extraction[f.id].confidence < rereadThreshold || alwaysReread.includes(f.id));
+  // Step 3: an independent second reading by a stronger model of the uncertain fields, answers that were
+  // crossed out or changed, and the patient identity fields.
+  const unsure = fields.filter(
+    (f) => extraction[f.id].confidence < rereadThreshold || extraction[f.id].corrected || alwaysReread.includes(f.id),
+  );
   let rereadModel: string | null = null;
   if (unsure.length && models.reread) {
     rereadModel = models.reread;
@@ -296,15 +307,17 @@ export async function runPipeline(pages: PageImage[], onProgress?: (p: ProgressS
       if (!r) continue;
       const prev = extraction[f.id];
       const conf = clamp(r.confidence);
+      const corrected = prev.corrected || r.corrected ? { corrected: true } : {};
       if (sameValue(reread[f.id], data[f.id])) {
         // Two models agreeing independently is stronger evidence than either alone.
-        extraction[f.id] = { ...prev, confidence: Math.max(prev.confidence, conf), model: `${prev.model}+${models.reread}` };
+        extraction[f.id] = { ...prev, ...corrected, confidence: Math.max(prev.confidence, conf), model: `${prev.model}+${models.reread}` };
       } else {
         extraction[f.id] = {
           confidence: Math.min(conf, 0.6),
           raw: r.raw ?? prev.raw,
           model: models.reread,
           firstPass: { value: data[f.id], confidence: prev.confidence, model: prev.model },
+          ...corrected,
         };
         data[f.id] = reread[f.id];
       }

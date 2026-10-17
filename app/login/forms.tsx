@@ -31,10 +31,12 @@ export function SignInForm({ next }: { next: string }) {
     <form action={action} className="card space-y-3 p-5">
       <input type="hidden" name="next" value={next} />
       <Field label="Email" name="email" type="email" autoComplete="username" />
-      <Field label="Password" name="password" type="password" autoComplete="current-password" />
+      <Field label="Password" name="password" type="password" autoComplete="current-password" required={false} />
       <Message state={state} />
       <button className="btn-primary w-full" disabled={pending}>{pending ? "Signing in…" : "Sign in"}</button>
-      <p className="text-xs text-slate-500">Forgot your password? Ask an admin to reset it.</p>
+      <p className="text-xs text-slate-500">
+        New here? Sign in with just your email, then choose a password. Forgot your password? Ask an admin to clear it.
+      </p>
     </form>
   );
 }

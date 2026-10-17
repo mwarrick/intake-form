@@ -1,10 +1,12 @@
 import { fullName, requireUser } from "@/lib/auth";
+import { userHasPassword } from "@/lib/users";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
-  const me = await requireUser("/account");
+  const me = await requireUser("/account", { allowTemporaryPassword: true });
+  const hasPassword = await userHasPassword(me.id);
   return (
     <div className="mx-auto max-w-sm space-y-4">
       <div>
@@ -13,7 +15,14 @@ export default async function AccountPage() {
           {fullName(me)} · {me.email} · {me.role === "admin" ? "Admin" : "User"}
         </p>
       </div>
-      <ChangePasswordForm />
+      {me.must_change_password && (
+        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+          {hasPassword
+            ? "You signed in with a temporary password. Choose a new password to continue; enter the temporary one as your current password."
+            : "Welcome! Choose a password to finish setting up your account. You'll use it with your email from now on."}
+        </p>
+      )}
+      <ChangePasswordForm hasPassword={hasPassword} />
     </div>
   );
 }

@@ -2,10 +2,23 @@ import "server-only";
 import { USER_COLUMNS, type User } from "@/lib/auth";
 import { T, db } from "@/lib/supabase";
 
-export async function listUsers(): Promise<User[]> {
-  const { data, error } = await db().from(T.users).select(USER_COLUMNS).order("last_name").order("first_name");
+/** A user as the admin list shows them: whether they've chosen a password, never the hash itself. */
+export type ListedUser = User & { has_password: boolean };
+
+export async function listUsers(): Promise<ListedUser[]> {
+  const { data, error } = await db()
+    .from(T.users)
+    .select(`${USER_COLUMNS}, password_hash`)
+    .order("last_name")
+    .order("first_name");
   if (error) throw new Error(error.message);
-  return data as User[];
+  return (data ?? []).map(({ password_hash, ...u }) => ({ ...(u as User), has_password: !!password_hash }));
+}
+
+export async function userHasPassword(id: string): Promise<boolean> {
+  const { data, error } = await db().from(T.users).select("password_hash").eq("id", id).single();
+  if (error) throw new Error(error.message);
+  return !!data.password_hash;
 }
 
 export function readUserFields(form: FormData): { first_name: string; last_name: string; email: string } | { error: string } {

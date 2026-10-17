@@ -16,6 +16,8 @@ export interface MetricReferral {
   status: string;
   source: "scan" | "portal";
   referring_hospital: string | null;
+  /** Loaded for the data-to-fix list; the dashboard never shows it. */
+  patient_name?: string | null;
   data: FormData;
   doc_flags: Flag[];
   decided_at: string | null;

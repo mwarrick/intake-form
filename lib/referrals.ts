@@ -116,7 +116,7 @@ export async function loadMetricsData(): Promise<{
   const [refs, asmts, meds] = await Promise.all([
     db()
       .from(T.referrals)
-      .select("id, created_at, status, source, referring_hospital, data, doc_flags, decided_at")
+      .select("id, created_at, status, source, referring_hospital, patient_name, data, doc_flags, decided_at")
       .not("status", "in", "(draft,processing)")
       .order("created_at", { ascending: false })
       .limit(5000),

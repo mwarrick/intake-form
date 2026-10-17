@@ -126,8 +126,9 @@ async function createPortalReferral(
 
   const supabase = db();
   let id: string;
-  if (draftId) {
-    const draft = await loadDraft(draftId);
+  // Drafts are cleaned up after a day; a referrer who submits later still gets their referral in, without the scan.
+  const draft = draftId ? await loadDraft(draftId).catch(() => null) : null;
+  if (draftId && draft) {
     if (draft.status !== "draft") throw new Error("Your scan is still being read. Try again in a moment.");
     // Let the coordinator see which fields the referrer corrected after the scan was read.
     const read = normalize(draft.data ?? {}, referrerFields);

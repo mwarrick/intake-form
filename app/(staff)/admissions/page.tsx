@@ -107,7 +107,11 @@ function AdmissionTable({
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-xs">
                     {status === "complete" ? (
-                      <Link href={`/referrals/${r.id}/housing-summary`} className="text-emerald-700 hover:underline">Complete · summary</Link>
+                      <>
+                        <Link href={`/referrals/${r.id}/housing-summary`} className="text-emerald-700 hover:underline">Complete · summary</Link>
+                        {" · "}
+                        <Link href={`/referrals/${r.id}/housing-packet`} className="text-brand-700 hover:underline">packet</Link>
+                      </>
                     ) : (
                       <Link href={`/referrals/${r.id}/assessment`} className="text-brand-700 hover:underline">
                         {status === "draft" ? "Draft · continue" : "Start"}

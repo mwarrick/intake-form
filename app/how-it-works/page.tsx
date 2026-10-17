@@ -7,7 +7,8 @@ const STEPS = [
   { step: "Review and decision", when: "Within 2 hours", who: "Referral coordinator" },
   { step: "Admission", when: "Day of arrival", who: "Medical Coordinator (LVN)" },
   { step: "Housing assessment", when: "First week of the stay", who: "Care Coordinator" },
-  { step: "Service plan and move", when: "Before the authorization ends", who: "Care Coordinator" },
+  { step: "Service plan", when: "Before the authorization ends", who: "Care Coordinator" },
+  { step: "Housing search and move-in", when: "Until the client is housed", who: "Housing Case Manager" },
 ];
 
 interface Role {
@@ -69,7 +70,22 @@ const ROLES: Role[] = [
     ],
     uses: "Contacts, insurance, housing situation, behavioral health and substance use from the referral; the nurse’s alerts and the stay’s end date.",
     produces: "The HMIS intake, the service plan, the housing application.",
-    outside: "Enters the client in HMIS and KIPU, works the Coordinated Entry match, and follows the client into housing.",
+    outside: "Enters the client in HMIS and KIPU and works the Coordinated Entry match.",
+  },
+  {
+    name: "Housing Case Manager",
+    who: "Case manager who finds a unit, moves the client in and helps them keep it (caseload of 30–35)",
+    account: "User",
+    pages: [
+      { label: "Admissions → In recuperative care", href: "/admissions", what: "Clients with a completed housing assessment have a packet link." },
+      {
+        label: "Housing search packet",
+        what: "Printable starting point: housing goal and CES status, a rent budget from income, unit needs (size, ground floor, pets, fridge for insulin, area), each barrier with a way to approach it, documents applications need, what the move must account for, suggested independent living goals, and blank pages for applications, viewings, the move-in checklist and the monthly contact standard.",
+      },
+    ],
+    uses: "The Care Coordinator’s assessment and summary, plus mobility, medications and home health from the nurse’s records.",
+    produces: "Applications, inspections, the move-in, and an independent living plan with at least three goals.",
+    outside: "Works with landlords and property managers, enrolls clients in HMIS through CES, and logs every contact in the EHR within 24–48 hours.",
   },
   {
     name: "Admin",
@@ -90,6 +106,7 @@ const CARRIES = [
   ["Housing situation, episodes of homelessness", "Referral", "Pre-fills the housing assessment"],
   ["Behavioral health, substance use, mobility", "Referral + H&P", "Pre-fills disabling conditions"],
   ["Homeless history, income, documents, goals, consent", "Housing assessment", "Housing summary, HMIS"],
+  ["Housing goal, budget, barriers, unit needs, documents", "Assessment + nurse’s records", "Housing search packet"],
 ];
 
 const DEMO = [
@@ -98,6 +115,8 @@ const DEMO = [
   ["James Whitaker", "a1000000-0000-4000-8000-000000000003", "arriving in two days; housing assessment in draft", "assessment"],
   ["Maria Santos", "a1000000-0000-4000-8000-000000000004", "in her stay; ready for HMIS", "housing-summary"],
   ["Kevin Brooks", "a1000000-0000-4000-8000-000000000005", "in his stay; HMIS consent missing", "housing-summary"],
+  ["Maria Santos (packet)", "a1000000-0000-4000-8000-000000000004", "no income, missing ID, a dog", "housing-packet"],
+  ["Kevin Brooks (packet)", "a1000000-0000-4000-8000-000000000005", "SSDI budget, eviction history, ground floor", "housing-packet"],
 ];
 
 export default function HowItWorks() {
@@ -111,7 +130,7 @@ export default function HowItWorks() {
         </p>
       </div>
 
-      <ol className="grid gap-2 sm:grid-cols-5">
+      <ol className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {STEPS.map((s, i) => (
           <li key={s.step} className="card relative p-3">
             <span className="text-xs font-medium text-slate-400">{i + 1}</span>
@@ -188,7 +207,7 @@ export default function HowItWorks() {
           <p className="mb-2 text-slate-600">Fictional, approved referrals at each stage (staff sign-in required).</p>
           <ul className="space-y-1">
             {DEMO.map(([name, id, note, page]) => (
-              <li key={id}>
+              <li key={name}>
                 <Link href={`/referrals/${id}/${page}`} className="font-medium text-brand-700 hover:underline">{name}</Link>
                 <span className="text-slate-600">: {note}</span>
               </li>

@@ -51,7 +51,7 @@ The defaults are model names whose tier is clear. Swap in any vision-capable mod
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`), and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEY`). The Vercel Supabase integration sets these.
    - `OPENAI_API_KEY`
    - Optional: `OPENAI_MODEL_CLASSIFY`, `OPENAI_MODEL_EXTRACT`, `OPENAI_MODEL_REREAD`, `OPENAI_MODEL_DOCS`, `EXTRACT_REREAD_THRESHOLD`
-3. `npm install` (this also copies the pdf.js worker into `public/`), then `npm run dev`.
+3. `npm install` (this also copies the pdf.js worker into `public/`), then `npm run dev`. Or run `./start` to run it in the background (log in `.cache/dev.log`; `PORT=3001 ./start` for another port) and `./stop` to stop it.
 
 **Cleanup:** Vercel Cron calls `/api/cron/cleanup` once a day (`vercel.json`). It deletes uploads that are more than a day old and not attached to an intake record: online-form uploads of a paper form that were never submitted (including repeat uploads), and storage folders whose referral no longer exists. Faxed scans and submitted referrals are never deleted. Optionally set `CRON_SECRET` in Vercel so only the cron job can call the route.
 

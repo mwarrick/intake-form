@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Stop the dev server started by ./start.
+set -uo pipefail
+cd "$(dirname "$0")"
+
+PID_FILE=.cache/dev.pid
+
+# Kill a process and everything it started (npx -> next -> workers).
+kill_tree() {
+  local child
+  for child in $(pgrep -P "$1"); do
+    kill_tree "$child"
+  done
+  kill "$1" 2>/dev/null
+}
+
+if [[ ! -f "$PID_FILE" ]] || ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+  rm -f "$PID_FILE"
+  echo "Not running."
+  exit 0
+fi
+
+PID="$(cat "$PID_FILE")"
+kill_tree "$PID"
+for _ in $(seq 10); do
+  kill -0 "$PID" 2>/dev/null || break
+  sleep 1
+done
+kill -0 "$PID" 2>/dev/null && kill -9 "$PID" 2>/dev/null
+rm -f "$PID_FILE"
+echo "Stopped (pid $PID)."

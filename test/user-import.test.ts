@@ -1,34 +1,43 @@
 import { describe, expect, it } from "vitest";
-import { parseStaffList } from "@/lib/user-import";
+import { parseStaffList, staffEmail } from "@/lib/user-import";
+
+describe("staffEmail", () => {
+  it("runs the full name together at the staff domain", () => {
+    expect(staffEmail("Dana", "Whitfield")).toBe("danawhitfield@illuminationhealthhome.org");
+    expect(staffEmail("Mary Ann", "O'Brien-Lopez")).toBe("maryannobrienlopez@illuminationhealthhome.org");
+    expect(staffEmail("José", "Núñez")).toBe("josenunez@illuminationhealthhome.org");
+  });
+});
 
 describe("parseStaffList", () => {
-  it("reads the common pasted formats and skips a header", () => {
+  it("reads firstname, lastname, email columns with a header, generating blank emails", () => {
     const { rows, problems } = parseStaffList(
-      [
-        "First name\tLast name\tEmail\tRole",
-        "Dana\tWhitfield\tDWhitfield@example.org\tAdmin",
-        "Kim Nguyen, kim.nguyen@example.org",
-        "Mary Ann Lopez <mlopez@example.org>",
-        "",
-        "Lee, Jordan, jlee@example.org, user",
-      ].join("\n"),
+      ["firstname,lastname,email,role", "Dana,Whitfield,,admin", "Kim,Nguyen,KNguyen@example.org", '"Lopez, Jr.",Mary,,'].join("\n"),
     );
     expect(problems).toEqual([]);
     expect(rows).toEqual([
-      { first_name: "Dana", last_name: "Whitfield", email: "dwhitfield@example.org", role: "admin" },
-      { first_name: "Kim", last_name: "Nguyen", email: "kim.nguyen@example.org", role: "user" },
-      { first_name: "Mary Ann", last_name: "Lopez", email: "mlopez@example.org", role: "user" },
-      { first_name: "Lee", last_name: "Jordan", email: "jlee@example.org", role: "user" },
+      { first_name: "Dana", last_name: "Whitfield", email: "danawhitfield@illuminationhealthhome.org", role: "admin", generatedEmail: true },
+      { first_name: "Kim", last_name: "Nguyen", email: "knguyen@example.org", role: "user" },
+      { first_name: "Lopez, Jr.", last_name: "Mary", email: "lopezjrmary@illuminationhealthhome.org", role: "user", generatedEmail: true },
     ]);
   });
 
+  it("finds columns by header name in any order, and reads tab-separated rows without a header", () => {
+    expect(parseStaffList("Email\tLast Name\tFirst Name\n\tWhitfield\tDana").rows[0]).toMatchObject({
+      first_name: "Dana",
+      last_name: "Whitfield",
+      email: "danawhitfield@illuminationhealthhome.org",
+    });
+    expect(parseStaffList("Kim\tNguyen").rows[0]).toMatchObject({ first_name: "Kim", last_name: "Nguyen", email: "kimnguyen@illuminationhealthhome.org" });
+  });
+
   it("lists lines it can't use", () => {
-    const { rows, problems } = parseStaffList("Prince, prince@example.org\nno email here\nKim Nguyen, kim@example.org\nKim N, KIM@example.org");
-    expect(rows.map((r) => r.email)).toEqual(["kim@example.org"]);
+    const { rows, problems } = parseStaffList("firstname,lastname,email\nPrince,,\nKim,Nguyen,\nKim,Nguyen,\nAl,Smith,not-an-email");
+    expect(rows.map((r) => r.email)).toEqual(["kimnguyen@illuminationhealthhome.org"]);
     expect(problems.map((p) => [p.line, p.reason])).toEqual([
-      [1, "Needs a first and last name"],
-      [2, "No email address"],
-      [4, "Same email as an earlier line"],
+      [2, "Needs a first and last name"],
+      [4, "Same email as an earlier line (kimnguyen@illuminationhealthhome.org)"],
+      [5, "Email address isn't valid"],
     ]);
   });
 });

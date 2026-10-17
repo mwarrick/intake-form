@@ -34,14 +34,6 @@ export function passwordProblem(password: string): string | null {
   return password.length < MIN_PASSWORD_LENGTH ? `Password must be at least ${MIN_PASSWORD_LENGTH} characters` : null;
 }
 
-/** A random first password for an imported user, easy to read out or type: e.g. "k7qm-9xtr-4bwz". */
-export function temporaryPassword(): string {
-  const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
-  const bytes = randomBytes(12);
-  const chars = [...bytes].map((b) => alphabet[b % alphabet.length]);
-  return [0, 4, 8].map((i) => chars.slice(i, i + 4).join("")).join("-");
-}
-
 /** Random session token for the cookie; only its SHA-256 goes in the database. */
 export function newSessionToken(): string {
   return randomBytes(32).toString("base64url");

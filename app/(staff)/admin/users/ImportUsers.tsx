@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { type ImportResult, importUsers } from "@/app/admin-actions";
-import { parseStaffList } from "@/lib/user-import";
+import { parseStaffList, staffEmail } from "@/lib/user-import";
 
 /** Paste a staff list, preview who will be added, then import and hand out the temporary passwords. */
 export function ImportUsers({ onDone }: { onDone: () => void }) {
@@ -18,16 +18,31 @@ export function ImportUsers({ onDone }: { onDone: () => void }) {
       <div>
         <h2 className="text-base font-semibold text-brand-900">Import users</h2>
         <p className="text-sm text-slate-600">
-          Paste one person per line: <code>First Last, email</code>, <code>First Last &lt;email&gt;</code>, or rows copied from a
-          spreadsheet with First, Last, Email and (optional) Role columns. Write <code>admin</code> in a column to make someone an
-          admin; everyone else is a user.
+          Choose a CSV file or paste rows from a spreadsheet with the columns <code>firstname, lastname, email</code> (and
+          optionally <code>role</code>). A header row is fine. Leave email blank to use the full name run together, e.g.{" "}
+          <code>{staffEmail("Dana", "Whitfield")}</code>. Put <code>admin</code> in the role column to make someone an admin;
+          everyone else is a user.
         </p>
       </div>
+      <label className="block text-sm">
+        <span className="font-medium text-slate-700">CSV file</span>
+        <input
+          type="file"
+          accept=".csv,text/csv,.tsv,.txt"
+          className="mt-1 block w-full text-sm"
+          disabled={pending}
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (file) setText(await file.text());
+            e.target.value = "";
+          }}
+        />
+      </label>
       <textarea
         className="input min-h-40 font-mono text-sm"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={"Dana Whitfield, dwhitfield@illuminationhealthhome.org\nKim Nguyen <knguyen@illuminationhealthhome.org>"}
+        placeholder={"firstname,lastname,email\nDana,Whitfield,\nKim,Nguyen,knguyen@example.org"}
         disabled={pending}
       />
 
@@ -49,13 +64,22 @@ export function ImportUsers({ onDone }: { onDone: () => void }) {
                     <tr key={r.email}>
                       <td className="px-3 py-1.5">{r.first_name}</td>
                       <td className="px-3 py-1.5">{r.last_name}</td>
-                      <td className="px-3 py-1.5">{r.email}</td>
+                      <td className="px-3 py-1.5">
+                        {r.email}
+                        {r.generatedEmail && <span className="ml-1.5 text-xs text-slate-500">(from name)</span>}
+                      </td>
                       <td className="px-3 py-1.5">{r.role === "admin" ? "Admin" : "User"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          )}
+          {preview.rows.some((r) => r.generatedEmail) && (
+            <p className="text-xs text-slate-500">
+              Emails marked “from name” were made from the first and last name. Check them before importing: nicknames and
+              shared names can make addresses that don’t exist.
+            </p>
           )}
           {preview.problems.length > 0 && (
             <ul className="space-y-0.5 rounded-md bg-amber-50 p-3 text-amber-800">
@@ -88,11 +112,7 @@ export function ImportUsers({ onDone }: { onDone: () => void }) {
 
 function ImportDone({ result, onDone }: { result: ImportResult; onDone: () => void }) {
   const [copied, setCopied] = useState(false);
-  const csv = [
-    "first_name,last_name,email,role,temporary_password",
-    ...result.created.map((u) => [u.first_name, u.last_name, u.email, u.role, u.password].map(csvCell).join(",")),
-  ].join("\n");
-  const plain = result.created.map((u) => `${u.first_name} ${u.last_name}\t${u.email}\t${u.password}`).join("\n");
+  const plain = result.created.map((u) => `${u.first_name} ${u.last_name}\t${u.email}`).join("\n");
 
   return (
     <div className="card space-y-3 p-4">
@@ -101,18 +121,17 @@ function ImportDone({ result, onDone }: { result: ImportResult; onDone: () => vo
       </h2>
       {result.created.length > 0 && (
         <>
-          <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
-            These temporary passwords are shown only once. Copy or download them now and give each person theirs privately; they
-            can change it on their Account page after signing in.
+          <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+            Tell each person to sign in with just their email address (no password) and choose a password. Until they do,
+            anyone who knows their email could claim the account, so let them know soon.
           </p>
           <div className="overflow-x-auto rounded-md border border-slate-200">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-3 py-1.5 font-medium">Name</th>
-                  <th className="px-3 py-1.5 font-medium">Email</th>
+                  <th className="px-3 py-1.5 font-medium">Email (sign-in)</th>
                   <th className="px-3 py-1.5 font-medium">Role</th>
-                  <th className="px-3 py-1.5 font-medium">Temporary password</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -123,26 +142,20 @@ function ImportDone({ result, onDone }: { result: ImportResult; onDone: () => vo
                     </td>
                     <td className="px-3 py-1.5">{u.email}</td>
                     <td className="px-3 py-1.5">{u.role === "admin" ? "Admin" : "User"}</td>
-                    <td className="px-3 py-1.5 font-mono">{u.password}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="btn-secondary"
-              onClick={async () => {
-                await navigator.clipboard.writeText(plain);
-                setCopied(true);
-              }}
-            >
-              {copied ? "Copied" : "Copy list"}
-            </button>
-            <a className="btn-secondary" href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`} download="new-users.csv">
-              Download CSV
-            </a>
-          </div>
+          <button
+            className="btn-secondary"
+            onClick={async () => {
+              await navigator.clipboard.writeText(plain);
+              setCopied(true);
+            }}
+          >
+            {copied ? "Copied" : "Copy names and emails"}
+          </button>
         </>
       )}
       {result.skipped.length > 0 && (
@@ -159,8 +172,4 @@ function ImportDone({ result, onDone }: { result: ImportResult; onDone: () => vo
       </button>
     </div>
   );
-}
-
-function csvCell(v: string): string {
-  return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }

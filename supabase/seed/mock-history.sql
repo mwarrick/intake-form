@@ -2,6 +2,7 @@
 -- Everything is made up. Choices come from md5 of the row number, so every run produces the same rows.
 -- Re-running replaces only these rows (ids starting b2000000-); their assessments go with them.
 -- Decision times improve over the period, and Inland Valley sends weaker packets: stories for the dashboard to show.
+-- Approved patients are admitted the day the referral arrives; exits, extensions and Total LOS are filled as of 2026-10-17.
 begin;
 
 create function pg_temp.r(n int, k text) returns float8 language sql immutable as
@@ -61,9 +62,40 @@ people as (
     case when d.status in ('approved', 'denied') then d.created + d.minutes * interval '1 minute' end as decided_at
   from decided d
 ),
+-- Admitted the day the referral came in, from an hour after the decision until 8 PM, on the quarter hour.
+admitted as (
+  select p.*,
+    (p.created at time zone 'America/Los_Angeles')::date as admission,
+    ceil((extract(epoch from (p.decided_at at time zone 'America/Los_Angeles')::time) / 60 + 60) / 15)::int * 15 as earliest
+  from people p
+),
+-- Stay as of 2026-10-17: about 20% get a 7 or 14 day extension, approved a few days before the authorized end.
+stayed as (
+  select a.*,
+    to_char(time '00:00' + least(1425, a.earliest + floor(pg_temp.r(a.n, 'admt') * ((greatest(a.earliest, 1200) - a.earliest) / 15 + 1))::int * 15) * interval '1 minute', 'HH24:MI') as admission_time,
+    a.admission + a.los - 1 - floor(pg_temp.r(a.n, 'extday') * 4)::int as extension_date,
+    case when pg_temp.r(a.n, 'ext') < 0.2 then 'Yes' when pg_temp.r(a.n, 'ext') < 0.8 then 'No' end as ext_pick
+  from admitted a
+),
+extended as (
+  select s.*,
+    -- Not asked yet if the approval date would still be in the future.
+    case when s.ext_pick = 'Yes' and s.extension_date > date '2026-10-17' then null else s.ext_pick end as extension,
+    case when s.ext_pick = 'Yes' and s.extension_date <= date '2026-10-17' then (array[7, 14])[1 + floor(pg_temp.r(s.n, 'extlen') * 2)::int] else 0 end as extra
+  from stayed s
+),
+exited as (
+  select e.*,
+    -- Still in care, or about 15% never recorded, leave the exit blank; a quarter leave 1 to 5 days early.
+    case
+      when e.admission + e.los + e.extra > date '2026-10-17' or pg_temp.r(e.n, 'exitmiss') < 0.15 then null
+      when pg_temp.r(e.n, 'early') < 0.25 then e.admission + e.los + e.extra - 1 - floor(pg_temp.r(e.n, 'earlyday') * 5)::int
+      else e.admission + e.los + e.extra
+    end as exit_date
+  from extended e
+),
 flagged as (
   select p.*,
-    (p.decided_at at time zone 'America/Los_Angeles')::date + floor(pg_temp.r(p.n, 'adm') * 3)::int as admission,
     -- Checklist, conflict and eligibility flags as the cross-checks word them.
     to_jsonb(array_remove(array[
       case when pg_temp.r(p.n, 'miss') < (case when p.hospital = 'Inland Valley Medical Center' then 0.55 else 0.18 end)
@@ -81,7 +113,7 @@ flagged as (
         when 'Not medically stable' then jsonb_build_object('kind', 'eligibility', 'message', 'Current Progress Notes: not documented as medically stable for discharge')
       end end
     ], null)) as doc_flags
-  from people p
+  from exited p
 )
 insert into "ILLINTAKE_referrals" (id, created_at, updated_at, source, status, patient_name, referring_hospital, data, flags, doc_flags, reviewed_at, decided_at)
 select
@@ -118,7 +150,12 @@ select
     'denial_category', case when f.status = 'denied' then f.deny end,
     'denial_reason', case when f.status = 'denied' then f.deny || ' (mock history)' end,
     'admission_date', case when f.status = 'approved' then f.admission end,
-    'admission_time', case when f.status = 'approved' then (array['10:00', '13:30', '15:00'])[1 + f.n % 3] end
+    'admission_time', case when f.status = 'approved' then f.admission_time end,
+    'exit_date', case when f.status = 'approved' then f.exit_date end,
+    'extension_requested', case when f.status = 'approved' then f.extension end,
+    'extension_approval_date', case when f.status = 'approved' and f.extension = 'Yes' then f.extension_date end,
+    'extension_approved_by', case when f.status = 'approved' and f.extension = 'Yes' then (array['Robin Hyrons', 'Hobey Letessier', 'Bordy Coultar'])[1 + floor(pg_temp.r(f.n, 'extby') * 3)::int] end,
+    'total_los', case when f.status = 'approved' then f.exit_date - f.admission end
   ),
   '[]'::jsonb, f.doc_flags, f.decided_at, f.decided_at
 from flagged f;

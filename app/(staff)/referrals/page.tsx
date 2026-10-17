@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/StatusBadge";
 import { requireUser } from "@/lib/auth";
-import { listReferrals } from "@/lib/referrals";
+import { docStatuses, listReferrals } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +15,8 @@ function age(iso: string) {
 export default async function Queue() {
   await requireUser("/referrals");
   const referrals = await listReferrals();
+  // The first item on the form's checklist: the hospital face sheet.
+  const demographics = await docStatuses(referrals.map((r) => r.id), "demographics");
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -37,13 +39,14 @@ export default async function Queue() {
               <th className="px-4 py-2 font-medium">Referring hospital</th>
               <th className="px-4 py-2 font-medium">Source</th>
               <th className="px-4 py-2 font-medium">Status</th>
+              <th className="px-4 py-2 font-medium" title="Client's Demographic Page, the first item on the referral checklist">Demographic page</th>
               <th className="px-4 py-2 font-medium">Flags</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {referrals.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                   No referrals yet.
                 </td>
               </tr>
@@ -75,6 +78,9 @@ export default async function Queue() {
                   <td className="px-4 py-2.5">
                     <StatusBadge status={r.status} />
                   </td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-xs">
+                    <DocIndicator status={demographics.get(r.id)} reading={r.status === "processing"} />
+                  </td>
                   <td className="px-4 py-2.5 text-xs">
                     {conflicts > 0 && <span className="mr-2 font-medium text-red-700">{conflicts} conflict{conflicts > 1 ? "s" : ""}</span>}
                     {elig > 0 && <span className="mr-2 text-purple-700">{elig} criteria</span>}
@@ -88,5 +94,21 @@ export default async function Queue() {
         </table>
       </div>
     </div>
+  );
+}
+
+/** Received, still being read, or missing; shape and word as well as color. */
+function DocIndicator({ status, reading }: { status?: "done" | "processing" | "failed"; reading: boolean }) {
+  if (status === "done" || status === "failed")
+    return (
+      <span className="inline-flex items-center gap-1 font-medium text-emerald-700" title={status === "failed" ? "Received, but it couldn't be read" : undefined}>
+        <span aria-hidden="true">✓</span> Received
+      </span>
+    );
+  if (status === "processing" || reading) return <span className="text-sky-700">Reading…</span>;
+  return (
+    <span className="inline-flex items-center gap-1 font-medium text-red-700">
+      <span aria-hidden="true">✕</span> Missing
+    </span>
   );
 }

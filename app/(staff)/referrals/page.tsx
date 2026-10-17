@@ -1,33 +1,106 @@
 import Link from "next/link";
+import { DayPicker } from "@/components/DayPicker";
 import { StatusBadge } from "@/components/StatusBadge";
 import { requireUser } from "@/lib/auth";
-import { listReferrals, withOriginalScan } from "@/lib/referrals";
+import { localDate } from "@/lib/metrics";
+import { listReferrals, neighborDays, undecidedBefore, withOriginalScan } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
 
-function age(iso: string) {
+const PACIFIC = "America/Los_Angeles";
+
+/** How long ago today's referrals arrived; the time of day for other days. */
+function received(iso: string, isToday: boolean) {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 60) return `${mins} min ago`;
-  if (mins < 60 * 24) return `${Math.floor(mins / 60)} h ${mins % 60} min ago`;
-  return new Date(iso).toLocaleDateString();
+  if (isToday && mins < 60) return `${mins} min ago`;
+  if (isToday) return `${Math.floor(mins / 60)} h ${mins % 60} min ago`;
+  return new Date(iso).toLocaleTimeString("en-US", { timeZone: PACIFIC, hour: "numeric", minute: "2-digit" });
 }
 
-export default async function Queue() {
+/** "Tuesday, October 14, 2026" for a YYYY-MM-DD day. */
+const longDay = (day: string) =>
+  new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric", year: "numeric" });
+const shortDay = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
+// Every link names its day; plain /referrals is the default view, which falls back to the latest day with referrals.
+const dayHref = (day: string) => `/referrals?date=${day}`;
+
+export default async function Queue({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   await requireUser("/referrals");
-  const referrals = await listReferrals();
+  const { date } = await searchParams;
+  const today = localDate(new Date());
+  const chosen = date && /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(date)) && date <= today ? date : null;
+  let day = chosen ?? today;
+  let [referrals, { prev, next }] = await Promise.all([listReferrals(day), neighborDays(day)]);
+  // With no day chosen and nothing yet today, show the latest day that has referrals.
+  const fellBack = !chosen && referrals.length === 0 && prev !== null;
+  if (fellBack) {
+    day = prev!;
+    [referrals, { prev, next }] = await Promise.all([listReferrals(day), neighborDays(day)]);
+  }
+  const isToday = day === today;
+  const undecided = await undecidedBefore(day);
   const scanned = await withOriginalScan(referrals.map((r) => r.id));
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-brand-900">Referral queue</h1>
-          <p className="text-sm text-slate-600">Paper and online referrals, newest first. Decisions are due within two hours.</p>
+          <p className="text-sm text-slate-600">Paper and online referrals for one day, newest first. Decisions are due within two hours.</p>
         </div>
         <div className="flex gap-2">
           <Link href="/upload" className="btn-secondary">Upload scan</Link>
           <Link href="/refer" className="btn-secondary">New online referral</Link>
         </div>
       </div>
+
+      <nav aria-label="Choose a day" className="flex flex-wrap items-center gap-2">
+        {prev ? (
+          <Link href={dayHref(prev)} className="btn-secondary" title={`Previous day with referrals: ${longDay(prev)}`}>
+            <span aria-hidden="true">←</span> {shortDay(prev)}
+          </Link>
+        ) : (
+          <span className="btn-secondary cursor-not-allowed opacity-50" aria-disabled="true">
+            <span aria-hidden="true">←</span> Previous
+          </span>
+        )}
+        <DayPicker day={day} today={today} />
+        {next ? (
+          <Link href={dayHref(next)} className="btn-secondary" title={`Next day with referrals: ${longDay(next)}`}>
+            {shortDay(next)} <span aria-hidden="true">→</span>
+          </Link>
+        ) : (
+          <span className="btn-secondary cursor-not-allowed opacity-50" aria-disabled="true">
+            Next <span aria-hidden="true">→</span>
+          </span>
+        )}
+        {!isToday && (
+          <Link href={dayHref(today)} className="btn-secondary">
+            Today
+          </Link>
+        )}
+        <h2 className="ml-1 text-sm font-medium text-slate-700" aria-live="polite">
+          {isToday ? "Today, " : ""}
+          {longDay(day)}: {referrals.length} referral{referrals.length === 1 ? "" : "s"}
+        </h2>
+      </nav>
+
+      {fellBack && (
+        <p className="text-sm text-slate-600">No referrals yet today. Showing {longDay(day)}, the most recent day with referrals.</p>
+      )}
+
+      {undecided.length > 0 && (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Still undecided from earlier days:{" "}
+          {undecided.map((u, i) => (
+            <span key={u.day}>
+              {i > 0 && ", "}
+              <Link href={dayHref(u.day)} className="font-medium underline">
+                {shortDay(u.day)} ({u.count})
+              </Link>
+            </span>
+          ))}
+        </p>
+      )}
 
       <div className="card overflow-x-auto">
         <table className="w-full text-left text-sm">
@@ -46,7 +119,7 @@ export default async function Queue() {
             {referrals.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                  No referrals yet.
+                  No referrals received on this date.
                 </td>
               </tr>
             )}
@@ -63,7 +136,7 @@ export default async function Queue() {
                 <tr key={r.id} className="hover:bg-slate-50">
                   <td className="whitespace-nowrap px-4 py-2.5 text-slate-600">
                     <Link href={`/referrals/${r.id}`} className="block">
-                      {age(r.created_at)}
+                      {received(r.created_at, isToday)}
                       {overdue && <span className="ml-2 text-xs font-medium text-red-700">over 2 h</span>}
                     </Link>
                   </td>

@@ -210,6 +210,19 @@ function minutes(r: MetricReferral): number {
 export function localDate(iso: string | Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(typeof iso === "string" ? new Date(iso) : iso);
 }
+/** The UTC instant a Pacific calendar day (YYYY-MM-DD) starts, allowing for daylight saving time. */
+export function pacificDayStart(day: string): string {
+  const guess = Date.parse(`${day}T00:00:00Z`);
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
+  const offset = (t: number) => {
+    const p = Object.fromEntries(fmt.formatToParts(t).map((x) => [x.type, x.value]));
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - t;
+  };
+  return new Date(guess - offset(guess - offset(guess))).toISOString();
+}
+
 export function addDays(iso: string, days: number): string {
   return new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }

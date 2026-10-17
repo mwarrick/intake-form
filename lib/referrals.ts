@@ -5,7 +5,7 @@ import type { Assessment } from "@/lib/assessment";
 import type { SupportingDoc } from "@/lib/documents";
 import type { PipelineResult } from "@/lib/extract";
 import { loadSupporting } from "@/lib/extract-docs";
-import type { MetricReferral } from "@/lib/metrics";
+import { type MetricReferral, addDays, localDate, pacificDayStart } from "@/lib/metrics";
 import { T, db, signedUrls } from "@/lib/supabase";
 
 export type Status = "draft" | "processing" | "needs_review" | "reviewed" | "approved" | "denied" | "failed";
@@ -42,17 +42,44 @@ export interface DocumentRow {
   url?: string;
 }
 
-export async function listReferrals(): Promise<Referral[]> {
-  const { data, error } = await db()
-    .from(T.referrals)
-    .select("id, created_at, updated_at, source, status, patient_name, referring_hospital, flags, doc_flags, error, reviewed_at")
-    // Referrers' unsubmitted portal uploads (drafts, or still being read) aren't the coordinator's yet.
-    .neq("status", "draft")
-    .or("source.eq.scan,status.neq.processing")
+/** Referrals that are the coordinator's: not referrers' unsubmitted portal uploads (drafts, or still being read). */
+function queue(columns: string) {
+  return db().from(T.referrals).select(columns).neq("status", "draft").or("source.eq.scan,status.neq.processing");
+}
+
+/** The queue for one Pacific calendar day (YYYY-MM-DD), newest first. */
+export async function listReferrals(day: string): Promise<Referral[]> {
+  const { data, error } = await queue("id, created_at, updated_at, source, status, patient_name, referring_hospital, flags, doc_flags, error, reviewed_at")
+    .gte("created_at", pacificDayStart(day))
+    .lt("created_at", pacificDayStart(addDays(day, 1)))
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(1000);
   if (error) throw new Error(error.message);
-  return data as Referral[];
+  return data as unknown as Referral[];
+}
+
+/** The nearest earlier and later days that have referrals, for Previous and Next. */
+export async function neighborDays(day: string): Promise<{ prev: string | null; next: string | null }> {
+  const [before, after] = await Promise.all([
+    queue("created_at").lt("created_at", pacificDayStart(day)).order("created_at", { ascending: false }).limit(1),
+    queue("created_at").gte("created_at", pacificDayStart(addDays(day, 1))).order("created_at", { ascending: true }).limit(1),
+  ]);
+  if (before.error) throw new Error(before.error.message);
+  if (after.error) throw new Error(after.error.message);
+  const first = (rows: unknown) => ((rows as { created_at: string }[] | null)?.[0] ? localDate((rows as { created_at: string }[])[0].created_at) : null);
+  return { prev: first(before.data), next: first(after.data) };
+}
+
+/** Days before the given one that still have undecided referrals, newest first, with how many. */
+export async function undecidedBefore(day: string): Promise<{ day: string; count: number }[]> {
+  const { data, error } = await queue("created_at").in("status", ["needs_review", "reviewed"]).lt("created_at", pacificDayStart(day));
+  if (error) throw new Error(error.message);
+  const counts = new Map<string, number>();
+  for (const r of (data ?? []) as unknown as { created_at: string }[]) {
+    const d = localDate(r.created_at);
+    counts.set(d, (counts.get(d) ?? 0) + 1);
+  }
+  return [...counts].map(([d, count]) => ({ day: d, count })).sort((a, b) => b.day.localeCompare(a.day));
 }
 
 /** Approved referrals, for the admissions list: soonest admission first, then those with no date set yet. */

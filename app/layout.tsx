@@ -14,7 +14,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className="min-h-screen antialiased">
-        <header className="border-b border-slate-200 bg-white">
+        <header className="border-b border-slate-200 bg-white print:hidden">
           <nav className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             <Link href="/" className="font-semibold text-brand-900">
               Recuperative Care Intake
@@ -23,7 +23,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {user && <Link href="/upload" className="hover:text-brand-700">Upload scan</Link>}
               <Link href="/refer" className="hover:text-brand-700">Online referral</Link>
               {user && <Link href="/referrals" className="hover:text-brand-700">Referral queue</Link>}
+              {user && <Link href="/admissions" className="hover:text-brand-700">Admissions</Link>}
               {user?.role === "admin" && <Link href="/admin/users" className="hover:text-brand-700">Users</Link>}
+              <Link href="/how-it-works" className="hover:text-brand-700">How it works</Link>
             </div>
             <div className="ml-auto flex flex-wrap items-center gap-3 text-sm">
               <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
@@ -44,7 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
           </nav>
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        <main className="mx-auto max-w-7xl px-4 py-6 print:p-0">{children}</main>
       </body>
     </html>
   );

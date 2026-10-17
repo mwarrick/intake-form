@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { addUser, clearUserPassword, editUser, resetUserPassword } from "@/app/admin-actions";
 import { Field, Message } from "@/app/login/forms";
 import type { ListedUser as User } from "@/lib/users";
+import { ROLES, ROLE_LABELS } from "@/lib/roles";
 import { ImportUsers } from "./ImportUsers";
 
 export function UsersAdmin({ users, meId }: { users: User[]; meId: string }) {
@@ -56,8 +57,8 @@ function UserRow({ user, isMe }: { user: User; isMe: boolean }) {
         </td>
         <td className="px-4 py-2.5">{user.email}</td>
         <td className="px-4 py-2.5">
-          <span className={`rounded px-2 py-0.5 text-xs font-medium ${user.role === "admin" ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-700"}`}>
-            {user.role === "admin" ? "Admin" : "User"}
+          <span className={`rounded px-2 py-0.5 text-xs font-medium ${ROLE_BADGE[user.role]}`}>
+            {ROLE_LABELS[user.role]}
           </span>
         </td>
         <td className="px-4 py-2.5 text-xs">
@@ -86,13 +87,20 @@ function UserRow({ user, isMe }: { user: User; isMe: boolean }) {
   );
 }
 
+const ROLE_BADGE = {
+  user: "bg-slate-100 text-slate-700",
+  clinical: "bg-emerald-100 text-emerald-800",
+  admin: "bg-brand-100 text-brand-700",
+} as const;
+
 function RoleSelect({ defaultValue, disabled }: { defaultValue: string; disabled?: boolean }) {
   return (
     <label className="block">
       <span className="mb-1 block text-sm font-medium text-slate-700">Role</span>
       <select name="role" className="input" defaultValue={defaultValue} disabled={disabled}>
-        <option value="user">User</option>
-        <option value="admin">Admin</option>
+        {ROLES.map((r) => (
+          <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+        ))}
       </select>
       {/* A disabled select isn't submitted; keep the value. */}
       {disabled && <input type="hidden" name="role" value={defaultValue} />}

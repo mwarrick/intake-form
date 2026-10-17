@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldsJsonSchema } from "@/lib/extract";
+import { fieldLocation, fieldsJsonSchema } from "@/lib/extract";
 import { paperFields } from "@/lib/form";
 
 // OpenAI strict structured outputs: every object must list all its properties as required
@@ -34,5 +34,26 @@ describe("extraction schema", () => {
   it("allows null for yes/no answers", () => {
     const v = (s.properties as any).fields.properties.o2.properties.value;
     expect(v.enum).toEqual(["Yes", "No", null]);
+  });
+});
+
+describe("field locations from the reader", () => {
+  const at = (page: number | null, box: (number | null)[]) => {
+    const [left, top, right, bottom] = box;
+    return { value: null, raw: null, confidence: 1, page, left, top, right, bottom };
+  };
+  it("keeps a box on a form page", () => {
+    expect(fieldLocation(at(2, [0.1, 0.3, 0.4, 0.33]), [2])).toEqual({ page: 2, box: [0.1, 0.3, 0.4, 0.33] });
+  });
+  it("reads boxes given in thousandths or percent as fractions", () => {
+    expect(fieldLocation(at(2, [100, 300, 400, 330]), [2])?.box).toEqual([0.1, 0.3, 0.4, 0.33]);
+    expect(fieldLocation(at(2, [10, 30, 40, 33]), [2])?.box).toEqual([0.1, 0.3, 0.4, 0.33]);
+  });
+  it("drops a missing, off-form, empty or page-sized box", () => {
+    expect(fieldLocation(at(null, [null, null, null, null]), [2])).toBeUndefined();
+    expect(fieldLocation(at(5, [0.1, 0.3, 0.4, 0.33]), [2])).toBeUndefined();
+    expect(fieldLocation(at(2, [0.4, 0.3, 0.1, 0.33]), [2])).toBeUndefined();
+    expect(fieldLocation(at(2, [0, 0, 1, 1]), [2])).toBeUndefined();
+    expect(fieldLocation(undefined, [2])).toBeUndefined();
   });
 });

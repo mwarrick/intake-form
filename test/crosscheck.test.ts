@@ -118,6 +118,17 @@ describe("IV medication and redacted documents", () => {
     expect(flags.some((f) => f.kind === "conflict" && f.field === "self_admin_meds")).toBe(false);
   });
 
+  it("doesn't require 100 ft of walking from a wheelchair user who transfers independently", () => {
+    const pt = (transfers: boolean | null, device = "wheelchair") =>
+      crossCheck(base(), [doc("therapy_notes", { ambulation_distance_ft: 15, assistive_device: device, transfers_independent: transfers, adls_independent: true })], "2026-10-10T14:20")
+        .filter((f) => f.kind === "eligibility")
+        .map((f) => f.message);
+    expect(pt(true)).toEqual([expect.stringMatching(/uses a wheelchair.*MOB-3, MOB-4/)]);
+    expect(pt(true, "W/C")).toHaveLength(1);
+    expect(pt(false)).toEqual([expect.stringContaining("can't transfer independently")]);
+    expect(pt(true, "rolling walker")).toEqual([expect.stringContaining("must manage 100 ft")]);
+  });
+
   it("says it can't tell when the vitals date or authorization number is blacked out", () => {
     const docs = [
       doc("vitals", { taken_at: null, redacted: ["taken_at"] }),

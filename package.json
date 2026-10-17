@@ -10,6 +10,7 @@
     "test": "vitest run",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "eval": "EVAL=1 vitest run test/eval.test.ts",
+    "eval:criteria": "EVAL_CRITERIA=1 vitest run test/criteria-eval.test.ts",
     "samples": ".venv/bin/python scripts/make_samples.py",
     "packets": ".venv/bin/python scripts/make_packets.py",
     "packets:random": ".venv/bin/python scripts/make_packets.py --random",

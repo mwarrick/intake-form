@@ -79,8 +79,14 @@ export function crossCheck(data: FormData, docs: SupportingDoc[], receivedAt: st
 
     // Mobility and ADLs.
     const feet = typeof d.ambulation_distance_ft === "number" ? d.ambulation_distance_ft : null;
+    // IHH's internal criteria (MOB-1, MOB-3, MOB-4) accept a wheelchair user who transfers and uses the chair
+    // independently, without walking 100 ft; the form's shorter list doesn't.
+    const wheelchair = isWheelchair(d.assistive_device);
     if (feet !== null && feet < 100) {
-      add("eligibility", `${src}: walks ${feet} ft (must manage 100 ft)`);
+      if (!wheelchair) add("eligibility", `${src}: walks ${feet} ft (must manage 100 ft)`);
+      else if (d.transfers_independent !== false) {
+        add("eligibility", `${src}: uses a wheelchair and walks ${feet} ft. Accepted if they transfer and use the chair independently (MOB-3, MOB-4); confirm`);
+      }
       if (data.ambulatory === "Yes") add("conflict", `Form says ambulatory, but ${src} reports ${feet} ft`, "ambulatory");
     }
     if (d.transfers_independent === false) add("eligibility", `${src}: can't transfer independently`);
@@ -146,6 +152,11 @@ export function crossCheck(data: FormData, docs: SupportingDoc[], receivedAt: st
 function redacted(d: DocData, field: string): boolean {
   return Array.isArray(d.redacted) && (d.redacted as unknown[]).includes(field);
 }
+/** Wheelchair, w/c or WC in a therapy note's assistive device. */
+export function isWheelchair(v: unknown): boolean {
+  return typeof v === "string" && /wheel\s*chair|\bw\/c\b|\bwc\b/i.test(v);
+}
+
 function str(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
 }

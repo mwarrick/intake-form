@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { signOut } from "@/app/auth-actions";
-import { currentUser } from "@/lib/auth";
+import { type NavEntry, NavMenu } from "@/components/NavMenu";
+import { type User, currentUser } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,16 +20,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/" className="font-semibold text-brand-900">
               Recuperative Care Intake
             </Link>
-            <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-              {user?.role === "admin" && <Link href="/dashboard" className="hover:text-brand-700">Dashboard</Link>}
-              {user && <Link href="/data-to-fix" className="hover:text-brand-700">Data to fix</Link>}
-              {user && <Link href="/admissions" className="hover:text-brand-700">Admissions</Link>}
-              {user && <Link href="/referrals" className="hover:text-brand-700">Referral queue</Link>}
-              {user && <Link href="/upload" className="hover:text-brand-700">Upload scan</Link>}
-              <Link href="/refer" className="hover:text-brand-700">Online referral</Link>
-              {user?.role === "admin" && <Link href="/admin/users" className="hover:text-brand-700">Users</Link>}
-              <Link href="/how-it-works" className="hover:text-brand-700">How it works</Link>
-            </div>
+            <NavMenu entries={menu(user)} />
             <div className="ml-auto flex flex-wrap items-center gap-3 text-sm">
               <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                 Demo · fake patient data only
@@ -52,4 +44,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </body>
     </html>
   );
+}
+
+/** Top menu, grouped; entries the user can't open are left out. */
+function menu(user: User | null): NavEntry[] {
+  const admin = user?.role === "admin";
+  const items = (...xs: (false | null | undefined | { label: string; href: string })[]) => xs.filter((x): x is { label: string; href: string } => !!x);
+  return [
+    { label: "Reports", items: items(admin && { label: "Dashboard", href: "/dashboard" }, user && { label: "Data to fix", href: "/data-to-fix" }) },
+    { label: "Admissions", items: items(user && { label: "Admissions", href: "/admissions" }) },
+    {
+      label: "Referrals",
+      items: items(user && { label: "Referral queue", href: "/referrals" }, user && { label: "Upload scan", href: "/upload" }, { label: "Online referral", href: "/refer" }),
+    },
+    { label: "Users", items: items(admin && { label: "Users", href: "/admin/users" }) },
+    { label: "How it works", href: "/how-it-works" },
+  ];
 }

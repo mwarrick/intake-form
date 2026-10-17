@@ -82,7 +82,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | A-2 | Passwords are stored only as salted scrypt hashes, which are one-way: they can't be decrypted even with database access. Minimum 8 characters. | 🔄 |
 | A-3 | Signing in creates a 12-hour session: a random token in an HTTP-only cookie, with only its SHA-256 hash stored (`ILLINTAKE_sessions`). Every request re-checks that the user is still active. | 🔄 |
 | A-4 | Sign-in is required for the referral queue, review screens, fax upload, My account and user admin, and for their server actions and APIs. The online referral form stays public for hospital referrers; its pre-fill and submit steps only touch the referrer's own draft. | 🔄 |
-| A-5 | Admins add users (with a temporary password), edit name, email, role and active status, and reset passwords. Deactivating a user or resetting their password signs them out everywhere. Admins can't demote or deactivate themselves. | 🔄 |
+| A-5 | Admins add users (with a temporary password), edit name, email, role and active status, and reset passwords. Deactivating a user or resetting their password signs them out everywhere. Admins can't demote or deactivate themselves. Admins can import many users at once from a pasted list or spreadsheet rows, with a preview first; each gets a random temporary password shown once, and existing emails are skipped. | 🔄 |
 | A-6 | Users change their own password on My account. Forgotten passwords are reset by an admin. | 🔄 |
 | A-7 | When no users exist, the login page offers to create the first admin account. | 🔄 |
 | A-8 | The staff decision's "Reviewed by" defaults to the signed-in user. Expired sessions are removed by the daily cleanup. | 🔄 |

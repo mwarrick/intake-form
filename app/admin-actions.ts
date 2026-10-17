@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { type Role, staffOrThrow } from "@/lib/auth";
-import { hashPassword, passwordProblem } from "@/lib/password";
+import { hashPassword, passwordProblem, temporaryPassword } from "@/lib/password";
 import { T, db } from "@/lib/supabase";
+import { type ImportRow, parseStaffList } from "@/lib/user-import";
 import { friendlyDbError, readUserFields } from "@/lib/users";
 import type { FormState } from "./auth-actions";
 
@@ -62,4 +63,37 @@ export async function resetUserPassword(_prev: FormState, form: FormData): Promi
   // A reset signs the user out of existing sessions.
   await db().from(T.sessions).delete().eq("user_id", id);
   return { ok: "Password reset. Give the user their new password." };
+}
+
+export interface ImportResult {
+  /** New users with their temporary passwords; shown to the admin once and never stored in plain text. */
+  created: (ImportRow & { password: string })[];
+  skipped: { email: string; reason: string }[];
+  error?: string;
+}
+
+/** Add many staff at once from a pasted list (see parseStaffList). Existing emails are skipped, never changed. */
+export async function importUsers(text: string): Promise<ImportResult> {
+  await staffOrThrow("admin");
+  const { rows } = parseStaffList(text);
+  if (!rows.length) return { created: [], skipped: [], error: "No people found in the list." };
+  if (rows.length > 200) return { created: [], skipped: [], error: "Import at most 200 people at a time." };
+
+  const { data: existing, error: exErr } = await db()
+    .from(T.users)
+    .select("email")
+    .in("email", rows.map((r) => r.email));
+  if (exErr) return { created: [], skipped: [], error: exErr.message };
+  const taken = new Set((existing ?? []).map((u) => u.email as string));
+  const skipped = rows.filter((r) => taken.has(r.email)).map((r) => ({ email: r.email, reason: "Already a user" }));
+  const created = rows.filter((r) => !taken.has(r.email)).map((r) => ({ ...r, password: temporaryPassword() }));
+  if (!created.length) return { created, skipped };
+
+  const records = await Promise.all(
+    created.map(async ({ password, ...r }) => ({ ...r, active: true, password_hash: await hashPassword(password) })),
+  );
+  const { error } = await db().from(T.users).insert(records);
+  if (error) return { created: [], skipped, error: friendlyDbError(error.message) };
+  revalidatePath("/admin/users");
+  return { created, skipped };
 }

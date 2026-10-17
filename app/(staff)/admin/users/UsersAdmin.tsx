@@ -4,9 +4,10 @@ import { useActionState, useState } from "react";
 import { addUser, editUser, resetUserPassword } from "@/app/admin-actions";
 import { Field, Message } from "@/app/login/forms";
 import type { User } from "@/lib/auth";
+import { ImportUsers } from "./ImportUsers";
 
 export function UsersAdmin({ users, meId }: { users: User[]; meId: string }) {
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState<"one" | "import" | null>(null);
   return (
     <div className="space-y-4">
       <div className="card overflow-x-auto">
@@ -28,7 +29,18 @@ export function UsersAdmin({ users, meId }: { users: User[]; meId: string }) {
           </tbody>
         </table>
       </div>
-      {adding ? <AddUser onDone={() => setAdding(false)} /> : <button className="btn-primary" onClick={() => setAdding(true)}>Add user</button>}
+      {adding === "one" && <AddUser onDone={() => setAdding(null)} />}
+      {adding === "import" && <ImportUsers onDone={() => setAdding(null)} />}
+      {!adding && (
+        <div className="flex gap-2">
+          <button className="btn-primary" onClick={() => setAdding("one")}>
+            Add user
+          </button>
+          <button className="btn-secondary" onClick={() => setAdding("import")}>
+            Import users
+          </button>
+        </div>
+      )}
     </div>
   );
 }

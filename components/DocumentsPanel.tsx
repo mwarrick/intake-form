@@ -1,5 +1,6 @@
 "use client";
 
+import { AddDocuments } from "@/components/AddDocuments";
 import { type DocData, type DocField, type DocTable, type SupportingDoc, docTypesById } from "@/lib/documents";
 import type { Flag } from "@/lib/validate";
 
@@ -8,6 +9,8 @@ interface Props {
   flags: Flag[];
   /** Open links for uploaded attachments, by document id. */
   fileUrls: Map<string, string>;
+  /** Lets staff add documents that arrived separately. */
+  referralId?: string;
 }
 
 const FLAG_STYLE: Partial<Record<Flag["kind"], string>> = {
@@ -16,7 +19,7 @@ const FLAG_STYLE: Partial<Record<Flag["kind"], string>> = {
   document: "bg-slate-50 text-slate-700",
 };
 
-export function DocumentsPanel({ docs, flags, fileUrls }: Props) {
+export function DocumentsPanel({ docs, flags, fileUrls, referralId }: Props) {
   const conflicts = flags.filter((f) => f.kind === "conflict");
   const checklist = flags.filter((f) => f.kind === "document");
 
@@ -39,6 +42,8 @@ export function DocumentsPanel({ docs, flags, fileUrls }: Props) {
           ))}
         </ul>
       )}
+
+      {referralId && <AddDocuments referralId={referralId} />}
 
       {docs.length > 0 && (
         <div className="divide-y divide-slate-100">

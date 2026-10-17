@@ -6,6 +6,7 @@ import { saveDecision, saveReview } from "@/app/actions";
 import { CriteriaPanel } from "@/components/CriteriaPanel";
 import { DeleteReferral } from "@/components/DeleteReferral";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
+import { alignPage } from "@/lib/align";
 import { ReadingProgress } from "@/components/ReadingProgress";
 import { FormSections } from "@/components/FormSections";
 import { CRITERIA_STALE_MS } from "@/lib/criteria";
@@ -13,6 +14,7 @@ import type { SupportingDoc } from "@/lib/documents";
 import { type FieldValue, type FormData, referrerFields, referrerSections, staffFields, staffSection } from "@/lib/form";
 import type { ReadProgress, ReadStatus } from "@/lib/progress";
 import type { DocumentRow, Referral } from "@/lib/referrals";
+import { readPageWords } from "@/lib/scan-words";
 import { type FieldLocation, type Flag, fieldLabel, validate } from "@/lib/validate";
 
 interface Props {
@@ -122,6 +124,45 @@ const ZOOMS = [0.5, 0.75, 1, 1.5, 2, 3, 4];
 const PAD_X = 0.015;
 const PAD_Y = 0.008;
 
+/**
+ * Line the field map up with each form page of the scan (lib/align.ts): read the page's words in the browser, find
+ * which version of the form it is, and place every field on it. Works for referrals read before the reader gave
+ * positions too. `reading` is true until the form pages have been read.
+ */
+function useAlignedFields(pages: DocumentRow[], formPages: number[]) {
+  const [state, setState] = useState<{ locations: Record<string, FieldLocation>; reading: boolean }>({
+    locations: {},
+    reading: false,
+  });
+  const targets = pages.filter((p) => p.url && formPages.includes(p.page_number ?? -1));
+  const key = targets.map((p) => p.id).join(",");
+  useEffect(() => {
+    if (!targets.length) return;
+    let cancelled = false;
+    setState((s) => ({ ...s, reading: true }));
+    (async () => {
+      const locations: Record<string, FieldLocation> = {};
+      for (const p of targets) {
+        try {
+          const fit = alignPage(await readPageWords(p.id, p.url!));
+          if (!fit) continue;
+          // A field on more than one form page keeps the first.
+          for (const [id, box] of Object.entries(fit.regions)) locations[id] ??= { page: p.page_number!, box };
+        } catch (e) {
+          console.warn(`Could not line up fields on page ${p.page_number}:`, e);
+        }
+      }
+      if (!cancelled) setState({ locations, reading: false });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Signed URLs change on every load; the page ids say whether the pages did.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return state;
+}
+
 function ScanViewer({
   pages,
   formPages,
@@ -158,8 +199,10 @@ function ScanViewer({
   // Bumped to re-run the scroll even when locating a field changes neither the page nor the zoom.
   const [scrollTick, setScrollTick] = useState(0);
 
-  // The reader's box for the field, on the page it found it; without one the field only opens the form page.
-  const located = locate ? locations[locate.field] : undefined;
+  // Where each field is on this scan, from lining the form's field map up with the printed words on its form page.
+  const aligned = useAlignedFields(pages, formPages);
+  // That box when lining up worked, else the reader's own rougher box; without either the field only opens the form page.
+  const located = locate ? (aligned.locations[locate.field] ?? locations[locate.field]) : undefined;
   const region = located && pages.some((p) => p.page_number === located.page) ? located.box : undefined;
   const box = region && current === located!.page
     ? { left: region[0] - PAD_X, top: region[1] - PAD_Y, right: region[2] + PAD_X, bottom: region[3] + PAD_Y }
@@ -189,8 +232,9 @@ function ScanViewer({
     // On narrow screens the scan sits above the fields; bring it into view when it's off screen.
     const rect = card.current?.getBoundingClientRect();
     if (rect && (rect.bottom < 80 || rect.top > window.innerHeight - 80)) card.current!.scrollIntoView({ block: "start" });
+    // Again once the form page has been read, when a field clicked before then gets its exact place.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locate]);
+  }, [locate, aligned.reading]);
 
   // A page link from the criteria check: open that page at the top, keeping the zoom.
   useEffect(() => {
@@ -266,7 +310,11 @@ function ScanViewer({
         {locate && (box || !region) && (
           <span className="flex items-center gap-1 rounded bg-sky-50 px-2 py-0.5 text-xs text-sky-800">
             {fieldLabel(locate.field)}
-            {!region && <span className="text-sky-600" title="The reader didn't give a position for this field">· place not known</span>}
+            {!region && (
+              <span className="text-sky-600" title="This field couldn't be found on the scan">
+                {aligned.reading ? "· finding it on the scan…" : "· place not known"}
+              </span>
+            )}
             <button className="text-sky-600 hover:text-sky-900" onClick={onClearLocate} aria-label="Clear highlight">
               ×
             </button>

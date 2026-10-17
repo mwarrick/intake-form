@@ -37,27 +37,21 @@ yarn-error.log*
 next-env.d.ts
 
 # patient data: never commit real referrals or scans
-/samples/real/
 /uploads/
 *.phi.*
 /public/pdf.worker.min.mjs
 /public/pdfjs-wasm/
 /.cache/
-/samples/eval-*.json
 __pycache__/
 
 # personal Claude Code settings
 .claude/settings.local.json
 
-# Python environment for the sample generators, and randomly generated packets
+# Python environment for the sample generators
 /.venv/
-/samples/synthetic/packets/random/
 
 # generated import graph (npm run deps:graph)
 /docs/deps.html
 
-# Real referral packets: never commit
-/samples/packets-real/
-
-# Simulated unredacted packets: keep the generator and answer keys, not the PDFs
-/samples/synthetic/unredacted-sim-*.pdf
+# Sample packets (real, simulated and generated) and eval results: never commit; regenerate them with scripts/
+/samples/

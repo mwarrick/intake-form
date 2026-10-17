@@ -671,7 +671,7 @@ function DecisionPanel({ referral }: { referral: Referral }) {
       <FormSections
         sections={[staffSection]}
         data={data}
-        onChange={(id, v) => setData((d) => ({ ...d, [id]: v }))}
+        onChange={(id, v) => setData((d) => ({ ...d, [id]: v, ...(id === "withdrawn" && v === "Yes" ? withdrawnNow(d) : {}) }))}
         mode="portal"
         disabled={pending}
       />
@@ -700,6 +700,19 @@ function DecisionPanel({ referral }: { referral: Referral }) {
       </div>
     </div>
   );
+}
+
+/** Marking a referral withdrawn records when: today and now in Pacific time, unless already filled in. */
+function withdrawnNow(d: FormData): FormData {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+      .formatToParts(new Date())
+      .map((x) => [x.type, x.value]),
+  );
+  return {
+    withdrawal_date: d.withdrawal_date || `${p.year}-${p.month}-${p.day}`,
+    withdrawal_time: d.withdrawal_time || `${p.hour}:${p.minute}`,
+  };
 }
 
 function dedupe(flags: Flag[]): Flag[] {

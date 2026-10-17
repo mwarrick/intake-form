@@ -187,6 +187,7 @@ select
     'withdrawn', 'Yes',
     'withdrawal_reason', f.withdrawal_reason,
     'withdrawal_date', (f.withdrawn_at at time zone 'America/Los_Angeles')::date,
+    'withdrawal_time', to_char(f.withdrawn_at at time zone 'America/Los_Angeles', 'HH24:MI'),
     'withdrawal_note', 'Hospital case manager called (mock history)'
   ) else '{}'::jsonb end,
   '[]'::jsonb, f.doc_flags, f.decided_at, f.decided_at, f.withdrawn_at

@@ -483,7 +483,21 @@
           "requiredWhen": {
             "withdrawn": "Yes"
           },
-          "notOnPaper": true
+          "notOnPaper": true,
+          "note": "Filled with today when Referral withdrawn is set to Yes."
+        },
+        {
+          "id": "withdrawal_time",
+          "label": "Time withdrawn",
+          "type": "time",
+          "showWhen": {
+            "withdrawn": "Yes"
+          },
+          "requiredWhen": {
+            "withdrawn": "Yes"
+          },
+          "notOnPaper": true,
+          "note": "Filled with the current time (Pacific) when Referral withdrawn is set to Yes."
         },
         {
           "id": "withdrawal_note",

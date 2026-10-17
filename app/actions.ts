@@ -7,6 +7,7 @@ import { type FormData, allFields, emptyData, normalize, referrerFields, schema,
 import { fullName, staffOrThrow } from "@/lib/auth";
 import { removeFolder } from "@/lib/cleanup";
 import { refreshDocFlags } from "@/lib/extract-docs";
+import { pacificDayStart } from "@/lib/metrics";
 import { summaryColumns } from "@/lib/referrals";
 import { BUCKET, T, createUploadTargets, db, safeName, type UploadTarget } from "@/lib/supabase";
 import { type Extraction, validate } from "@/lib/validate";
@@ -314,6 +315,14 @@ async function updateReview(id: string, raw: Record<string, unknown>, confirm: b
 /** Statuses that record an outcome: confirming fields leaves them alone, and only an admin can delete them. */
 const RECORDED = ["approved", "denied", "withdrawn"];
 
+/** The withdrawal date and time the coordinator entered (Pacific), as an instant. */
+function withdrawalTime(data: FormData): string | null {
+  const day = data.withdrawal_date;
+  if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const [h, m] = typeof data.withdrawal_time === "string" ? data.withdrawal_time.split(":").map(Number) : [0, 0];
+  return new Date(Date.parse(pacificDayStart(day)) + ((h || 0) * 60 + (m || 0)) * 60_000).toISOString();
+}
+
 function outcome(approved: unknown): "approved" | "denied" | null {
   return approved === "Yes" ? "approved" : approved === "No" ? "denied" : null;
 }
@@ -347,7 +356,7 @@ async function updateDecision(id: string, raw: Record<string, unknown>, reviewer
   // Time the decision when it's first made or changed, so the dashboard can measure the two-hour promise.
   const now = new Date().toISOString();
   const decided_at = decision ? (decision === outcome(current.data.approved) && current.decided_at ? current.decided_at : now) : null;
-  const withdrawn_at = withdrawn ? (current.withdrawn_at ?? now) : null;
+  const withdrawn_at = withdrawn ? (withdrawalTime(data) ?? current.withdrawn_at ?? now) : null;
   const { error } = await supabase
     .from(T.referrals)
     .update({ data, status, decided_at, withdrawn_at, updated_at: now })

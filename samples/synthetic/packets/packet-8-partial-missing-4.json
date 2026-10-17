@@ -1,0 +1,100 @@
+{
+  "kind": "partial",
+  "received_at": "2026-10-14T14:20",
+  "pages": [
+    {
+      "page": 1,
+      "contents": "form"
+    },
+    {
+      "page": 2,
+      "contents": "demographics"
+    },
+    {
+      "page": 3,
+      "contents": "history_physical"
+    },
+    {
+      "page": 4,
+      "contents": "vitals"
+    },
+    {
+      "page": 5,
+      "contents": "medications"
+    }
+  ],
+  "form_pages": [
+    1
+  ],
+  "documents_included": [
+    "demographics",
+    "history_physical",
+    "vitals",
+    "medications"
+  ],
+  "documents_missing": [
+    "authorization",
+    "progress_notes",
+    "therapy_notes",
+    "culture"
+  ],
+  "face_sheet_included": true,
+  "mistakes": [
+    "SSN last 4 has five digits: 40927.",
+    "Hospice circled Yes with no explanation; nothing in the H&P supports it (likely meant No).",
+    "Housing situation left blank.",
+    "TB test circled No."
+  ],
+  "expected": {
+    "referring_hospital": "Fountain Valley Hosp.",
+    "dept_floor": "3 East",
+    "referrer_name": "Alex Romero LCSW",
+    "referrer_phone": "(714) 555-0163",
+    "referrer_email": null,
+    "nursing_station_phone": null,
+    "authorized_by": null,
+    "authorized_by_phone": null,
+    "patient_name": "Angela Ruiz",
+    "mrn": "FV2301876",
+    "dob": "1974-06-21",
+    "gender": "Female",
+    "ethnicity": "Hispanic",
+    "ssn_last4": "40927",
+    "insurance": "CalOptima",
+    "preferred_language": "English",
+    "housing_situation": [],
+    "chief_complaint": "Pyelonephritis, on PO cipro",
+    "admit_date": "2026-10-11",
+    "wounds": "No",
+    "wounds_detail": null,
+    "independent_wound_care": null,
+    "home_health_ordered": null,
+    "tb_test_done": "No",
+    "tb_test_date": null,
+    "tb_test_results": null,
+    "o2": "No",
+    "o2_explain": null,
+    "self_admin_meds": "Yes",
+    "continent": "Yes",
+    "ostomy": "No",
+    "foley": "No",
+    "diabetes": "Yes",
+    "insulin": "No",
+    "diabetes_oral_meds": "Yes",
+    "active_infection": "No",
+    "active_infection_explain": null,
+    "ambulatory": "Yes",
+    "assistive_device": "No",
+    "assistive_device_explain": null,
+    "hospice": "Yes",
+    "hospice_explain": null,
+    "car": "Yes",
+    "service_animal": "No",
+    "has_limitations": "No",
+    "behavioral_flags": [],
+    "mental_health_dx_type": null,
+    "behavioral_explain": null,
+    "los_authorized_days": 14,
+    "meds_30_day_supply": null
+  }
+}

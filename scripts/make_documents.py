@@ -40,7 +40,7 @@ class Page:
         self.d = ImageDraw.Draw(self.img)
         self.y = 110
         self.d.text((120, self.y), hospital.upper(), font=font(30, bold=True), fill=0)
-        self.d.text((W - 120, self.y + 4), "Printed 10/10/2026 13:58", font=font(20), fill=60, anchor="ra")
+        self.d.text((W - 120, self.y + 4), f"Printed {patient.get('printed', '10/10/2026 13:58')}", font=font(20), fill=60, anchor="ra")
         self.y += 52
         self.d.text((120, self.y), title, font=font(40, bold=True), fill=0)
         self.y += 66
@@ -436,7 +436,7 @@ def hand_auth(p, a, pen_font, rng):
     return pg
 
 
-def meds_corrected(p, rows, allergies, corrections, added, pen_font, rng):
+def meds_corrected(p, rows, allergies, corrections, added, pen_font, rng, signoff="reviewed w/ pt 10/10 - RN"):
     """The typed list (printed with room between rows), then a nurse's pen: strike-throughs with the
     new value written underneath, added medications, and a sign-off."""
     pg = meds(p, rows, allergies, row_h=70, sign=False)
@@ -451,7 +451,7 @@ def meds_corrected(p, rows, allergies, corrections, added, pen_font, rng):
     for med in added:
         pen.text((120, y, W - 140, y + 44), med)
         y += 60
-    pen.text((W - 560, y + 20, W - 140, y + 64), "reviewed w/ pt 10/10 - RN")
+    pen.text((W - 560, y + 20, W - 140, y + 64), signoff)
     pg.y = y + 90
     pg.signed("Pharmacy, " + p["hospital"])
     return pg

@@ -58,6 +58,7 @@
     ],
     "mental_health_dx_type": "Depression, stable on meds",
     "behavioral_explain": null,
-    "los_authorized_days": 21
+    "los_authorized_days": 21,
+    "meds_30_day_supply": null
   }
 }

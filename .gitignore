@@ -48,3 +48,7 @@ __pycache__/
 
 # personal Claude Code settings
 .claude/settings.local.json
+
+# Python environment for the sample generators, and randomly generated packets
+/.venv/
+/samples/synthetic/packets/random/

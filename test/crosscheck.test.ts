@@ -64,7 +64,7 @@ describe("crossCheck against the sample answer keys", () => {
   it("lists missing required documents and 'if needed' ones not received", () => {
     const flags = crossCheck(form("sample-1-clean"), [], "2026-10-10T14:20");
     expect(flags.filter((f) => f.kind === "document").map((f) => f.message)).toEqual(
-      DOC_TYPES.map((t) => (t.required ? `Missing: ${t.label}` : `Not received (if needed): ${t.label.replace(" (if needed)", "")}`)),
+      DOC_TYPES.filter((t) => !t.coveredByForm).map((t) => (t.required ? `Missing: ${t.label}` : `Not received (if needed): ${t.label.replace(" (if needed)", "")}`)),
     );
   });
 

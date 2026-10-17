@@ -54,6 +54,7 @@
     "behavioral_flags": [],
     "mental_health_dx_type": null,
     "behavioral_explain": null,
-    "los_authorized_days": 14
+    "los_authorized_days": 14,
+    "meds_30_day_supply": null
   }
 }

@@ -10,7 +10,10 @@
     "test": "vitest run",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "eval": "EVAL=1 vitest run test/eval.test.ts",
-    "samples": "python3 scripts/make_samples.py",
+    "samples": ".venv/bin/python scripts/make_samples.py",
+    "packets": ".venv/bin/python scripts/make_packets.py",
+    "packets:random": ".venv/bin/python scripts/make_packets.py --random",
+    "setup:python": "python3 -m venv .venv && .venv/bin/pip install -r scripts/requirements.txt",
     "mock": "MOCK_SQL=1 vitest run test/mock-data.test.ts"
   },
   "dependencies": {

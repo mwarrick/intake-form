@@ -125,7 +125,7 @@ from flagged f;
 
 -- A demographic page (hospital face sheet) for every history referral; the flags above never list it as missing.
 insert into "ILLINTAKE_supporting_docs" (referral_id, created_at, doc_type, label, status, data)
-select r.id, r.created_at, 'demographics', 'Client''s Demographic Page', 'done',
+select r.id, r.created_at, 'demographics', 'Hospital Face Sheet', 'done',
   jsonb_build_object('patient_name', r.patient_name, 'dob', r.data->>'dob', 'sex', left(r.data->>'gender', 1), 'address', 'homeless',
     'insurance', 'CalOptima Health (Medi-Cal)', 'member_id', 'C' || (17000000 + substr(r.id::text, 25)::int), 'emergency_contact', 'None listed',
     'preferred_language', r.data->>'preferred_language', 'notes', null)

@@ -17,11 +17,12 @@ export function crossCheck(data: FormData, docs: SupportingDoc[], receivedAt: st
   };
 
   // Checklist items not received. "If needed" items are listed too, without counting as missing,
-  // except a culture when the form reports an active infection or a wound.
+  // except a culture when the form reports an active infection or a wound. Items the form itself
+  // covers (the demographic page) are never listed.
   const present = new Set(docs.map((d) => d.doc_type));
   const cultureNeeded = data.active_infection === "Yes" || data.wounds === "Yes";
   for (const t of DOC_TYPES) {
-    if (present.has(t.id)) continue;
+    if (present.has(t.id) || t.coveredByForm) continue;
     const name = t.label.replace(/ \(if needed\)$/, "");
     if (t.required) add("document", `Missing: ${t.label}`);
     else if (t.id === "culture" && cultureNeeded) add("document", `Missing: ${name} (the form reports an active infection or wound)`);

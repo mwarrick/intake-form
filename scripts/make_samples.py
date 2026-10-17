@@ -226,13 +226,13 @@ def fax_effect(img: Image.Image, rng: random.Random) -> Image.Image:
     return img
 
 
-def fax_header(img: Image.Image, page: int, total: int, sender: str):
+def fax_header(img: Image.Image, page: int, total: int, sender: str, date: str = "OCT-10-2026"):
     d = ImageDraw.Draw(img)
     try:
         f = ImageFont.truetype("DejaVuSansMono.ttf", 22)
     except OSError:
         f = ImageFont.load_default()
-    d.text((40, 12), f"OCT-10-2026 14:{20 + page:02d}  FROM: {sender}  TO: 18883829551  P.{page}/{total}", font=f, fill=0)
+    d.text((40, 12), f"{date} 14:{20 + page:02d}  FROM: {sender}  TO: 18883829551  P.{page}/{total}", font=f, fill=0)
 
 
 def typed_page(title: str, lines: list[str]) -> Image.Image:

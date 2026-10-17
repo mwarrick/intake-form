@@ -1,0 +1,96 @@
+{
+  "kind": "partial",
+  "received_at": "2026-10-14T14:20",
+  "pages": [
+    {
+      "page": 1,
+      "contents": "form"
+    },
+    {
+      "page": 2,
+      "contents": "demographics"
+    },
+    {
+      "page": 3,
+      "contents": "history_physical"
+    }
+  ],
+  "form_pages": [
+    1
+  ],
+  "documents_included": [
+    "demographics",
+    "history_physical"
+  ],
+  "documents_missing": [
+    "authorization",
+    "progress_notes",
+    "vitals",
+    "medications",
+    "therapy_notes",
+    "culture"
+  ],
+  "face_sheet_included": true,
+  "mistakes": [
+    "Referrer name left blank (required); only the phone and email are filled in.",
+    "Chief complaint left blank (required).",
+    "Gender not ticked.",
+    "Length of stay written in words (two weeks) instead of a number of days."
+  ],
+  "expected": {
+    "referring_hospital": "Hoag Newport",
+    "dept_floor": "Med 5",
+    "referrer_name": null,
+    "referrer_phone": "(949) 555-0131",
+    "referrer_email": "rhall@hoag.test",
+    "nursing_station_phone": null,
+    "authorized_by": null,
+    "authorized_by_phone": null,
+    "patient_name": "Patricia Nolan",
+    "mrn": "HB-1033870",
+    "dob": "1981-09-14",
+    "gender": null,
+    "ethnicity": "White",
+    "ssn_last4": "3349",
+    "insurance": "Medi-Cal",
+    "preferred_language": "English",
+    "housing_situation": [
+      "Currently Unhoused"
+    ],
+    "chief_complaint": null,
+    "admit_date": "2026-10-12",
+    "wounds": "No",
+    "wounds_detail": null,
+    "independent_wound_care": null,
+    "home_health_ordered": null,
+    "tb_test_done": "Yes",
+    "tb_test_date": "2026-10-13",
+    "tb_test_results": "CXR clear",
+    "o2": "No",
+    "o2_explain": null,
+    "self_admin_meds": "Yes",
+    "continent": "Yes",
+    "ostomy": "No",
+    "foley": "No",
+    "diabetes": "No",
+    "insulin": null,
+    "diabetes_oral_meds": null,
+    "active_infection": "No",
+    "active_infection_explain": null,
+    "ambulatory": "Yes",
+    "assistive_device": "No",
+    "assistive_device_explain": null,
+    "hospice": "No",
+    "hospice_explain": null,
+    "car": "No",
+    "service_animal": "No",
+    "has_limitations": "Yes",
+    "behavioral_flags": [
+      "Mental Health DX"
+    ],
+    "mental_health_dx_type": "Bipolar d/o, on lithium",
+    "behavioral_explain": null,
+    "los_authorized_days": "two weeks",
+    "meds_30_day_supply": null
+  }
+}

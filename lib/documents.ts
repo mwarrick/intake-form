@@ -26,6 +26,11 @@ export interface DocType {
   /** Helps the classifier recognize it among faxed pages. */
   recognize: string;
   required: boolean;
+  /**
+   * The referral form itself satisfies this checklist item, so it is never listed as missing;
+   * the document is still read when a hospital sends one.
+   */
+  coveredByForm?: boolean;
   fields: DocField[];
   tables?: DocTable[];
 }
@@ -48,10 +53,12 @@ const infections: DocTable = {
 
 export const DOC_TYPES: DocType[] = [
   {
+    // The checklist's "Client's Demographic Page" is the referral form; a hospital face sheet adds phone, member ID and emergency contact.
     id: "demographics",
-    label: "Client's Demographic Page",
+    label: "Hospital Face Sheet",
     recognize: "Hospital face sheet / registration page: patient name, DOB, address, phone, insurance, emergency contact.",
-    required: true,
+    required: false,
+    coveredByForm: true,
     fields: [
       ...patient,
       { id: "sex", label: "Sex", type: "text" },

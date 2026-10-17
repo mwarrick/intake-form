@@ -19,6 +19,7 @@ fictional patient (scripts/unredacted_sim_patients.py), so extraction can be tes
 
     .venv/bin/python scripts/make_unredacted_sims.py           # writes samples/synthetic/unredacted-sim-NNN.pdf and .json
     .venv/bin/python scripts/make_unredacted_sims.py 004 005   # only those patients
+    .venv/bin/python scripts/make_unredacted_sims.py --force   # also rewrite packets whose PDF already exists
     .venv/bin/python scripts/make_unredacted_sims.py --layout  # schema/layouts/la-oc.json, for lining fields up on scans
 """
 import json
@@ -653,7 +654,7 @@ def calaim(p, rng):
     c.t(800, y + 34, "Member has:", "arial", 26)
     c.box(800, y + 70, "Car", p["car"], 24)
     c.box(920, y + 70, "Spouse/partner", p["partner"], 24)
-    c.box(800, y + 104, "Service animal", False, 24)
+    c.box(800, y + 104, "Service animal", p["service_animal"], 24)
     c.box(1050, y + 104, "Pets", False, 24)
     y += 170
     c.t(150, y, "Substance Use", "arialb", 27)
@@ -1361,10 +1362,17 @@ def main():
     if sys.argv[1:] == ["--layout"]:
         form_layout()
         return
-    only = set(sys.argv[1:])
+    force = "--force" in sys.argv[1:]
+    only = set(sys.argv[1:]) - {"--force"}
+    OUT.mkdir(parents=True, exist_ok=True)
     for p in PATIENTS:
-        if not only or p["slug"] in only:
-            build(p)
+        if only and p["slug"] not in only:
+            continue
+        pdf = OUT / f"unredacted-sim-{p['slug']}.pdf"
+        if pdf.exists() and not force:
+            print(f"skipped {pdf.relative_to(ROOT)} (exists; --force to rewrite)")
+            continue
+        build(p)
 
 
 if __name__ == "__main__":

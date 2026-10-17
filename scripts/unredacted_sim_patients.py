@@ -915,4 +915,423 @@ PATIENTS = [
         "family_adjust": "Mother supportive, unable to house",
         "font": 1,
     },
+    # 7. Alcoholic pancreatitis with recent withdrawal (CIWA), macrocytosis/thrombocytopenia, depression; independent, no wound.
+    {
+        "slug": "007",
+        "last": "MERCER", "first": "DIANE", "mi": "L", "sex": "Female", "age": 58, "dob": "12/02/1967",
+        "mrn": "BG2047719", "account": "5512068834", "ssn4": "7746", "ssn": "XXX-XX-7746",
+        "address": "Unhoused - Lions Park area", "city": "Costa Mesa, CA 92627", "phone": "949-555-0111",
+        "language": "English", "english": True, "ethnicity": "White", "marital": "Divorced", "religion": "Methodist",
+        "homeless": True, "homeless_long": False,
+        "hospital": "Bayside General Hospital", "hospital_short": "BAYSIDE GENERAL",
+        "hosp_addr": "2850 Bayside Pkwy, Costa Mesa, CA 92627", "hosp_phone": "949-555-0103", "hosp_fax": "949-555-0109",
+        "hosp_npi": "1841276630", "unit": "4 South Med/Surg", "bed": "427", "nursing_phone": "949-555-0104",
+        "referrer": "Paula Jimenez, MSW", "referrer_first": "Paula", "referrer_phone": "949-555-0105",
+        "referrer_email": "pjimenez@baysidegeneral.test", "authorized_by": "Dr. Steven Kwan", "authorized_phone": "949-555-0106",
+        "admit": "10/12/2026", "admit_time": "10/12/2026 07:48", "dc": "10/18/2026", "fax_date": "10/17/2026",
+        "fax_stamp": "OCT-17-2026",
+        "admitting": "Steven Kwan, MD", "attending": "Steven Kwan, MD", "referring_md": "Steven Kwan, MD",
+        "pcp": "None on file", "pcp_phone": "", "pcp_addr": "",
+        "consultant": "Henry Adebayo, MD", "consult_specialty": "Gastroenterology",
+        "wound_rn": "Erin Walsh, PT, DPT", "sw": "Paula Jimenez, MSW", "hp_author": "Steven Kwan, MD",
+        "insurance": "CalOptima", "plan": "CalOptima Health Medi-Cal", "member_id": "64019283G", "cin": "64019283G",
+        "health_id": "CO-7746-6401", "group": "MCAL-OC", "aid_code": "M1", "guarantor_status": "UNEMPLOYED",
+        "emergency": ("Carol Mercer", "Sister", "949-555-0108"),
+        "chief_complaint": "ABDOMINAL PAIN, VOMITING",
+        "form_cc": "Acute alcoholic pancreatitis, alcohol withdrawal (resolved), thrombocytopenia",
+        "qual_dx": "Pancreatitis, alcohol use disorder, depression",
+        "adm_dx": ["Alcohol induced acute pancreatitis without necrosis or infection [K85.20]",
+                   "Alcohol dependence with withdrawal, uncomplicated [F10.230]", "Thrombocytopenia, unspecified [D69.6]"],
+        "wound": False, "wound_desc": "", "wound_independent": None,
+        "substances": {"Alcohol": "10/11/2026"}, "withdrawals": True,
+        "mh": ["Depression"], "mh_type": "depression", "o2": False, "self_meds": True,
+        "continent": True, "adls": True, "diabetic": False, "insulin": False, "anticoag": False,
+        "ambulatory": True, "device": None, "car": False, "partner": False, "service_animal": False,
+        "tb": ("10/13/2026", "Negative (QuantiFERON)"), "communicable": "None",
+        "iv_abx": False,
+        "attached": ["Face Sheet", "H&P", "Med List", "PT Eval.", "SW notes"],
+        "cover_msg": "Referral for recuperative care. Patient admitted with alcoholic pancreatitis, now tolerating a low "
+                     "fat diet. Had alcohol withdrawal 10/13-10/14 treated with lorazepam per CIWA, last dose 10/15, CIWA "
+                     "0-2 since. Started acamprosate. Wants to stay sober and is interested in outpatient treatment. "
+                     "Independent with ADLs and mobility. Anticipated discharge 10/18/2026.",
+        "pmh": ["Alcohol use disorder, severe", "Prior alcohol withdrawal (no seizures)", "Major depressive disorder",
+                "Hepatic steatosis", "GERD"],
+        "psh": "Hysterectomy (2009). Appendectomy (1984).",
+        "sched_meds": ["thiamine, 100 mg, Oral, Daily", "folic acid, 1 mg, Oral, Daily", "multivitamin, 1 tablet, Oral, Daily",
+                       "acamprosate, 666 mg, Oral, TID", "pantoprazole, 40 mg, Oral, Daily", "sertraline, 50 mg, Oral, Daily",
+                       "potassium chloride ER, 20 mEq, Oral, Daily x 5 days", "magnesium oxide, 400 mg, Oral, BID"],
+        "prn_meds": ["LORazepam, 1-2 mg, Q2H PRN CIWA > 10 (none since 10/15)", "oxyCODONE, 5 mg, Q6H PRN severe pain",
+                     "ondansetron, 4 mg, Q6H PRN", "acetaminophen, 500 mg, Q8H PRN (max 2 g/day)"],
+        "allergies": "Codeine (Nausea/vomiting)",
+        "alcohol": ("Yes", "35 - 42", "4 or more times a week", "5 or 6", "Daily or almost daily"),
+        "tobacco": "Former - quit 2015", "drugs": "Never",
+        "weight": "58.1 kg (128 lb)", "bmi": "21.8",
+        "vitals_hp": {"BP": "(!) 156/94", "Pulse": "(!) 118", "Resp": "20", "Temp": "37.6 °C (99.7 °F)", "SpO2": "97%"},
+        "vitals_pn": {"BP": "124/78", "Pulse": "84", "Resp": "16", "Temp": "36.7 °C (98.1 °F)", "SpO2": "98%"},
+        "hp_hpi": "Diane Mercer is a 58 years old female with severe alcohol use disorder and depression who presents with 2 "
+                  "days of severe epigastric pain radiating to her back with nausea and vomiting. She drinks about a fifth of "
+                  "vodka a day, last drink yesterday evening. She lost her apartment in February after her divorce and has "
+                  "been sleeping in a park in Costa Mesa. In our ER, lipase 2,140, AST 142, ALT 61, platelets 98, MCV 104. "
+                  "CT abdomen showed acute interstitial pancreatitis without necrosis and fatty liver. RUQ ultrasound with "
+                  "no gallstones. She was tremulous with HR 118.",
+        "problems": ["Acute alcoholic pancreatitis", "Alcohol withdrawal, CIWA protocol", "Thrombocytopenia / macrocytosis",
+                     "Hypokalemia, hypomagnesemia", "Depression", "Homelessness"],
+        "plan_lines": ["--- NPO, IV fluids, pain control, advance diet as tolerated", "--- CIWA with lorazepam, thiamine, folate",
+                       "--- Replete K and Mg", "--- GI consult, SW for dc planning."],
+        "pn_update": "10/16: Tolerating low fat diet x 48 h, pain 2/10. No lorazepam since 10/15, CIWA 0-2. Lipase 180. "
+                     "Plt 142. Acamprosate started. GI ok for dc. Pt agrees to outpatient SUD program.",
+        "pn_interval": "Pt eating breakfast, no tremor, walking in hallway independently.",
+        "exam_extra": "Mild epigastric tenderness, no guarding. No tremor, no asterixis.",
+        "doc2_kind": "pt",
+        "doc2": {
+            "subjective": "Pt seen for PT evaluation after 3 days of bed rest. Pt reports she was independent without a "
+                          "device before admission and walks most of the day. Had 1 fall in August while intoxicated. "
+                          "Denies dizziness today.",
+            "objective": ["Pt seated edge of bed, alert and oriented x4, no tremor", "Bed mobility: Independent",
+                          "Sit to stand: Independent", "Gait: 400 ft without device, independent, steady",
+                          "Stairs: 12 steps with handrail, independent", "Balance: Berg 52/56 - low fall risk"],
+            "location": "", "measure": "", "undermining": "", "tunneling": "", "bed": "", "periwound": "", "drainage": "",
+            "care": "",
+            "plan": "Pt is at baseline and independent with all mobility. No DME needs. No skilled PT needs; PT signing off. "
+                    "Educated on fall prevention.",
+        },
+        "consult": {
+            "micro": ["Blood Culture x2 (10/12/2026): No growth at 5 days", "Urinalysis (10/12/2026): Negative for infection",
+                      "Hepatitis panel (10/13/2026): HBsAg neg, HCV Ab neg, HAV IgG pos"],
+            "reason": "I was asked to see the patient for acute pancreatitis and abnormal liver tests",
+            "cc": "Epigastric pain",
+            "hpi": "58 yo female with heavy daily alcohol use (about 750 mL vodka/day for 10 years) admitted with first episode "
+                   "of acute pancreatitis, lipase 2,140, CT with interstitial edematous pancreatitis without necrosis or "
+                   "collections. No gallstones on ultrasound. Triglycerides 141. AST/ALT ratio greater than 2, bilirubin "
+                   "1.8, INR 1.2, albumin 3.1. No ascites or encephalopathy.",
+            "ros": "GI: Positive for abdominal pain and nausea, improving.",
+            "exam": ["General: Thin female sitting up, no distress", "HEENT: Mild scleral icterus", "Neck: Supple",
+                     "Chest: Clear bilaterally", "Cardiovascular: Regular rate rhythm",
+                     "Abdomen: Soft, mild epigastric tenderness, no guarding, liver edge 2 cm below costal margin, no ascites",
+                     "Extremities: No edema, no asterixis"],
+            "imaging": [("CT Abdomen/Pelvis With Contrast", "10/12/2026", "Acute interstitial edematous pancreatitis. No "
+                         "necrosis or peripancreatic collection. Diffuse hepatic steatosis. No biliary dilation."),
+                        ("US Abdomen Limited RUQ", "10/12/2026", "Echogenic liver compatible with steatosis. No gallstones. "
+                         "Common bile duct 4 mm."),
+                        ("X-Ray Chest Single View", "10/12/2026", "No acute cardiopulmonary process.")],
+            "assessment": ["-Acute alcoholic pancreatitis, mild (no organ failure, no necrosis), resolving",
+                           "-Alcohol-associated liver disease: steatosis with mild alcoholic hepatitis (MDF 18 - no steroids)",
+                           "-Thrombocytopenia and macrocytosis from alcohol, improving"],
+            "plan": ["-advance to low fat diet, ok for discharge when tolerating", "-complete alcohol abstinence; supportive "
+                     "of acamprosate (avoid naltrexone with liver injury)", "-repeat LFTs and CBC in 2 weeks",
+                     "-GI clinic f/u 11/09/2026", "-recuperative care recommended to support abstinence and nutrition",
+                     "-this was discussed with the patient."],
+        },
+        "sw_note": [
+            "SW consulted for homelessness and alcohol use.",
+            "Patient is a 58y.o. female admitted on 10/12/2026 for alcoholic pancreatitis. Patient reports she lost her "
+            "apartment in Huntington Beach in 02/2026 after her divorce and has been sleeping in a park in Costa Mesa since. "
+            "This is her first time being homeless. Sister Carol lives in Irvine, is supportive but cannot house pt. Patient "
+            "reports depression, previously on sertraline from her PCP, stopped last year; restarted here. Patient drinks "
+            "daily and states \"I'm done, this scared me.\" Accepted outpatient SUD referral and AA meeting list.",
+            "SW reviewed insurance (CalOptima Medi-Cal) and offered IF RECUP referral - patient accepted. SW also provided "
+            "Coordinated Entry and CalOptima BH information. SW explained that we are not able to guarantee placement at DC, "
+            "patient understood.",
+            "Pending DC orders and recommendations. DCP: Recuperative care, outpatient SUD treatment.",
+        ],
+        "sw_addendum": "9:50am: SW scheduled SUD intake with OC HCA outpatient program for 10/27. Patient gave permission to "
+                       "share contact information with Illumination Foundation.",
+        "psychiatrist": "None - CalOptima BH line given 855-555-0122",
+        "labs": {"WBC": [13.4, 11.9, 9.8, 8.6, 7.9], "Hgb": [12.8, 11.6, 11.1, 11.4, 11.6], "Hct": [38.9, 35.1, 33.6, 34.4, 35.0],
+                 "MCV": [104.2, 103.8, 104.5, 103.9, 104.1], "Plt": [98, 91, 104, 126, 142], "Na": [131, 133, 135, 136, 137],
+                 "Glucose": [164, 132, 118, 104, 96]},
+        "vitals_series": {"T": [37.6, 37.8, 37.4, 37.2, 37.0, 36.9, 36.8, 36.7, 36.8, 36.7],
+                          "HR": [118, 112, 106, 102, 96, 90, 88, 86, 84, 84], "SBP": [156, 150, 148, 142, 136, 130, 128, 126, 124, 124],
+                          "DBP": [94, 92, 90, 86, 84, 80, 80, 78, 78, 78], "RR": [20, 20, 18, 18, 18, 16, 16, 16, 16, 16],
+                          "SpO2": [97, 97, 98, 98, 97, 98, 98, 98, 98, 98]},
+        "lab_overrides": {"Lipase": 2140, "AST": 142, "ALT (SGPT)": 61, "Bilirubin, Total": 1.8, "Albumin": 3.1,
+                          "Potassium": 3.1, "Magnesium": 1.4, "INR": 1.2, "Hemoglobin A1c": 5.3, "Folate": 3.8,
+                          "Macrocytes": "Moderate"},
+        "consult_fu": "11/09/2026", "followups": [("Addiction Medicine", "OC HCA outpatient SUD", "949-555-0115", "10/27/2026")],
+        "home_health": None, "covid_doses": 2, "o2_note": "N/A", "o2_device": "None (Room air)",
+        "ambulate": "community distances", "fracture": False, "recent_surgery": False,
+        "mh_treatment": (True, "sertraline restarted - BH referral"), "pharmacy": "CVS - 17th St Costa Mesa",
+        "living": ("Unhoused", "Park"), "transport_barrier": "yes", "interpreter": None,
+        "family_adjust": "Sister supportive",
+        "font": 2,
+    },
+    # 8. MSSA bacteremia with L3-L4 vertebral osteomyelitis: PICC with 6 weeks IV cefazolin, LSO brace, sacral pressure injury.
+    {
+        "slug": "008",
+        "last": "COLLINS", "first": "RAYMOND", "mi": "T", "sex": "Male", "age": 57, "dob": "04/27/1969",
+        "mrn": "AH6620458", "account": "1187305526", "ssn4": "0839", "ssn": "XXX-XX-0839",
+        "address": "Lives in his work truck", "city": "Anaheim, CA 92807", "phone": "714-555-0179",
+        "language": "English", "english": True, "ethnicity": "Black", "marital": "Divorced", "religion": "Christian",
+        "homeless": True, "homeless_long": True,
+        "hospital": "Anaheim Hills Regional Medical Center", "hospital_short": "ANAHEIM HILLS RMC",
+        "hosp_addr": "6200 E Hillcrest Rd, Anaheim, CA 92807", "hosp_phone": "714-555-0172", "hosp_fax": "714-555-0178",
+        "hosp_npi": "1376620954", "unit": "5 North Medical", "bed": "512-B", "nursing_phone": "714-555-0173",
+        "referrer": "Brenda Lowe, RN Case Manager", "referrer_first": "Brenda", "referrer_phone": "714-555-0175",
+        "referrer_email": "blowe@anaheimhillsrmc.test", "authorized_by": "Dr. Kenji Mori", "authorized_phone": "714-555-0176",
+        "admit": "10/09/2026", "admit_time": "10/09/2026 16:20", "dc": "10/20/2026", "fax_date": "10/19/2026",
+        "fax_stamp": "OCT-19-2026",
+        "admitting": "Kenji Mori, MD", "attending": "Kenji Mori, MD", "referring_md": "Naomi Fischer, MD",
+        "pcp": "Andre Wallace, NP", "pcp_phone": "714-555-0170", "pcp_addr": "1015 N State College Blvd, Anaheim, CA 92806",
+        "consultant": "Naomi Fischer, MD", "consult_specialty": "Infectious Diseases",
+        "wound_rn": "Yolanda Price, RN, CWCN", "sw": "Derek Huang, MSW", "hp_author": "Kenji Mori, MD",
+        "insurance": "CalOptima", "plan": "CalOptima Health Medi-Cal", "member_id": "50918273H", "cin": "50918273H",
+        "health_id": "CO-0839-5091", "group": "MCAL-OC", "aid_code": "M1", "guarantor_status": "UNEMPLOYED",
+        "emergency": ("Tanya Collins", "Daughter", "909-555-0153"),
+        "chief_complaint": "BACK PAIN, FEVER",
+        "form_cc": "MSSA bacteremia, L3-4 vertebral osteo, IV cefazolin via PICC to 11/20",
+        "qual_dx": "MSSA bacteremia, vertebral osteo, sacral PI stage 2",
+        "adm_dx": ["Sepsis due to methicillin susceptible Staphylococcus aureus [A41.01]",
+                   "Osteomyelitis of vertebra, lumbar region [M46.26]", "Pressure ulcer of sacral region, stage 2 [L89.152]"],
+        "wound": True, "wound_desc": "Sacral stage 2 pressure injury 2.5 x 1.8 x 0.1 cm", "wound_independent": False,
+        "substances": {}, "withdrawals": False,
+        "mh": [], "mh_type": "", "o2": False, "self_meds": True,
+        "continent": True, "adls": True, "diabetic": True, "insulin": False, "anticoag": False,
+        "ambulatory": True, "device": "LSO brace + front wheel walker", "car": True, "partner": False, "service_animal": False,
+        "tb": ("10/15/2026", "Negative (QuantiFERON)"), "communicable": "None",
+        "iv_abx": True,
+        "attached": ["Face Sheet", "H&P", "Med List", "ID consult", "Wound Care", "SW notes"],
+        "cover_msg": "Referral for recuperative care. Patient has MSSA bacteremia with L3-L4 vertebral osteomyelitis and "
+                     "needs IV cefazolin 2 g q8h via R arm PICC (placed 10/14) through 11/20/2026. Home infusion and home "
+                     "health RN (PICC care, weekly labs, sacral wound) arranged with Pacific Coast Home Infusion. LSO brace "
+                     "when out of bed. No IV drug use history. Anticipated discharge 10/20/2026.",
+        "pmh": ["Type 2 diabetes mellitus (diet and metformin)", "Hypertension", "Chronic low back pain",
+                "Dental abscess, extraction 09/2026", "Obesity"],
+        "psh": "Tooth extraction #30 (09/2026). Right inguinal hernia repair (2012). PICC placement R basilic (10/14/2026).",
+        "sched_meds": ["ceFAZolin (Ancef) 2 g in sodium chloride 0.9% 100 mL IVPB, 2 g, IntraVENOUS, Q8H until 11/20/2026",
+                       "metFORMIN, 500 mg, Oral, BID", "lisinopril, 20 mg, Oral, Daily",
+                       "acetaminophen, 1,000 mg, Oral, Q8H", "gabapentin, 300 mg, Oral, TID",
+                       "docusate-senna, 1 tablet, Oral, BID", "zinc sulfate, 220 mg, Oral, Daily x 14 days",
+                       "heparin lock flush 10 units/mL, 5 mL, IntraVENOUS, PRN after each dose"],
+        "prn_meds": ["oxyCODONE, 5-10 mg, Q4H PRN back pain", "methocarbamol, 500 mg, Q6H PRN spasm",
+                     "ondansetron, 4 mg, Q6H PRN", "insulin lispro (HumaLOG), 0-6 Units, TID AC sliding scale"],
+        "allergies": "No Known Allergies",
+        "alcohol": ("Yes", "1 - 2", "2 to 4 times a month", "1 or 2", "Never"), "tobacco": "Former - quit 2010",
+        "drugs": "Never",
+        "weight": "112.6 kg (248 lb)", "bmi": "34.6",
+        "vitals_hp": {"BP": "(!) 92/58", "Pulse": "(!) 122", "Resp": "(!) 24", "Temp": "(!) 39.3 °C (102.7 °F)", "SpO2": "95%"},
+        "vitals_pn": {"BP": "132/80", "Pulse": "84", "Resp": "16", "Temp": "36.9 °C (98.4 °F)", "SpO2": "97%"},
+        "hp_hpi": "Raymond Collins is a 57 years old male with DM2 and HTN who presents with 10 days of worsening low back "
+                  "pain and 3 days of fevers and chills. He had a tooth pulled for an abscess in September. He has been "
+                  "living in his work truck for about 2 years since losing his job and apartment, and spent the last 4 days "
+                  "mostly lying in the truck because of pain. In our ER, temp 39.3, HR 122, BP 92/58, WBC 18.1, lactate 3.4, "
+                  "CRP 21.4. Blood cultures grew gram positive cocci in clusters in 2/2 bottles. He received 30 mL/kg fluids "
+                  "and vancomycin and cefepime. A sacral pressure injury was found on skin exam.",
+        "problems": ["Sepsis due to MSSA bacteremia", "L3-L4 vertebral osteomyelitis/discitis", "Sacral pressure injury stage 2",
+                     "DM2", "HTN", "Homelessness - living in vehicle"],
+        "plan_lines": ["--- Sepsis bundle, vanc/cefepime -> cefazolin when MSSA", "--- MRI L spine, TTE/TEE, repeat blood cx",
+                       "--- ID and neurosurgery consults, wound care", "--- PICC when cx clear, CM for OPAT/dc planning."],
+        "pn_update": "10/18: Afebrile since 10/12, repeat blood cx 10/11 no growth. TEE no vegetation. Neurosurgery: "
+                     "nonoperative, LSO brace. PICC placed 10/14. Cefazolin 2 g IV q8h to 11/20. Home infusion accepted. "
+                     "Ok for dc to recup.",
+        "pn_interval": "Pt back pain 4/10 on PO meds, walking with walker in brace.",
+        "exam_extra": "Lumbar tenderness L3-L4, R arm PICC site clean, sacral dressing in place.",
+        "doc2_kind": "wound",
+        "doc2": {
+            "subjective": "Per H&P- 57 years old male admitted with MSSA sepsis and lumbar vertebral osteomyelitis. Patient had "
+                          "been lying in his truck for several days before admission. Sacral pressure injury noted on "
+                          "admission skin assessment. Patient reports mild burning at sacrum.",
+            "objective": ["Patient awake, alert, turned to L side with assist for assessment",
+                          "Blood cultures: MSSA 2/2 (10/09/2026); repeat no growth (10/11/2026)",
+                          "Braden score 15 on admission, now 19", "Allergies: NKA"],
+            "location": "SACRUM", "measure": "2.5 X 1.8 X 0.1 cm", "undermining": "None", "tunneling": "None",
+            "bed": "Pink, partial thickness", "periwound": "intact, blanchable erythema", "drainage": "scant serous",
+            "care": "Cleansed with wound cleanser, skin barrier to periwound, covered with silicone foam sacral dressing.",
+            "plan": "Change silicone foam sacral dressing every 3 days and PRN soiling. Offload: reposition every 2 hours "
+                    "when in bed, pressure redistribution cushion when sitting. Patient unable to see or reach sacrum - NOT "
+                    "independent with wound care; home health RN to follow. Wound care team signing off.",
+        },
+        "consult": {
+            "micro": ["Blood Culture x2 (10/09/2026): Staphylococcus aureus (MSSA) 2/2 - Oxacillin S, Cefazolin S, "
+                      "Clindamycin S", "Blood Culture x2 (10/11/2026): No growth at 5 days",
+                      "Blood Culture x2 (10/13/2026): No growth at 5 days", "MRSA nares PCR (10/09/2026): Negative"],
+            "reason": "I was asked to see the patient for MSSA bacteremia",
+            "cc": "Back pain and fever",
+            "hpi": "57 yo male with DM2 and recent dental extraction (09/2026) admitted with MSSA sepsis, 2/2 blood cultures. "
+                   "MRI L-spine shows L3-L4 discitis and osteomyelitis with a small ventral epidural phlegmon, no drainable "
+                   "abscess. No neurologic deficits. TTE and TEE without vegetation. No prosthetic material. Denies any "
+                   "injection drug use. Cultures cleared within 48 hours on cefazolin.",
+            "ros": "MSK: Positive for low back pain. Neuro: Negative for weakness, numbness or incontinence.",
+            "exam": ["General: Obese male lying in bed, comfortable", "HEENT: Healing extraction site, no abscess",
+                     "Neck: Supple", "Chest: Clear bilaterally", "Cardiovascular: Regular rate rhythm, no murmur",
+                     "Abdomen: Soft, non tender", "Extremities: R arm PICC without erythema; strength 5/5 bilateral LE"],
+            "imaging": [("MRI Lumbar Spine WO/W Contrast", "10/10/2026", "L3-L4 discitis and osteomyelitis with small ventral "
+                         "epidural phlegmon. No drainable abscess. No cord or cauda equina compression."),
+                        ("Transesophageal echo (TEE)", "10/13/2026", "No valvular vegetation. LVEF 60%. No PFO."),
+                        ("X-Ray Chest Single View", "10/14/2026", "PICC tip at the cavoatrial junction.")],
+            "assessment": ["-Uncomplicated MSSA bacteremia (cleared < 48 h, no endocarditis) with L3-L4 vertebral "
+                           "osteomyelitis/discitis", "-Likely source: dental", "-Sacral pressure injury stage 2"],
+            "plan": ["-cefazolin 2 g IV q8h via PICC, 6 weeks from first negative culture (10/11) - end date 11/20/2026",
+                     "-weekly CBC with diff, BMP, ESR, CRP drawn by home health, faxed to ID clinic 714-555-0174",
+                     "-neurosurgery: nonoperative, LSO brace when out of bed",
+                     "-ID / OPAT clinic f/u 10/29/2026", "-recuperative care with home infusion is appropriate; patient has no "
+                     "history of injection drug use", "-this was discussed with the patient."],
+        },
+        "sw_note": [
+            "SW consulted for homelessness and discharge planning with IV antibiotics.",
+            "Patient is a 57y.o. male admitted on 10/09/2026 for sepsis and spine infection. Patient reports he worked as a "
+            "warehouse forklift driver until 2024; after a back injury he lost his job and then his apartment. He has lived "
+            "in his 2008 Ford F-150 in Anaheim for about 2 years. Daughter Tanya lives in Ontario with her family and is "
+            "supportive but cannot house him. No mental health history. Drinks socially, denies drug use.",
+            "SW and CM reviewed that patient needs 6 weeks of IV antibiotics and cannot do infusions in his truck. SW offered "
+            "IF RECUP referral - patient accepted. Pacific Coast Home Infusion accepted for infusions and RN visits. SW "
+            "explained that we are not able to guarantee placement at DC, patient understood.",
+            "Pending DC orders and recommendations. DCP: Recuperative care with home infusion and home health RN.",
+        ],
+        "sw_addendum": "1:35pm: SW confirmed truck can be parked at recuperative care site per IF intake line (pending). Patient "
+                       "gave permission to share contact information with Illumination Foundation.",
+        "psychiatrist": "n/a",
+        "labs": {"WBC": [18.1, 16.4, 13.2, 11.0, 9.8], "Hgb": [12.9, 11.8, 11.2, 11.0, 11.4], "Hct": [38.6, 35.5, 33.8, 33.2, 34.5],
+                 "MCV": [85.4, 85.9, 85.6, 85.2, 85.8], "Plt": [162, 148, 189, 236, 281], "Na": [133, 135, 136, 137, 137],
+                 "Glucose": [212, 184, 166, 148, 139]},
+        "vitals_series": {"T": [39.3, 38.8, 38.4, 37.9, 37.4, 37.1, 36.9, 37.0, 36.8, 36.9],
+                          "HR": [122, 114, 106, 98, 92, 88, 86, 84, 84, 82], "SBP": [92, 104, 112, 118, 124, 128, 130, 132, 128, 132],
+                          "DBP": [58, 64, 68, 72, 76, 78, 80, 80, 78, 80], "RR": [24, 22, 20, 18, 18, 16, 16, 16, 16, 16],
+                          "SpO2": [95, 96, 96, 97, 97, 97, 98, 97, 97, 97]},
+        "lab_overrides": {"CRP": 21.4, "Sed Rate (ESR)": 104, "Lactic Acid": 3.4, "Procalcitonin": 4.2,
+                          "Hemoglobin A1c": 7.4, "Blood Culture": "MSSA 2/2"},
+        "consult_fu": "10/29/2026", "followups": [("Neurosurgery", "Arash Karimi, MD", "714-555-0174", "11/05/2026")],
+        "home_health": ("Pacific Coast Home Infusion & HH  714-555-0177", ["Physical therapy", "Wound care"]),
+        "covid_doses": 2, "o2_note": "N/A", "o2_device": "None (Room air)",
+        "ambulate": "100 ft w/ FWW in LSO brace", "fracture": False, "recent_surgery": False,
+        "mh_treatment": (False, ""), "pharmacy": "Home infusion + CVS - Imperial Hwy",
+        "living": ("Vehicle", "Truck"), "transport_barrier": "no", "interpreter": None,
+        "family_adjust": "Daughter supportive",
+        "font": 1,
+    },
+    # 9. Type 1 diabetes with DKA and gastroparesis; living in a car with partner and a service dog; insulin, depression.
+    {
+        "slug": "009",
+        "last": "REED", "first": "KAYLA", "mi": "M", "sex": "Female", "age": 31, "dob": "06/11/1995",
+        "mrn": "OG7713095", "account": "2049967310", "ssn4": "1257", "ssn": "XXX-XX-1257",
+        "address": "No permanent address - living in car", "city": "Orange, CA 92868", "phone": "657-555-0173",
+        "language": "English", "english": True, "ethnicity": "White", "marital": "Single (partnered)", "religion": "None",
+        "homeless": True, "homeless_long": False,
+        "hospital": "Orange Grove University Hospital", "hospital_short": "ORANGE GROVE UH",
+        "hosp_addr": "500 Grove Center Dr, Orange, CA 92868", "hosp_phone": "657-555-0170", "hosp_fax": "657-555-0179",
+        "hosp_npi": "1518849027", "unit": "8 West Step-Down", "bed": "803", "nursing_phone": "657-555-0171",
+        "referrer": "Morgan Castillo, MSW", "referrer_first": "Morgan", "referrer_phone": "657-555-0172",
+        "referrer_email": "mcastillo@orangegroveuh.test", "authorized_by": "Dr. Leah Goldberg", "authorized_phone": "657-555-0174",
+        "admit": "10/15/2026", "admit_time": "10/15/2026 01:56", "dc": "10/19/2026", "fax_date": "10/18/2026",
+        "fax_stamp": "OCT-18-2026",
+        "admitting": "Leah Goldberg, MD", "attending": "Leah Goldberg, MD", "referring_md": "Leah Goldberg, MD",
+        "pcp": "Christine Yu, MD", "pcp_phone": "657-555-0175", "pcp_addr": "1310 W Stewart Dr, Orange, CA 92868",
+        "consultant": "Priyanka Sethi, MD", "consult_specialty": "Endocrinology",
+        "wound_rn": "Thomas Reyes, PT", "sw": "Morgan Castillo, MSW", "hp_author": "Leah Goldberg, MD",
+        "insurance": "CalOptima", "plan": "CalOptima Health Medi-Cal", "member_id": "71530946J", "cin": "71530946J",
+        "health_id": "CO-1257-7153", "group": "MCAL-OC", "aid_code": "M1", "guarantor_status": "PART-TIME",
+        "emergency": ("Jordan Ellis", "Partner", "657-555-0176"),
+        "chief_complaint": "VOMITING, HIGH BLOOD SUGAR",
+        "form_cc": "Diabetic ketoacidosis (resolved), type 1 DM, gastroparesis",
+        "qual_dx": "DKA, T1DM on insulin, gastroparesis, depression",
+        "adm_dx": ["Type 1 diabetes mellitus with ketoacidosis without coma [E10.10]", "Diabetic gastroparesis [E10.43, K31.84]",
+                   "Major depressive disorder, recurrent, moderate [F33.1]"],
+        "wound": False, "wound_desc": "", "wound_independent": None,
+        "substances": {"Other": "10/2026 (cannabis)"}, "withdrawals": False,
+        "mh": ["Anxiety", "Depression"], "mh_type": "depression", "o2": False, "self_meds": True,
+        "continent": True, "adls": True, "diabetic": True, "insulin": True, "anticoag": False,
+        "ambulatory": True, "device": None, "car": True, "partner": True, "service_animal": True,
+        "tb": ("10/16/2026", "Negative (QuantiFERON)"), "communicable": "None",
+        "iv_abx": False,
+        "attached": ["Face Sheet", "H&P", "Med List", "Endo consult", "SW notes"],
+        "cover_msg": "Referral for recuperative care. 31 yo with type 1 DM admitted in DKA after her insulin was ruined in "
+                     "the heat (living in car). DKA resolved, on basal/bolus insulin, independent with injections and "
+                     "glucose checks. Needs refrigerated insulin storage and regular meals. Has a diabetic alert service dog "
+                     "(Bear). Partner Jordan also unhoused - asking if couples can be placed. Anticipated dc 10/19/2026.",
+        "pmh": ["Type 1 diabetes mellitus (dx age 12)", "Diabetic gastroparesis", "DKA x 3 (2023, 2025, 2026)",
+                "Major depressive disorder", "Generalized anxiety disorder"],
+        "psh": "Laparoscopic cholecystectomy (2021).",
+        "sched_meds": ["insulin glargine (Lantus), 18 Units, SubCUTAneous, Nightly",
+                       "insulin lispro (HumaLOG), 1 unit per 12 g carbs + correction 1:40 > 150, SubCUTAneous, TID AC",
+                       "metoclopramide, 5 mg, Oral, TID AC", "sertraline, 100 mg, Oral, Daily",
+                       "polyethylene glycol, 17 g, Oral, Daily"],
+        "prn_meds": ["ondansetron ODT, 4 mg, Q8H PRN nausea", "glucose 4 g chewable, 16 g, PRN BG<70",
+                     "glucagon 1 mg kit, IntraMUSCULAR, PRN severe hypoglycemia", "acetaminophen, 650 mg, Q6H PRN"],
+        "allergies": "Erythromycin (GI upset)",
+        "alcohol": ("No", "0", "Never", "N/A", "Never"), "tobacco": "Never", "drugs": "Yes - Cannabis, vaped, for nausea",
+        "weight": "54.9 kg (121 lb)", "bmi": "20.1",
+        "vitals_hp": {"BP": "(!) 98/60", "Pulse": "(!) 126", "Resp": "(!) 28", "Temp": "37.2 °C (99.0 °F)", "SpO2": "99%"},
+        "vitals_pn": {"BP": "112/70", "Pulse": "80", "Resp": "14", "Temp": "36.8 °C (98.2 °F)", "SpO2": "99%"},
+        "hp_hpi": "Kayla Reed is a 31 years old female with type 1 diabetes since age 12, gastroparesis and depression who "
+                  "presents with 2 days of nausea, vomiting and abdominal pain. She and her partner lost their apartment in "
+                  "July and have been living in their car with her service dog. Her insulin pens were left in the car during "
+                  "a heat wave and she thinks they stopped working; her sugars have been over 400. In our ER, glucose 612, "
+                  "bicarbonate 9, anion gap 28, beta-hydroxybutyrate 6.8, pH 7.12, potassium 5.6. Started on DKA protocol "
+                  "with insulin drip and fluids, admitted to step-down.",
+        "problems": ["Diabetic ketoacidosis, resolved", "Type 1 DM, poor control (A1c 10.9)", "Diabetic gastroparesis",
+                     "Depression / anxiety", "Insulin storage barrier - homelessness"],
+        "plan_lines": ["--- DKA protocol: insulin gtt, IVF, K repletion, q1h BG", "--- Transition to SC basal/bolus when gap closed",
+                       "--- Endocrinology consult, diabetes education", "--- SW for housing and insulin storage."],
+        "pn_update": "10/17: Gap closed 10/15 PM, on SC insulin since. BG 110-210. Tolerating diet with metoclopramide. Endo "
+                     "adjusted Lantus to 18 u. New pens, meter, cooling case given. Ok for dc 10/19.",
+        "pn_interval": "Pt eating, no vomiting x 36 h, doing own injections with RN observation.",
+        "exam_extra": "Abdomen soft, mild epigastric tenderness. Mucous membranes moist.",
+        "doc2_kind": "pt",
+        "doc2": {
+            "subjective": "Pt seen for PT evaluation per step-down protocol. Pt reports she was fully independent before "
+                          "admission and walks her dog daily. Mild weakness after 2 days in bed.",
+            "objective": ["Pt seated in chair, alert and oriented x4", "Bed mobility: Independent",
+                          "Sit to stand: Independent", "Gait: 500 ft without device, independent",
+                          "Stairs: 12 steps, independent", "Balance: No loss of balance with challenge"],
+            "location": "", "measure": "", "undermining": "", "tunneling": "", "bed": "", "periwound": "", "drainage": "",
+            "care": "",
+            "plan": "Pt independent with all mobility at baseline. No DME or skilled PT needs. PT signing off.",
+        },
+        "consult": {
+            "micro": ["Urinalysis (10/15/2026): Glucose 4+, ketones 3+, no infection", "Blood Culture x2 (10/15/2026): No growth "
+                      "at 72 hours", "COVID-19 / Influenza PCR (10/15/2026): Not detected", "Urine hCG (10/15/2026): Negative"],
+            "reason": "I was asked to see the patient for diabetic ketoacidosis and insulin management",
+            "cc": "Nausea and vomiting",
+            "hpi": "31 yo female with type 1 DM for 19 years, prior DKA x 2, gastroparesis, admitted with moderate to severe DKA "
+                   "precipitated by loss of insulin potency from heat exposure. No infection found. Previously on Lantus 22 "
+                   "units and Humalog by carb counting; no pump or CGM. Last A1c 9.8 (03/2026), now 10.9. Gap closed after "
+                   "14 hours on insulin infusion.",
+            "ros": "GI: Positive for nausea and early satiety, improving. Endo: Positive for polyuria before admission.",
+            "exam": ["General: Thin young woman, no distress", "HEENT: Moist mucous membranes", "Neck: No thyromegaly",
+                     "Chest: Clear bilaterally", "Cardiovascular: Regular rate rhythm",
+                     "Abdomen: Soft, mild epigastric tenderness", "Extremities: Injection sites abdomen without lipohypertrophy"],
+            "imaging": [("X-Ray Chest Single View", "10/15/2026", "No acute cardiopulmonary process."),
+                        ("X-Ray Abdomen 2 Views", "10/15/2026", "Nonobstructive bowel gas pattern. Moderate stool burden."),
+                        ("ECG 12 lead", "10/15/2026", "Sinus tachycardia 124. Peaked T waves resolved on repeat 10/15 PM.")],
+            "assessment": ["-DKA, resolved, precipitated by heat-damaged insulin", "-Type 1 DM with poor control, A1c 10.9",
+                           "-Diabetic gastroparesis - contributes to glucose variability",
+                           "-Homelessness with no way to store insulin - high risk for recurrent DKA"],
+            "plan": ["-insulin glargine 18 units nightly, lispro 1:12 carbs + correction 1:40 over 150",
+                     "-new pens, meter, strips, cooling case and glucagon kit provided", "-apply for CGM (Medi-Cal benefit) "
+                     "- Rx sent", "-endocrine clinic f/u 10/30/2026", "-recuperative care strongly recommended for "
+                     "refrigerated insulin storage and regular meals", "-this was discussed with the patient and her partner."],
+        },
+        "sw_note": [
+            "SW consulted for homelessness.",
+            "Patient is a 31y.o. female admitted on 10/15/2026 for DKA. Patient reports she and her partner Jordan lost their "
+            "apartment in Orange in 07/2026 when the rent went up; Jordan works part-time and they have been living in their "
+            "2014 Toyota Corolla with patient's diabetic alert service dog, Bear. This is her first episode of homelessness. "
+            "Patient reports depression and anxiety, treated with sertraline and a telehealth therapist through CalOptima BH. "
+            "Uses cannabis for nausea, no other substances.",
+            "SW reviewed insurance (CalOptima Medi-Cal) and offered IF RECUP referral - patient accepted but asks whether "
+            "Jordan and Bear can come with her. SW explained that service animals are allowed by law but partner placement "
+            "depends on the program. SW also provided Coordinated Entry information. SW explained that we are not able to "
+            "guarantee placement at DC, patient understood.",
+            "Pending DC orders and recommendations. DCP: Recuperative care vs. return to vehicle with partner.",
+        ],
+        "sw_addendum": "3:20pm: SW gave patient a letter documenting Bear as a trained diabetic alert dog per patient report. "
+                       "Patient gave permission to share contact information with Illumination Foundation.",
+        "psychiatrist": "Telehealth therapist - CalOptima BH 855-555-0122; sertraline by PCP Dr. Yu",
+        "labs": {"WBC": [14.6, 11.2, 8.4, 7.6, 7.2], "Hgb": [14.8, 12.9, 12.4, 12.6, 12.5], "Hct": [45.1, 39.0, 37.3, 37.8, 37.6],
+                 "MCV": [92.4, 91.8, 91.9, 92.0, 91.7], "Plt": [318, 262, 244, 251, 256], "Na": [128, 134, 137, 138, 138],
+                 "Glucose": [612, 288, 196, 154, 142]},
+        "vitals_series": {"T": [37.2, 37.0, 36.9, 36.8, 36.9, 36.8, 36.7, 36.8, 36.8, 36.8],
+                          "HR": [126, 118, 104, 96, 90, 86, 84, 82, 80, 80], "SBP": [98, 104, 108, 110, 112, 114, 112, 110, 112, 112],
+                          "DBP": [60, 64, 66, 68, 70, 70, 70, 68, 70, 70], "RR": [28, 26, 22, 18, 16, 16, 14, 14, 14, 14],
+                          "SpO2": [99, 99, 99, 99, 99, 99, 99, 99, 99, 99]},
+        "lab_overrides": {"CO2": 9, "Anion Gap": 28, "Potassium": 5.6, "Hemoglobin A1c": 10.9, "Lipase": 88,
+                          "BUN": 26, "Creatinine": 1.2},
+        "consult_fu": "10/30/2026", "followups": [("Gastroenterology", "Referral placed - gastroparesis", "657-555-0178",
+                                                  "pending")],
+        "home_health": None, "covid_doses": 3, "o2_note": "N/A", "o2_device": "None (Room air)",
+        "ambulate": "community distances", "fracture": False, "recent_surgery": False,
+        "mh_treatment": (True, "sertraline + telehealth therapist"), "pharmacy": "Walgreens - Chapman Ave",
+        "living": ("Vehicle", "Car - with partner"), "transport_barrier": "no", "interpreter": None,
+        "family_adjust": "Partner supportive",
+        "font": 0,
+    },
 ]

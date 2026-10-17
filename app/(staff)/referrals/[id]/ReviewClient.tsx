@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { saveDecision, saveReview } from "@/app/actions";
+import { DeleteReferral } from "@/components/DeleteReferral";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { ReadingProgress } from "@/components/ReadingProgress";
 import { FormSections } from "@/components/FormSections";
@@ -297,17 +298,20 @@ function FailedNotice({ id, error }: { id: string; error: string | null }) {
     <div className="card border-red-200 p-4">
       <p className="font-medium text-red-800">The reader couldn’t process this scan.</p>
       {error && <p className="mt-1 break-words font-mono text-xs text-red-700">{error}</p>}
-      <button
-        className="btn-secondary mt-3"
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          await fetch(`/api/referrals/${id}/process`, { method: "POST" });
-          router.refresh();
-        }}
-      >
-        Try again
-      </button>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          className="btn-secondary"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await fetch(`/api/referrals/${id}/process`, { method: "POST" });
+            router.refresh();
+          }}
+        >
+          Try again
+        </button>
+        <DeleteReferral id={id} label="Delete and upload again" then="/upload" className="btn-secondary text-red-700" />
+      </div>
     </div>
   );
 }

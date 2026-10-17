@@ -42,6 +42,9 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | R-7 | A crossed-out, scribbled-over or struck-through mark is treated as cancelled even if it was also circled; the reader reports any field with a crossed-out or changed answer, it gets the second reading, and the review screen always highlights it. | ✅ |
 | R-8 | While a scan is read, a modal on the upload page shows each step live (preparing pages, uploading, finding the form page, reading fields, double-checking N fields) with a timer, then opens the review screen once the form is read. Supporting documents keep loading there. A referral still being read shows the same steps on its review screen. | ✅ |
 | R-9 | A single uploaded file can hold the form and its supporting documents (a whole fax packet): pages are labelled one by one, consecutive pages of the same document are grouped, and each document is read and cross-checked. One patient per upload. | ✅ |
+| R-10 | A packet with **no referral form** (seen in a real packet: fax cover, face sheet, H&P, notes, no form) is not read as if every page were the form. The form fields stay blank for the coordinator to type, the review screen says no form page was found, and the supporting documents are still read. | 📋 |
+| R-11 | **Sideways and upside-down pages** (real packets have 19 sideways medication pages, an upside-down PT evaluation, labs and vitals scanned sideways) are detected when the pages are labelled, turned upright, checked once more, and saved upright so the review screen shows them the right way up. | 📋 |
+| R-12 | Pages of one face sheet, authorization or H&P **split up by other pages** (a real packet had its authorization pages out of order) are read as one document, not two that may disagree. Notes, vitals, medication lists and the rest still group only consecutive pages, since a packet can hold several of them. | 📋 |
 
 ### 3.3 Online referral portal
 
@@ -66,6 +69,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | D-5 | Staff add supporting documents that arrive separately to an existing referral (**Add documents** in the Documents panel), one or several files at a time. Each file is identified automatically by the cheapest model unless a checklist item is chosen, then read and cross-checked; the panel updates as each finishes. | ✅ |
 | D-6 | **Remove** on a supporting document deletes what was read from it, and the uploaded file if it was added separately (fax pages stay with the scan). Checks re-run afterwards. | ✅ |
 | D-7 | The checklist's **Client's Demographic Page** is the referral form itself, so it is never listed as missing. A hospital face sheet is still read when sent (phone, member ID, emergency contact), and the online form offers it as an optional upload. | ✅ |
+| D-8 | **Other records found in real packets:** labs, imaging, cardiac catheterization report, ECG, psychiatry consult, social work notes, wound notes, physician orders, nursing flowsheets. They are labelled "other" and not read today. Candidates: psychiatry consult (behavioral health), social work notes (housing), wound notes (wound care), labs (infections, A1c for insulin). | 📋 |
 
 ### 3.5 Coordinator queue and review
 
@@ -144,6 +148,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | T-7 | 90 days of fictional referral history for the dashboard (`supabase/seed/mock-history.sql`): 120 referrals from five hospitals, each with a hospital face sheet, with decision times that improve over the period, denial categories, cross-check flags (one hospital sends weaker packets) and housing assessments. Generated inside Postgres from md5 of the row number, so every run gives the same rows; re-running replaces only ids starting `b2000000-`. Loaded in production. | ✅ |
 | T-5 | Sample 2 as a single 10-page faxed packet (`samples/synthetic/packets/sample-2-messy-packet.pdf`) and as separate files, the form alone plus one file per document (`samples/synthetic/packets/sample-2-messy-separate/`), for trying the whole flow and **Add documents**. | ✅ |
 | T-8 | Seven more handwritten faxed packets (`npm run packets`, `samples/synthetic/packets/packet-4` to `packet-10`): form only (2), complete with all 7 checklist documents and a face sheet (2), and missing 4, 5 or 6 of the 7 (3). Each form has deliberate mistakes, listed with the pages, included and missing documents, and written answers in the packet's `.json`. | ✅ |
+| T-9 | **Packets shaped like the real ones** (11 seen, 14 to 34 pages): fax cover first, form last or missing, sideways and upside-down pages, a document split by other pages, duplicate face sheets, record types outside the checklist. The synthetic packets are at most 10 pages, upright, with the form near the front. | 📋 |
 
 ## 4. Deferred past the prototype
 
@@ -164,6 +169,7 @@ Use cases found since (admission, housing, roles, integration, safety logic) are
 
 - **Live use so far:** sample referrals have been uploaded to the live app and read. Real handwriting from actual faxes is still untested.
 - **Known reading weak spot:** handwriting that runs into printed text (e.g. a digit touching a label) can be misread with high confidence; patient identity fields are always re-read and highlighted when the two readings disagree, but other fields aren't.
+- **Real packets (R01 to R11):** confirm the "IHH referral form" in them is RC0725-SH, and that the "CalAIM authorization form" is the same health plan authorization the checklist calls CalOptima.
 - **Test accounts:** 20 mock staff accounts (from `MOCK_DATA.csv`; 6 picked at random as clinical) exist in production with no password, so anyone who enters one of those emails can sign in. Remove or deactivate them before real referrals arrive.
 - **Mock patients:** 5 fictional approved patients (ids starting `a1000000-`) and 120 history referrals (ids starting `b2000000-`) are in production for demos. Delete them before real referrals arrive.
 - **Real staff list:** import current staff from Illumination's HR or email admin rather than LinkedIn, and confirm the firstname+lastname email format matches their real addresses.

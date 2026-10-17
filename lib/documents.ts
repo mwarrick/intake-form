@@ -31,6 +31,11 @@ export interface DocType {
    * the document is still read when a hospital sends one.
    */
   coveredByForm?: boolean;
+  /**
+   * A packet holds at most one of these, so pages of this type split up by other pages are still one document.
+   * Types a packet can hold several of (notes, vitals, medication lists) group only consecutive pages.
+   */
+  onePerPacket?: boolean;
   fields: DocField[];
   tables?: DocTable[];
 }
@@ -56,6 +61,7 @@ export const DOC_TYPES: DocType[] = [
     // The checklist's "Client's Demographic Page" is the referral form; a hospital face sheet adds phone, member ID and emergency contact.
     id: "demographics",
     label: "Hospital Face Sheet",
+    onePerPacket: true,
     recognize: "Hospital face sheet / registration page: patient name, DOB, address, phone, insurance, emergency contact.",
     required: false,
     coveredByForm: true,
@@ -73,6 +79,7 @@ export const DOC_TYPES: DocType[] = [
   {
     id: "authorization",
     label: "CalOptima Form/LOA/AUTH",
+    onePerPacket: true,
     recognize: "Health plan authorization or letter of agreement (e.g. CalOptima): auth number, approved service, days, dates.",
     required: true,
     fields: [
@@ -90,6 +97,7 @@ export const DOC_TYPES: DocType[] = [
   {
     id: "history_physical",
     label: "H&P (History and Physical)",
+    onePerPacket: true,
     recognize: "History and Physical: HPI, past medical history, exam, assessment and plan.",
     required: true,
     fields: [

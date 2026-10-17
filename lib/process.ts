@@ -41,6 +41,19 @@ export async function processScan(referralId: string): Promise<void> {
     );
 
     const result = await runPipeline(pages, saveProgress);
+    // Save pages that were turned upright, so the review screen shows them the right way up.
+    await Promise.all(
+      (result.pipeline.turned ?? []).map(async ({ page }) => {
+        const doc = docs.find((d) => d.page_number === page);
+        const img = result.pages.find((p) => p.pageNumber === page);
+        if (!doc || !img) return;
+        const [, mime, b64] = /^data:([^;]+);base64,(.*)$/s.exec(img.dataUrl) ?? [];
+        const { error: saveErr } = await supabase.storage
+          .from(BUCKET)
+          .upload(doc.storage_path, Buffer.from(b64, "base64"), { contentType: mime, upsert: true });
+        if (saveErr) console.warn(`could not save page ${page} upright:`, saveErr.message);
+      }),
+    );
     const data = { ...emptyData(allFields), ...result.data };
     const flags = validate(data, { extraction: result.extraction, confidenceThreshold: rereadThreshold });
 
@@ -60,7 +73,7 @@ export async function processScan(referralId: string): Promise<void> {
     if (upErr) throw new Error(upErr.message);
 
     // The form is ready for review now; supporting documents in the packet are read after it.
-    await readPacketDocuments(referralId, pages, result.pipeline.pageTypes ?? []);
+    await readPacketDocuments(referralId, result.pages, result.pipeline.pageTypes ?? []);
     await refreshDocFlags(referralId, data);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

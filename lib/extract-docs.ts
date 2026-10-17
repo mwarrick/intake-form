@@ -33,14 +33,22 @@ export async function readDocument(type: DocType, input: DocInput, usage: Usage)
   return { ...data, notes: notes || null };
 }
 
-/** Consecutive pages labeled with the same document type become one document. */
+/**
+ * Consecutive pages labeled with the same document type become one document; for types a packet holds
+ * only one of (face sheet, authorization, H&P), every page of that type does, even when other pages split them.
+ */
 export function groupPages(pageTypes: PageType[]): { type: DocType; pages: number[] }[] {
   const groups: { type: DocType; pages: number[] }[] = [];
   for (const p of [...pageTypes].sort((a, b) => a.page - b.page)) {
     const type = docTypesById.get(p.type);
     if (!type) continue;
     const last = groups.at(-1);
-    if (last && last.type.id === type.id && last.pages.at(-1) === p.page - 1) last.pages.push(p.page);
+    const same = type.onePerPacket
+      ? groups.find((g) => g.type.id === type.id)
+      : last && last.type.id === type.id && last.pages.at(-1) === p.page - 1
+        ? last
+        : undefined;
+    if (same) same.pages.push(p.page);
     else groups.push({ type, pages: [p.page] });
   }
   return groups;

@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { type Field, type FormData, normalize, paperFields, schema } from "@/lib/form";
 import { DOC_TYPES } from "@/lib/documents";
 import type { ReadProgress } from "@/lib/progress";
+import { ORIENTATIONS, ORIENTATION_HINT, type Orientation, turnFor, turnImage } from "@/lib/upright";
 import type { Extraction } from "@/lib/validate";
 
 export interface PageImage {
@@ -12,6 +13,8 @@ export interface PageImage {
 }
 
 export interface PipelineResult {
+  /** The pages, turned upright where the classifier found them sideways or upside down. */
+  pages: PageImage[];
   data: FormData;
   extraction: Extraction;
   pipeline: {
@@ -19,6 +22,10 @@ export interface PipelineResult {
     /** What each faxed page is; supporting documents are read from these. */
     pageTypes?: PageType[];
     classifyNotes?: string;
+    /** Multi-page packet with no page labelled as the referral form: the form fields were not read. */
+    noForm?: boolean;
+    /** Pages turned upright, with the degrees they were turned clockwise. */
+    turned?: { page: number; degrees: number }[];
     extractNotes?: string;
     rereadFields: string[];
     /** Portal referrals pre-filled from a scan: fields the referrer changed before submitting. */
@@ -105,15 +112,20 @@ Label every page with one type:
 - referral_form: the "${schema.form}" (form code ${schema.formCode}) page with the fill-in sections "Referring Party", "Patient Information", "Hospital Admission Details", "History of Health & Living Situation", "Behavioral and Mental Health Status" and the "ILLUMINATION STAFF ONLY" box.
 - info_sheet: the program's informational page titled "Recuperative Care with Illumination / A SAFE PLACE TO HEAL" (admission criteria and checklist only, nothing filled in).
 ${DOC_TYPES.map((d) => `- ${d.id}: ${d.recognize}`).join("\n")}
-- other: fax cover sheets and anything else.`;
+- other: fax cover sheets and anything else.
+Pages may be scanned sideways or upside down; label them by what they are, and give each page's
+${ORIENTATION_HINT}`;
 
 export interface PageType {
   page: number;
   type: (typeof PAGE_TYPES)[number];
 }
 
-async function classifyPages(pages: PageImage[], usage: Usage): Promise<{ pages: PageType[]; notes: string }> {
-  const result = await jsonCall<{ pages: PageType[]; notes: string }>({
+async function classifyPages(
+  pages: PageImage[],
+  usage: Usage,
+): Promise<{ pages: PageType[]; orientations: Map<number, Orientation>; notes: string }> {
+  const result = await jsonCall<{ pages: (PageType & { orientation: Orientation })[]; notes: string }>({
     step: "classify",
     model: models.classify,
     instructions: CLASSIFY_INSTRUCTIONS,
@@ -130,8 +142,12 @@ async function classifyPages(pages: PageImage[], usage: Usage): Promise<{ pages:
           items: {
             type: "object",
             additionalProperties: false,
-            required: ["page", "type"],
-            properties: { page: { type: "integer" }, type: { type: "string", enum: [...PAGE_TYPES] } },
+            required: ["page", "type", "orientation"],
+            properties: {
+              page: { type: "integer" },
+              type: { type: "string", enum: [...PAGE_TYPES] },
+              orientation: { type: "string", enum: [...ORIENTATIONS] },
+            },
           },
         },
         notes: { type: "string", description: "One short sentence describing the packet." },
@@ -140,7 +156,69 @@ async function classifyPages(pages: PageImage[], usage: Usage): Promise<{ pages:
     usage,
   });
   const valid = new Set(pages.map((p) => p.pageNumber));
-  return { pages: result.pages.filter((p) => valid.has(p.page)), notes: result.notes };
+  const labelled = result.pages.filter((p) => valid.has(p.page));
+  return {
+    pages: labelled.map(({ page, type }) => ({ page, type })),
+    orientations: new Map(labelled.map((p) => [p.page, p.orientation])),
+    notes: result.notes,
+  };
+}
+
+/** Ask once more about pages that were just turned: a sideways page can be turned the wrong way. */
+async function checkOrientation(pages: PageImage[], usage: Usage): Promise<Map<number, Orientation>> {
+  const result = await jsonCall<{ pages: { page: number; orientation: Orientation }[] }>({
+    step: "orient",
+    model: models.classify,
+    instructions: `You check that scanned pages are the right way up. For each page give its\n${ORIENTATION_HINT}`,
+    text: `Pages ${pages.map((p) => p.pageNumber).join(", ")}, in order.`,
+    images: pages.map((p) => ({ dataUrl: p.dataUrl, detail: "low" })),
+    schemaName: "page_orientation",
+    jsonSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["pages"],
+      properties: {
+        pages: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["page", "orientation"],
+            properties: { page: { type: "integer" }, orientation: { type: "string", enum: [...ORIENTATIONS] } },
+          },
+        },
+      },
+    },
+    usage,
+  });
+  return new Map(result.pages.map((p) => [p.page, p.orientation]));
+}
+
+/** Turn sideways and upside-down pages upright, then check the turned ones once and correct any still wrong. */
+async function turnUpright(
+  pages: PageImage[],
+  orientations: Map<number, Orientation>,
+  usage: Usage,
+): Promise<{ pages: PageImage[]; turned: { page: number; degrees: number }[] }> {
+  const degrees = new Map(pages.map((p) => [p.pageNumber, turnFor(orientations.get(p.pageNumber) ?? "upright")]));
+  const turn = (list: PageImage[]) =>
+    Promise.all(list.map(async (p) => ({ ...p, dataUrl: await turnImage(p.dataUrl, degrees.get(p.pageNumber) ?? 0) })));
+  const changed = pages.filter((p) => degrees.get(p.pageNumber));
+  if (!changed.length) return { pages, turned: [] };
+
+  let upright = await turn(changed);
+  const again = await checkOrientation(upright, usage);
+  const wrong = upright.filter((p) => turnFor(again.get(p.pageNumber) ?? "upright"));
+  if (wrong.length) {
+    for (const p of wrong) degrees.set(p.pageNumber, (degrees.get(p.pageNumber)! + turnFor(again.get(p.pageNumber)!)) % 360);
+    const fixed = new Map((await turn(changed.filter((p) => wrong.some((w) => w.pageNumber === p.pageNumber)))).map((p) => [p.pageNumber, p]));
+    upright = upright.map((p) => fixed.get(p.pageNumber) ?? p);
+  }
+  const byNumber = new Map(upright.map((p) => [p.pageNumber, p]));
+  return {
+    pages: pages.map((p) => byNumber.get(p.pageNumber) ?? p),
+    turned: changed.map((p) => ({ page: p.pageNumber, degrees: degrees.get(p.pageNumber)! })).filter((t) => t.degrees),
+  };
 }
 
 // ---------- Step 2 and 3: read fields ----------
@@ -249,24 +327,47 @@ function sameValue(a: unknown, b: unknown): boolean {
 
 type ProgressStep = Omit<ReadProgress, "startedAt">;
 
-export async function runPipeline(pages: PageImage[], onProgress?: (p: ProgressStep) => Promise<void>): Promise<PipelineResult> {
+export async function runPipeline(scanned: PageImage[], onProgress?: (p: ProgressStep) => Promise<void>): Promise<PipelineResult> {
   const usage: Usage = [];
   const report = async (p: ProgressStep) => onProgress?.(p).catch((e) => console.warn("progress update failed:", e));
   const fields = paperFields;
 
-  // Step 1: a one-page upload is the form page; otherwise let the cheap model find it.
+  // Step 1: a one-page upload is the form page; otherwise let the cheap model label every page and
+  // say which ones are sideways or upside down, and turn those upright.
+  let pages = scanned;
   let formPages = pages;
   let pageTypes: PageType[] = pages.map((p) => ({ page: p.pageNumber, type: "referral_form" }));
   let classifyNotes: string | undefined;
   let classifyModel: string | null = null;
+  let turned: { page: number; degrees: number }[] = [];
   if (pages.length > 1) {
     classifyModel = models.classify;
     await report({ step: "classify", pages: pages.length });
     const sorted = await classifyPages(pages, usage);
     classifyNotes = sorted.notes;
     pageTypes = sorted.pages;
+    ({ pages, turned } = await turnUpright(pages, sorted.orientations, usage));
     const form = new Set(sorted.pages.filter((p) => p.type === "referral_form").map((p) => p.page));
-    if (form.size) formPages = pages.filter((p) => form.has(p.pageNumber));
+    // No form page in a packet: leave the form blank for the coordinator rather than reading every page as the form.
+    formPages = pages.filter((p) => form.has(p.pageNumber));
+  }
+
+  if (!formPages.length) {
+    return {
+      pages,
+      data: normalize({}, fields),
+      extraction: {},
+      pipeline: {
+        formPages: [],
+        pageTypes,
+        classifyNotes,
+        noForm: true,
+        turned,
+        rereadFields: [],
+        models: { classify: classifyModel, extract: models.extract, reread: null },
+        usage,
+      },
+    };
   }
 
   // Step 2: read every field.
@@ -325,12 +426,14 @@ export async function runPipeline(pages: PageImage[], onProgress?: (p: ProgressS
   }
 
   return {
+    pages,
     data,
     extraction,
     pipeline: {
       formPages: formPages.map((p) => p.pageNumber),
       pageTypes,
       classifyNotes,
+      turned,
       extractNotes: first.notes || undefined,
       rereadFields: unsure.map((f) => f.id),
       models: { classify: classifyModel, extract: models.extract, reread: rereadModel },

@@ -112,8 +112,9 @@ function ScanViewer({
   locate: { field: string; n: number } | null;
   onClearLocate: () => void;
 }) {
-  const formPage = pages.find((p) => formPages.includes(p.page_number ?? -1)) ?? pages[0];
-  const [current, setCurrent] = useState(formPage?.page_number ?? 1);
+  // A packet with no form page has nowhere to show a field, so it opens on its first page.
+  const formPage = pages.find((p) => formPages.includes(p.page_number ?? -1));
+  const [current, setCurrent] = useState(formPage?.page_number ?? pages[0]?.page_number ?? 1);
   const [zoom, setZoom] = useState(1);
   const page = pages.find((p) => p.page_number === current);
   const scroller = useRef<HTMLDivElement>(null);
@@ -336,6 +337,12 @@ function PipelineSummary({ referral }: { referral: Referral }) {
         <Stat label="Document conflicts" value={String(conflicts.length)} tone={conflicts.length ? "red" : "green"} />
         {wasRead && <Stat label="Reader" value={`${seconds.toFixed(0)} s · ${tokens.toLocaleString()} tokens`} />}
       </div>
+      {p?.noForm && (
+        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+          No referral form was found in this packet, so the form fields are blank. Type them in from the records, or ask
+          the referrer for the form. The supporting documents were still read.
+        </p>
+      )}
       {eligibility.length > 0 && (
         <ul className="space-y-1 rounded-md bg-purple-50 p-3 text-sm text-purple-800">
           {eligibility.map((f, i) => (
@@ -355,7 +362,14 @@ function PipelineSummary({ referral }: { referral: Referral }) {
         <details className="text-xs text-slate-600">
           <summary className="cursor-pointer select-none font-medium text-slate-700">How this was read</summary>
           <ul className="mt-2 space-y-1">
-            {p.classifyNotes && <li>Pages: form found on page {p.formPages?.join(", ")}. {p.classifyNotes}</li>}
+            {p.classifyNotes && (
+              <li>
+                Pages: {p.noForm ? "no form page found" : `form found on page ${p.formPages?.join(", ")}`}. {p.classifyNotes}
+              </li>
+            )}
+            {!!p.turned?.length && (
+              <li>Turned upright: {p.turned.map((t) => `page ${t.page} (${t.degrees}°)`).join(", ")}</li>
+            )}
             {p.usage?.map((u, i) => (
               <li key={i}>
                 <span className="font-medium">{u.step}</span> · {u.model} · {(u.ms / 1000).toFixed(1)} s ·{" "}

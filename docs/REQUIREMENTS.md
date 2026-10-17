@@ -66,7 +66,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | ID | Requirement | Status |
 |---|---|---|
 | Q-1 | One queue for fax and online referrals, newest first, with status, flag counts, and an "over 2 h" warning on undecided referrals. | ✅ |
-| Q-2 | The review screen shows the scan (page tabs, zoom in and out from 50% to 400%, link to the original) beside the fields. Clicking a field on a faxed referral jumps to the form page, zooms in and outlines where that field is on the form (positions from `schema/field-regions.json`). Each field shows its confidence, what was written, and its flags. A filter shows only the fields that need checking. | ✅ |
+| Q-2 | The review screen shows the scan (page tabs, zoom in and out from 50% to 400%, link to the original) beside the fields. Clicking any field on a referral with a scan (faxed, or online pre-filled from the paper form) jumps to the form page, zooms in and outlines where that field is on the form (positions from `schema/field-regions.json`). Each field shows its confidence, what was written, and its flags. A filter shows only the fields that need checking. | ✅ |
 | Q-3 | Coordinators save corrections and confirm the fields. Confirming clears the confidence warnings. | ✅ |
 | Q-4 | For a pre-filled online referral, the coordinator sees the scan and which fields the referrer corrected. | ✅ |
 | Q-5 | The Illumination Staff Only section records the decision (approved/denied, auth #, denial reason, admission and extension details) and sets the status. | ✅ |

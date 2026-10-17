@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { rereadThreshold } from "@/lib/extract";
 import { type FormData, allFields, emptyData, normalize, referrerFields, schema, staffFields } from "@/lib/form";
 import { fullName, staffOrThrow } from "@/lib/auth";
+import { removeFolder } from "@/lib/cleanup";
 import { refreshDocFlags } from "@/lib/extract-docs";
 import { summaryColumns } from "@/lib/referrals";
-import { T, createUploadTargets, db, safeName, type UploadTarget } from "@/lib/supabase";
+import { BUCKET, T, createUploadTargets, db, safeName, type UploadTarget } from "@/lib/supabase";
 import { type Extraction, validate } from "@/lib/validate";
 
 export interface FileMeta {
@@ -208,6 +209,60 @@ export async function addDocuments(referralId: string, attachments: AttachmentMe
     );
     if (error) throw new Error(error.message);
     return { uploads: await createUploadTargets(paths) };
+  });
+}
+
+/**
+ * Delete a referral and every file uploaded for it, e.g. the wrong file or an unreadable scan, so it can be uploaded again.
+ * Approved or denied referrals are records of a decision; only an admin can delete those.
+ */
+export async function deleteReferral(id: string) {
+  return reported(async () => {
+    const user = await staffOrThrow();
+    const supabase = db();
+    const { data: current, error: curErr } = await supabase.from(T.referrals).select("status").eq("id", id).maybeSingle();
+    if (curErr) throw new Error(curErr.message);
+    if (!current) return { ok: true as const };
+    if (["approved", "denied"].includes(current.status) && user.role !== "admin") {
+      throw new Error("This referral has a decision recorded; only an admin can delete it.");
+    }
+    // Rows first (documents and supporting documents go with it, on delete cascade), then the files.
+    const { error } = await supabase.from(T.referrals).delete().eq("id", id);
+    if (error) throw new Error(error.message);
+    await removeFolder(id);
+    revalidatePath("/referrals");
+    return { ok: true as const };
+  });
+}
+
+/**
+ * Remove one supporting document, e.g. a wrong file that was added. A separately uploaded file is deleted
+ * along with it; pages of a faxed packet stay part of the scan.
+ */
+export async function removeSupportingDoc(referralId: string, supportingId: string) {
+  return reported(async () => {
+    await staffOrThrow();
+    const supabase = db();
+    const { data: doc, error } = await supabase
+      .from(T.supporting)
+      .select("id, document_id")
+      .eq("id", supportingId)
+      .eq("referral_id", referralId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (doc?.document_id) {
+      const { data: file } = await supabase.from(T.documents).select("storage_path").eq("id", doc.document_id).maybeSingle();
+      // Deleting the uploaded file's row removes what was read from it too (on delete cascade).
+      const { error: delErr } = await supabase.from(T.documents).delete().eq("id", doc.document_id);
+      if (delErr) throw new Error(delErr.message);
+      if (file?.storage_path) await supabase.storage.from(BUCKET).remove([file.storage_path]);
+    } else if (doc) {
+      const { error: delErr } = await supabase.from(T.supporting).delete().eq("id", doc.id);
+      if (delErr) throw new Error(delErr.message);
+    }
+    await refreshDocFlags(referralId);
+    revalidatePath(`/referrals/${referralId}`);
+    return { ok: true as const };
   });
 }
 

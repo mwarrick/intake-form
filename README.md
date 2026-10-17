@@ -54,7 +54,7 @@ The defaults are model names whose tier is clear. Swap in any vision-capable mod
 
 All database access goes through server code with the service role key. Row level security is on with no policies, so the public key can't read the tables.
 
-**Staff sign-in.** The queue, review screens, fax upload and user admin require a staff account. Accounts are in `ILLINTAKE_users`, not Supabase Auth, and the roles are user and admin. Passwords are stored only as salted scrypt hashes, and sessions are random tokens in an HTTP-only cookie, stored hashed. On a fresh install with no users, `/login` offers to create the first admin, who then adds everyone else under **Users**. The online referral form stays public.
+**Staff sign-in.** The queue, review screens, fax upload and user admin require a staff account. Accounts are in `ILLINTAKE_users`, not Supabase Auth, and the roles are user and admin. Passwords are stored only as salted scrypt hashes, and sessions are random tokens in an HTTP-only cookie, stored hashed. On a fresh install with no users, `/login` offers to create the first admin, who then adds everyone else under **Users**, one at a time or with **Import users**: paste a staff list (one person per line, or rows copied from a spreadsheet), check the preview, and import. Each new user gets a random temporary password, shown once with Copy and Download CSV, which they can change on their Account page. Emails that already have an account are skipped. The online referral form stays public.
 
 ## Testing accuracy
 

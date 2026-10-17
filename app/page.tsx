@@ -57,11 +57,14 @@ const MISSION = [
 export default function Home() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-brand-900">Recuperative care referrals</h1>
-        <p className="mt-1 max-w-2xl text-sm text-slate-600">
-          Referrals get a decision within two hours. Paper forms are read automatically, so coordinators check
-          answers instead of retyping them.
+      <div className="rounded-xl bg-brand-900 px-6 py-8 text-white sm:px-8">
+        <p className="text-xs font-semibold uppercase tracking-widest text-accent-400">Recuperative care referrals</p>
+        <h1 className="mt-2 max-w-3xl text-3xl font-semibold leading-tight sm:text-4xl">
+          From the hospital bed to a place to heal, <span className="text-accent-400">decided within two hours.</span>
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm text-white/80">
+          Paper forms are read automatically, so coordinators check answers instead of retyping them, and each referral
+          carries forward to admission and the move to housing.
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
@@ -89,7 +92,10 @@ export default function Home() {
         <div className="grid gap-4 md:grid-cols-3">
           {MISSION.map((m) => (
             <div key={m.pillar} className="card p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">{m.pillar}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">
+                <span className="mr-2 inline-block h-2 w-6 rounded-full bg-accent-400 align-middle" />
+                {m.pillar}
+              </p>
               <p className="mt-1 font-medium text-slate-900">{m.lead}</p>
               <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-slate-600">
                 {m.points.map((p) => (

@@ -1,5 +1,6 @@
 import "server-only";
 import { runPipeline, rereadThreshold, type PageImage } from "@/lib/extract";
+import type { ReadProgress } from "@/lib/progress";
 import { readPacketDocuments, refreshDocFlags } from "@/lib/extract-docs";
 import { allFields, emptyData } from "@/lib/form";
 import { summaryColumns } from "@/lib/referrals";
@@ -12,8 +13,14 @@ import { validate } from "@/lib/validate";
  */
 export async function processScan(referralId: string): Promise<void> {
   const supabase = db();
-  const { data: ref } = await supabase.from(T.referrals).select("source").eq("id", referralId).single();
+  const { data: ref } = await supabase.from(T.referrals).select("source, pipeline").eq("id", referralId).single();
   const prefill = ref?.source === "portal";
+  // Each step is saved on the referral so the upload and review screens can show it; the final pipeline replaces it.
+  const startedAt: string = ref?.pipeline?.progress?.startedAt ?? new Date().toISOString();
+  const saveProgress = async (p: Omit<ReadProgress, "startedAt">) => {
+    const progress: ReadProgress = { ...p, startedAt };
+    await supabase.from(T.referrals).update({ pipeline: { progress } }).eq("id", referralId);
+  };
   try {
     const { data: docs, error } = await supabase
       .from(T.documents)
@@ -33,7 +40,7 @@ export async function processScan(referralId: string): Promise<void> {
       }),
     );
 
-    const result = await runPipeline(pages);
+    const result = await runPipeline(pages, saveProgress);
     const data = { ...emptyData(allFields), ...result.data };
     const flags = validate(data, { extraction: result.extraction, confidenceThreshold: rereadThreshold });
 

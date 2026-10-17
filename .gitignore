@@ -52,3 +52,6 @@ __pycache__/
 # Python environment for the sample generators, and randomly generated packets
 /.venv/
 /samples/synthetic/packets/random/
+
+# generated import graph (npm run deps:graph)
+/docs/deps.html

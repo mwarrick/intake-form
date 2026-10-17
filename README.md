@@ -73,6 +73,17 @@ The eval reports fields correct per sample, whether the form page was found, tok
 
 The three samples cover a neat single-page form, messy writing with a crossed-out answer and an ambiguous DOB, and a three-page packet for a patient who fails the admission criteria.
 
+## Code structure checks
+
+```bash
+npm run deps         # check import rules (dependency-cruiser)
+npm run deps:graph   # write docs/deps.html, the import graph (not committed)
+```
+
+The rules in `.dependency-cruiser.cjs` catch a `"use client"` component importing a server-only module (`import type` is fine), `lib/` importing from `app/` or `components/`, app code importing `test/` or `scripts/`, devDependencies used at runtime, unresolvable imports, and (as warnings) circular imports and files nothing imports.
+
+`.mcp.json` adds Vercel's `next-devtools-mcp` for Claude Code. While `npm run dev` is running, it lets Claude see the app's routes, build and runtime errors, and logs, and look up the Next.js docs. Claude Code asks you to approve the server the first time it starts in this folder.
+
 ## Deferred until after the prototype
 
 This is a prototype with fake data. These are intentionally out of scope for now and must be done before any real patient data goes through the app:

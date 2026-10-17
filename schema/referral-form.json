@@ -413,6 +413,31 @@
           }
         },
         {
+          "id": "denial_category",
+          "label": "Denial category",
+          "type": "single_choice",
+          "options": [
+            "Active infection not cleared",
+            "Not ambulatory / can't transfer",
+            "Cognitive impairment",
+            "Can't self-administer meds / IV meds",
+            "Not medically stable",
+            "Behavioral or safety concern",
+            "Registered sex offender",
+            "Missing documents or authorization",
+            "No bed available",
+            "Patient declined",
+            "Other"
+          ],
+          "showWhen": {
+            "approved": "No"
+          },
+          "requiredWhen": {
+            "approved": "No"
+          },
+          "notOnPaper": true
+        },
+        {
           "id": "denial_reason",
           "label": "Reason for Denial",
           "type": "longtext",

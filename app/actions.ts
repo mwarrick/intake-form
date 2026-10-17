@@ -318,7 +318,7 @@ export async function saveDecision(id: string, raw: Record<string, unknown>) {
 
 async function updateDecision(id: string, raw: Record<string, unknown>, reviewer: string) {
   const supabase = db();
-  const { data: current, error: curErr } = await supabase.from(T.referrals).select("data, status").eq("id", id).single();
+  const { data: current, error: curErr } = await supabase.from(T.referrals).select("data, status, decided_at").eq("id", id).single();
   if (curErr) throw new Error(curErr.message);
 
   const staff = normalize(raw, staffFields);
@@ -329,9 +329,13 @@ async function updateDecision(id: string, raw: Record<string, unknown>, reviewer
   if (staffFlags.length) return { errors: staffFlags.map((f) => f.message) };
 
   const status = staff.approved === "Yes" ? "approved" : staff.approved === "No" ? "denied" : current.status;
+  // Time the decision when it's first made or changed, so the dashboard can measure the two-hour promise.
+  const now = new Date().toISOString();
+  const decided = status === "approved" || status === "denied";
+  const decided_at = decided ? (status === current.status && current.decided_at ? current.decided_at : now) : null;
   const { error } = await supabase
     .from(T.referrals)
-    .update({ data, status, updated_at: new Date().toISOString() })
+    .update({ data, status, decided_at, updated_at: now })
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath(`/referrals/${id}`);

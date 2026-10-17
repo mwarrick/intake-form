@@ -12,6 +12,8 @@ import type { FormData } from "@/lib/form";
 export interface MockPatient {
   id: string;
   receivedAt: string;
+  /** Minutes from receipt to the decision. */
+  decisionMinutes: number;
   referral: FormData;
   docs: { type: string; data: DocData }[];
   assessment?: { status: "draft" | "complete"; data: FormData };
@@ -33,6 +35,7 @@ export const MOCK_PATIENTS: MockPatient[] = [
   {
     id: "a1000000-0000-4000-8000-000000000001",
     receivedAt: "2026-10-12T09:10:00-07:00",
+    decisionMinutes: 48,
     referral: {
       ...no,
       referring_hospital: "Harbor View Medical Center",
@@ -80,6 +83,7 @@ export const MOCK_PATIENTS: MockPatient[] = [
   {
     id: "a1000000-0000-4000-8000-000000000002",
     receivedAt: "2026-10-12T11:40:00-07:00",
+    decisionMinutes: 95,
     referral: {
       ...no,
       referring_hospital: "Santa Ana Community Hospital",
@@ -132,6 +136,7 @@ export const MOCK_PATIENTS: MockPatient[] = [
   {
     id: "a1000000-0000-4000-8000-000000000003",
     receivedAt: "2026-10-11T15:20:00-07:00",
+    decisionMinutes: 72,
     referral: {
       ...no,
       referring_hospital: "Harbor View Medical Center",
@@ -203,6 +208,7 @@ export const MOCK_PATIENTS: MockPatient[] = [
   {
     id: "a1000000-0000-4000-8000-000000000004",
     receivedAt: "2026-09-27T10:05:00-07:00",
+    decisionMinutes: 64,
     referral: {
       ...no,
       referring_hospital: "Santa Ana Community Hospital",
@@ -289,6 +295,7 @@ export const MOCK_PATIENTS: MockPatient[] = [
   {
     id: "a1000000-0000-4000-8000-000000000005",
     receivedAt: "2026-09-23T13:45:00-07:00",
+    decisionMinutes: 131,
     referral: {
       ...no,
       referring_hospital: "Harbor View Medical Center",

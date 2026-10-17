@@ -134,6 +134,8 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 
 ## 4. Deferred past the prototype
 
+Use cases found since (admission, housing, roles, integration, safety logic) are collected in [FUTURE.md](FUTURE.md).
+
 | ID | Item |
 |---|---|
 | X-1 | ⏸ **HIPAA compliance:** BAAs with every service that touches patient data, the plan tiers they require, and OpenAI zero data retention. |
@@ -149,6 +151,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 
 - **Live use so far:** sample referrals have been uploaded to the live app and read. Real handwriting from actual faxes is still untested.
 - **Known reading weak spot:** handwriting that runs into printed text (e.g. a digit touching a label) can be misread with high confidence; patient identity fields are always re-read and highlighted when the two readings disagree, but other fields aren't.
-- **Test accounts:** 20 mock staff accounts (6 picked at random as clinical) (from `MOCK_DATA.csv`) exist in production with no password, so anyone who enters one of those emails can sign in. Remove or deactivate them before real referrals arrive.
+- **Test accounts:** 20 mock staff accounts (from `MOCK_DATA.csv`; 6 picked at random as clinical) exist in production with no password, so anyone who enters one of those emails can sign in. Remove or deactivate them before real referrals arrive.
+- **Mock patients:** 5 fictional approved patients (ids starting `a1000000-`) are in production for demos. Delete them before real referrals arrive.
 - **Real staff list:** import current staff from Illumination's HR or email admin rather than LinkedIn, and confirm the firstname+lastname email format matches their real addresses.
 - **Fillable PDF bug** to report to the form's owner: all 52 Yes/No boxes on page 2 are one field (`Check Box1`), so ticking one ticks all of them in a PDF reader.

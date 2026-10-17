@@ -55,15 +55,24 @@ describe("crossCheck against the sample answer keys", () => {
     });
   }
 
-  it("the clean sample raises nothing at all", () => {
-    expect(crossCheck(form("sample-1-clean"), READS["sample-1-clean"], "2026-10-10T14:20")).toEqual([]);
+  it("the clean sample raises nothing but the culture it didn't need", () => {
+    expect(crossCheck(form("sample-1-clean"), READS["sample-1-clean"], "2026-10-10T14:20")).toEqual([
+      { kind: "document", message: "Not received (if needed): Blood or Wound Culture", field: undefined },
+    ]);
   });
 
-  it("lists missing required documents", () => {
+  it("lists missing required documents and 'if needed' ones not received", () => {
     const flags = crossCheck(form("sample-1-clean"), [], "2026-10-10T14:20");
     expect(flags.filter((f) => f.kind === "document").map((f) => f.message)).toEqual(
-      DOC_TYPES.filter((t) => t.required).map((t) => `Missing: ${t.label}`),
+      DOC_TYPES.map((t) => (t.required ? `Missing: ${t.label}` : `Not received (if needed): ${t.label.replace(" (if needed)", "")}`)),
     );
+  });
+
+  it("counts a culture as missing when the form reports an infection or wound", () => {
+    for (const answer of [{ active_infection: "Yes" }, { wounds: "Yes" }] as FormData[]) {
+      const flags = crossCheck({ ...form("sample-1-clean"), ...answer }, READS["sample-1-clean"], "2026-10-10T14:20");
+      expect(flags.map((f) => f.message)).toContain("Missing: Blood or Wound Culture (the form reports an active infection or wound)");
+    }
   });
 
   it("explains a DOB that is the form's with day and month swapped", () => {

@@ -16,9 +16,17 @@ export function crossCheck(data: FormData, docs: SupportingDoc[], receivedAt: st
     if (!flags.some((f) => f.message === message)) flags.push({ kind, message, field });
   };
 
-  // Missing checklist items.
+  // Checklist items not received. "If needed" items are listed too, without counting as missing,
+  // except a culture when the form reports an active infection or a wound.
   const present = new Set(docs.map((d) => d.doc_type));
-  for (const t of DOC_TYPES) if (t.required && !present.has(t.id)) add("document", `Missing: ${t.label}`);
+  const cultureNeeded = data.active_infection === "Yes" || data.wounds === "Yes";
+  for (const t of DOC_TYPES) {
+    if (present.has(t.id)) continue;
+    const name = t.label.replace(/ \(if needed\)$/, "");
+    if (t.required) add("document", `Missing: ${t.label}`);
+    else if (t.id === "culture" && cultureNeeded) add("document", `Missing: ${name} (the form reports an active infection or wound)`);
+    else add("document", `Not received (if needed): ${name}`);
+  }
 
   for (const doc of read) {
     const d = doc.data as DocData;

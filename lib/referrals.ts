@@ -47,22 +47,22 @@ function queue(columns: string) {
   return db().from(T.referrals).select(columns).neq("status", "draft").or("source.eq.scan,status.neq.processing");
 }
 
-/** The queue for one Pacific calendar day (YYYY-MM-DD), newest first. */
-export async function listReferrals(day: string): Promise<Referral[]> {
+/** The queue for Pacific calendar days from–to (YYYY-MM-DD, inclusive), newest first. */
+export async function listReferrals(from: string, to: string = from): Promise<Referral[]> {
   const { data, error } = await queue("id, created_at, updated_at, source, status, patient_name, referring_hospital, flags, doc_flags, error, reviewed_at")
-    .gte("created_at", pacificDayStart(day))
-    .lt("created_at", pacificDayStart(addDays(day, 1)))
+    .gte("created_at", pacificDayStart(from))
+    .lt("created_at", pacificDayStart(addDays(to, 1)))
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw new Error(error.message);
   return data as unknown as Referral[];
 }
 
-/** The nearest earlier and later days that have referrals, for Previous and Next. */
-export async function neighborDays(day: string): Promise<{ prev: string | null; next: string | null }> {
+/** The nearest day with referrals before `from` and after `to`, for Previous and Next. */
+export async function neighborDays(from: string, to: string = from): Promise<{ prev: string | null; next: string | null }> {
   const [before, after] = await Promise.all([
-    queue("created_at").lt("created_at", pacificDayStart(day)).order("created_at", { ascending: false }).limit(1),
-    queue("created_at").gte("created_at", pacificDayStart(addDays(day, 1))).order("created_at", { ascending: true }).limit(1),
+    queue("created_at").lt("created_at", pacificDayStart(from)).order("created_at", { ascending: false }).limit(1),
+    queue("created_at").gte("created_at", pacificDayStart(addDays(to, 1))).order("created_at", { ascending: true }).limit(1),
   ]);
   if (before.error) throw new Error(before.error.message);
   if (after.error) throw new Error(after.error.message);

@@ -1334,4 +1334,465 @@ PATIENTS = [
         "family_adjust": "Partner supportive",
         "font": 0,
     },
+    # 10. Mandarin-speaking woman, bilateral PE with right heart strain: new home O2 and apixaban, walker, shelter.
+    {
+        "slug": "010",
+        "last": "LIANG", "first": "SHUFEN", "mi": "Y", "sex": "Female", "age": 74, "dob": "01/30/1952",
+        "mrn": "GL4409216", "account": "3175520948", "ssn4": "6034", "ssn": "XXX-XX-6034",
+        "address": "Lakeside Navigation Center, 12950 Lakeside Blvd", "city": "Garden Grove, CA 92840",
+        "phone": "714-555-0181", "language": "Mandarin", "english": False, "ethnicity": "Asian - Chinese",
+        "marital": "Widowed", "religion": "Buddhist", "homeless": True, "homeless_long": False,
+        "hospital": "Garden Grove Lakeside Hospital", "hospital_short": "GG LAKESIDE HOSP",
+        "hosp_addr": "12800 Lakeside Blvd, Garden Grove, CA 92840", "hosp_phone": "714-555-0180", "hosp_fax": "714-555-0189",
+        "hosp_npi": "1629384057", "unit": "3 South Telemetry", "bed": "322-A", "nursing_phone": "714-555-0182",
+        "referrer": "Grace Wu, MSW", "referrer_first": "Grace", "referrer_phone": "714-555-0183",
+        "referrer_email": "gwu@gglakeside.test", "authorized_by": "Dr. Omar Haddad", "authorized_phone": "714-555-0184",
+        "admit": "10/12/2026", "admit_time": "10/12/2026 09:14", "dc": "10/19/2026", "fax_date": "10/18/2026",
+        "fax_stamp": "OCT-18-2026",
+        "admitting": "Omar Haddad, MD", "attending": "Omar Haddad, MD", "referring_md": "Omar Haddad, MD",
+        "pcp": "Vivian Lam, MD", "pcp_phone": "714-555-0185", "pcp_addr": "9842 Westminster Ave, Garden Grove, CA 92844",
+        "consultant": "Helen Sato, MD", "consult_specialty": "Pulmonology",
+        "wound_rn": "Marcus Bell, PT, DPT", "sw": "Grace Wu, MSW", "hp_author": "Omar Haddad, MD",
+        "insurance": "CalOptima", "plan": "CalOptima Health OneCare (HMO D-SNP)", "member_id": "38275016K",
+        "cin": "38275016K", "health_id": "CO-6034-3827", "group": "ONECARE", "aid_code": "1H", "guarantor_status": "RETIRED",
+        "emergency": ("Jason Liang", "Son", "512-555-0144"),
+        "chief_complaint": "SHORTNESS OF BREATH",
+        "form_cc": "Bilateral PE w/ R heart strain, new O2 2 L, on apixaban",
+        "qual_dx": "Bilateral PE, new home O2, hypothyroidism, knee OA",
+        "adm_dx": ["Other pulmonary embolism with acute cor pulmonale [I26.09]",
+                   "Acute embolism and thrombosis of right femoral vein [I82.411]",
+                   "Chronic respiratory failure with hypoxia [J96.11]", "Hypothyroidism, unspecified [E03.9]"],
+        "wound": False, "wound_desc": "", "wound_independent": None,
+        "substances": {}, "withdrawals": False,
+        "mh": [], "mh_type": "", "o2": True, "self_meds": True,
+        "continent": True, "adls": True, "diabetic": False, "insulin": False, "anticoag": True,
+        "ambulatory": True, "device": "front wheel walker + portable O2", "car": False, "partner": False,
+        "service_animal": False,
+        "tb": ("10/13/2026", "Negative (QuantiFERON)"), "communicable": "None",
+        "iv_abx": False,
+        "attached": ["Face Sheet", "H&P", "Med List", "Pulm consult", "PT eval", "SW notes"],
+        "cover_msg": "Referral for recuperative care. 74 yo Mandarin-speaking woman admitted with bilateral PE and R femoral "
+                     "DVT. Heparin drip -> apixaban. New home O2 2 L NC with exertion and sleep; portable concentrator "
+                     "delivered to bedside by Coastal Breeze Respiratory. Walks 150 ft with FWW. Has been staying at a "
+                     "shelter for 6 weeks; shelter cannot take O2. Interpreter needed. Anticipated dc 10/19/2026.",
+        "pmh": ["Hypothyroidism", "Osteoarthritis of both knees", "Hyperlipidemia", "Cataract surgery both eyes (2019)"],
+        "psh": "Bilateral cataract extraction (2019). Hysterectomy (1994).",
+        "sched_meds": ["apixaban (Eliquis), 10 mg, Oral, BID x 7 days (through 10/20/2026), then 5 mg BID",
+                       "levothyroxine, 75 mcg, Oral, Daily before breakfast", "atorvastatin, 20 mg, Oral, Nightly",
+                       "acetaminophen, 650 mg, Oral, TID", "diclofenac 1% gel, 2 g, Topical, QID to both knees",
+                       "Oxygen 2 L/min via nasal cannula with exertion and sleep, goal SpO2 >= 90%"],
+        "prn_meds": ["guaiFENesin, 200 mg, Q4H PRN cough", "polyethylene glycol, 17 g, Daily PRN constipation",
+                     "melatonin, 3 mg, Nightly PRN sleep"],
+        "allergies": "Sulfa (rash)",
+        "alcohol": ("No", "0", "Never", "N/A", "Never"), "tobacco": "Never", "drugs": "Never",
+        "weight": "52.3 kg (115 lb)", "bmi": "22.6",
+        "vitals_hp": {"BP": "(!) 104/66", "Pulse": "(!) 118", "Resp": "(!) 26", "Temp": "37.1 °C (98.8 °F)",
+                      "SpO2": "(!) 86%"},
+        "vitals_pn": {"BP": "126/74", "Pulse": "86", "Resp": "18", "Temp": "36.7 °C (98.1 °F)", "SpO2": "93% on 2 L"},
+        "hp_hpi": "Shufen Liang is a 74 years old female with hypothyroidism and knee osteoarthritis, history obtained with a "
+                  "Mandarin video interpreter, who presents with 4 days of shortness of breath and right leg swelling. Her "
+                  "son moved to Texas in August and she lost the room she rented from his family; she has been sleeping "
+                  "upright in a chair at a shelter and rode buses most of the day. In our ER, SpO2 86% on room air, HR "
+                  "118, troponin 48, BNP 412, D-dimer 4.82. CTA chest showed bilateral segmental and lobar PE with RV/LV "
+                  "ratio 1.2. Started on heparin infusion and admitted to telemetry.",
+        "problems": ["Bilateral PE with R heart strain (submassive, intermediate-low risk)", "R femoral DVT",
+                     "Acute hypoxic respiratory failure - new O2 requirement", "Hypothyroidism", "Knee OA, walker",
+                     "Homelessness - shelter cannot accept O2"],
+        "plan_lines": ["--- Heparin gtt, TTE, LE duplex, telemetry", "--- Transition to apixaban when stable",
+                       "--- Pulmonology consult, ambulatory O2 study", "--- PT eval, SW for dc planning with O2."],
+        "pn_update": "10/17: Off heparin since 10/14, on apixaban 10 mg BID loading through 10/20 then 5 mg BID. Resting "
+                     "SpO2 92% RA, 85% walking -> 93% on 2 L. Home O2 qualified, concentrator delivered. Ok for dc 10/19.",
+        "pn_interval": "Pt less dyspneic, walking hallway with PT on 2 L, interpreter used for teaching.",
+        "exam_extra": "R calf 2 cm larger than L, mild tenderness. No JVD at 45 degrees. Nasal cannula 2 L.",
+        "doc2_kind": "pt",
+        "doc2": {
+            "subjective": "Pt seen for PT evaluation via Mandarin video interpreter. Pt reports she used a cane at home for "
+                          "knee pain and walked to the bus stop daily. Now short of breath after short distances.",
+            "objective": ["Pt seated in chair, alert and oriented x4, on 2 L NC", "Bed mobility: Modified independent",
+                          "Sit to stand: Supervision, uses armrests", "Gait: 150 ft with FWW on 2 L, SpO2 91-93%, 1 standing rest",
+                          "Stairs: 4 steps with rail, contact guard", "Balance: Berg 44/56 - fall risk",
+                          "Room air trial: SpO2 85% after 40 ft"],
+            "location": "", "measure": "", "undermining": "", "tunneling": "", "bed": "", "periwound": "", "drainage": "",
+            "care": "",
+            "plan": "Recommend FWW and home O2 2 L with activity. Home health PT 2x/week x 4 weeks for endurance and fall "
+                    "prevention. Pt is safe to discharge to a level setting with supervision for stairs.",
+        },
+        "consult": {
+            "micro": ["COVID-19 / Influenza / RSV PCR (10/12/2026): Not detected", "Urinalysis (10/12/2026): Negative",
+                      "Blood Culture x2 (10/12/2026): Not drawn", "MRSA nares PCR: Not done"],
+            "reason": "I was asked to see the patient for pulmonary embolism and new oxygen requirement",
+            "cc": "Shortness of breath",
+            "hpi": "74 yo female, never smoker, with hypothyroidism, admitted with bilateral lobar and segmental PE and R "
+                   "femoral DVT after weeks of prolonged sitting. Troponin peak 52, BNP 412. TTE: RV mildly dilated, TAPSE "
+                   "15 mm, no clot in transit. Hemodynamically stable throughout; not a candidate for thrombolysis. Age-"
+                   "appropriate cancer screening up to date per PCP records (colonoscopy 2022, mammogram 2025).",
+            "ros": "Resp: Positive for dyspnea on exertion, improving. Negative for hemoptysis. CV: Positive for R leg swelling.",
+            "exam": ["General: Elderly woman, comfortable at rest on 2 L NC", "HEENT: No pallor", "Neck: No JVD",
+                     "Chest: Clear bilaterally, no wheeze", "Cardiovascular: Regular, loud P2",
+                     "Abdomen: Soft, non tender", "Extremities: R leg 1+ edema, calf tender"],
+            "imaging": [("CTA Chest PE", "10/12/2026", "Bilateral lobar and segmental pulmonary emboli. RV/LV ratio 1.2. No "
+                         "infarct. No mass or adenopathy."),
+                        ("US Duplex Venous LE Bilateral", "10/12/2026", "Occlusive thrombus R common femoral and femoral veins."),
+                        ("Transthoracic echo (TTE)", "10/13/2026", "LVEF 65%. RV mildly dilated, mildly reduced function. "
+                         "RVSP 48 mmHg.")],
+            "assessment": ["-Submassive PE, intermediate-low risk, hemodynamically stable",
+                           "-Provoked by immobility (sleeping upright, prolonged sitting)",
+                           "-Hypoxia with exertion - qualifies for home O2"],
+            "plan": ["-apixaban 10 mg BID x 7 days then 5 mg BID for at least 3 months",
+                     "-home O2 2 L NC with exertion and sleep; recheck ambulatory SpO2 at f/u",
+                     "-repeat TTE in 3 months", "-pulmonary clinic f/u 11/03/2026",
+                     "-recuperative care recommended: shelter cannot store O2 concentrator",
+                     "-this was discussed with the patient through a Mandarin interpreter."],
+        },
+        "sw_note": [
+            "SW consulted for homelessness and discharge planning with oxygen.",
+            "Patient is a 74y.o. female admitted on 10/12/2026 for blood clots in the lungs. Interview done with Mandarin "
+            "interpreter #62214. Patient reports she lived with her son's family in Garden Grove for 10 years. When they "
+            "moved to Austin, TX in 08/2026 she stayed behind for her doctors and could not afford rent on SSI. She has "
+            "been at Lakeside Navigation Center for 6 weeks. Son calls daily and is supportive but cannot fly out until "
+            "November. No mental health or substance use history.",
+            "SW called shelter - staff report they cannot accept residents on oxygen. SW offered IF RECUP referral - patient "
+            "accepted. SW explained that we are not able to guarantee placement at DC, patient understood.",
+            "Pending DC orders and recommendations. DCP: Recuperative care with home O2 and home health PT.",
+        ],
+        "sw_addendum": "11:05am: SW confirmed with Coastal Breeze Respiratory that O2 can be delivered to recuperative care "
+                       "address. Patient gave permission to share contact information with Illumination Foundation.",
+        "psychiatrist": "n/a",
+        "labs": {"WBC": [9.6, 8.8, 8.1, 7.4, 7.0], "Hgb": [12.1, 11.6, 11.4, 11.5, 11.7], "Hct": [36.8, 35.2, 34.6, 34.9, 35.4],
+                 "MCV": [90.2, 90.6, 90.4, 90.1, 90.5], "Plt": [214, 198, 186, 192, 205], "Na": [137, 138, 138, 139, 138],
+                 "Glucose": [128, 112, 104, 98, 101]},
+        "vitals_series": {"T": [37.1, 37.0, 36.9, 36.8, 36.8, 36.7, 36.8, 36.7, 36.7, 36.7],
+                          "HR": [118, 110, 104, 98, 94, 92, 90, 88, 86, 86],
+                          "SBP": [104, 110, 114, 118, 120, 122, 124, 126, 124, 126],
+                          "DBP": [66, 68, 70, 70, 72, 72, 74, 74, 74, 74], "RR": [26, 24, 22, 20, 20, 18, 18, 18, 18, 18],
+                          "SpO2": [86, 90, 92, 93, 93, 94, 93, 94, 93, 93]},
+        "lab_overrides": {"D-Dimer": 4.82, "Troponin I, High Sensitivity": 48, "BNP": 412, "TSH": 5.4,
+                          "Transthoracic echo (TTE)": "Final", "US Duplex Venous LE Bilateral": "Final",
+                          "Prothrombin Time": 12.8, "INR": 1.18},
+        "consult_fu": "11/03/2026", "followups": [("Primary Care", "Vivian Lam, MD", "714-555-0185", "10/26/2026")],
+        "home_health": ("Jade Garden Home Health  714-555-0187", ["Physical therapy"]),
+        "covid_doses": 4, "o2_note": "2 L NC w/ exertion & sleep - home O2 (Coastal Breeze)",
+        "o2_device": "Nasal cannula 2 L/min with exertion and sleep (home concentrator)",
+        "ambulate": "150 ft w/ FWW on 2 L O2", "fracture": False, "recent_surgery": False,
+        "mh_treatment": (False, ""), "pharmacy": "Hospital meds-to-beds",
+        "living": ("Shelter", "Navigation center"), "transport_barrier": "yes", "interpreter": "Yes - Mandarin #62214",
+        "family_adjust": "Son supportive by phone",
+        "font": 3,
+    },
+    # 11. Perforated sigmoid diverticulitis s/p Hartmann's: new end colostomy, open midline wound packed daily, cocaine/alcohol.
+    {
+        "slug": "011",
+        "last": "MACARAEG", "first": "DANILO", "mi": "P", "sex": "Male", "age": 52, "dob": "08/03/1974",
+        "mrn": "VC8830562", "account": "7720416693", "ssn4": "2918", "ssn": "XXX-XX-2918",
+        "address": "No fixed address - sleeps behind laundromat on Sherman Way", "city": "Van Nuys, CA 91406",
+        "phone": "818-555-0163", "language": "English", "english": True, "ethnicity": "Asian - Filipino",
+        "marital": "Divorced", "religion": "Catholic", "homeless": True, "homeless_long": True,
+        "hospital": "Valley Crest Medical Center", "hospital_short": "VALLEY CREST MC",
+        "hosp_addr": "15400 Valley Crest Pkwy, Van Nuys, CA 91405", "hosp_phone": "818-555-0160", "hosp_fax": "818-555-0169",
+        "hosp_npi": "1750293864", "unit": "4 East Surgical", "bed": "418-B", "nursing_phone": "818-555-0161",
+        "referrer": "Alicia Romero, RN Case Manager", "referrer_first": "Alicia", "referrer_phone": "818-555-0162",
+        "referrer_email": "aromero@valleycrestmc.test", "authorized_by": "Dr. Steven Kowalski",
+        "authorized_phone": "818-555-0164",
+        "admit": "10/06/2026", "admit_time": "10/06/2026 22:48", "dc": "10/18/2026", "fax_date": "10/17/2026",
+        "fax_stamp": "OCT-17-2026",
+        "admitting": "Farah Siddiqui, MD", "attending": "Farah Siddiqui, MD", "referring_md": "Steven Kowalski, MD",
+        "pcp": "None - referred to Northeast Valley Health Clinic", "pcp_phone": "818-555-0165",
+        "pcp_addr": "7138 Van Nuys Blvd, Van Nuys, CA 91405",
+        "consultant": "Steven Kowalski, MD", "consult_specialty": "General Surgery",
+        "wound_rn": "Denise Albright, RN, CWOCN", "sw": "Paul Navarro, LCSW", "hp_author": "Farah Siddiqui, MD",
+        "insurance": "L.A. Care", "plan": "L.A. Care Health Plan Medi-Cal", "member_id": "62904718F", "cin": "62904718F",
+        "health_id": "LAC-2918-6290", "group": "MCAL-LA", "aid_code": "M1", "guarantor_status": "UNEMPLOYED",
+        "emergency": ("Rosalind Macaraeg", "Mother", "818-555-0167"),
+        "chief_complaint": "ABDOMINAL PAIN",
+        "form_cc": "Perf diverticulitis s/p Hartmann's, end colostomy, open midline wound",
+        "qual_dx": "Perforated diverticulitis s/p colectomy/colostomy, open wound",
+        "adm_dx": ["Diverticulitis of large intestine with perforation and abscess [K57.20]",
+                   "Generalized peritonitis [K65.0]", "Colostomy status [Z93.3]",
+                   "Cocaine use, uncomplicated [F14.10]", "Alcohol abuse, uncomplicated [F10.10]"],
+        "wound": True, "wound_desc": "Midline abdominal incision, inferior 6.0 x 2.2 x 2.5 cm open, packed",
+        "wound_independent": False,
+        "substances": {"Cocaine": "10/05/2026", "Alcohol": "10/06/2026"}, "withdrawals": False,
+        "mh": [], "mh_type": "", "o2": False, "self_meds": True,
+        "continent": True, "ostomy": True, "adls": True, "diabetic": False, "insulin": False, "anticoag": False,
+        "ambulatory": True, "device": None, "car": False, "partner": False, "service_animal": False,
+        "tb": ("10/09/2026", "Negative (QuantiFERON)"), "communicable": "None",
+        "iv_abx": False,
+        "attached": ["Face Sheet", "H&P", "Op note summary", "Med List", "Wound/Ostomy", "SW notes"],
+        "cover_msg": "Referral for recuperative care. 52 yo POD 11 s/p exploratory laparotomy and Hartmann's procedure "
+                     "(sigmoid colectomy, end colostomy) for perforated diverticulitis. Inferior midline wound left open, "
+                     "packed daily with calcium alginate. Pt independent emptying ostomy pouch, needs help changing "
+                     "wafer. Home health wound/ostomy RN ordered. On oral Augmentin through 10/22. Dc 10/18/2026.",
+        "pmh": ["Diverticulitis (2 prior episodes, treated outpatient)", "Hypertension", "Cocaine use disorder",
+                "Alcohol use disorder, mild", "Chronic hepatitis B, inactive carrier"],
+        "psh": "Exploratory laparotomy, sigmoid colectomy with end colostomy (Hartmann's) 10/07/2026. "
+               "Appendectomy (1990).",
+        "sched_meds": ["amoxicillin-clavulanate (Augmentin), 875-125 mg, Oral, BID through 10/22/2026",
+                       "amLODIPine, 5 mg, Oral, Daily", "acetaminophen, 1,000 mg, Oral, Q8H",
+                       "multivitamin with minerals, 1 tablet, Oral, Daily", "thiamine, 100 mg, Oral, Daily",
+                       "folic acid, 1 mg, Oral, Daily", "enoxaparin, 40 mg, SubCUTAneous, Daily (until discharge)"],
+        "prn_meds": ["oxyCODONE, 5 mg, Q6H PRN moderate pain", "ondansetron, 4 mg, Q8H PRN nausea",
+                     "loperamide, 2 mg, PRN high ostomy output > 1.2 L/day", "simethicone, 80 mg, QID PRN gas"],
+        "allergies": "Codeine (itching)",
+        "alcohol": ("Yes", "5 - 6", "2 to 3 times a week", "3 or 4", "Weekly"), "tobacco": "Current - 1/2 ppd",
+        "drugs": "Yes - Cocaine, smoked, weekends",
+        "weight": "71.4 kg (157 lb)", "bmi": "24.7",
+        "vitals_hp": {"BP": "(!) 88/54", "Pulse": "(!) 128", "Resp": "(!) 24", "Temp": "(!) 38.9 °C (102.0 °F)",
+                      "SpO2": "96%"},
+        "vitals_pn": {"BP": "134/82", "Pulse": "82", "Resp": "16", "Temp": "36.8 °C (98.2 °F)", "SpO2": "98%"},
+        "hp_hpi": "Danilo Macaraeg is a 52 years old male with prior diverticulitis, HTN, and cocaine and alcohol use who "
+                  "presents with 2 days of worsening lower abdominal pain, fever and vomiting. He has been homeless in Van "
+                  "Nuys for about 3 years since a divorce, sleeping behind a laundromat where he does odd jobs. Last used "
+                  "cocaine 10/05 and drank 10/06. In our ER, temp 38.9, HR 128, BP 88/54, rigid abdomen. WBC 21.7, lactate "
+                  "4.1. CT abdomen/pelvis showed perforated sigmoid diverticulitis with free air and purulent fluid. Given "
+                  "fluids, piperacillin-tazobactam, and taken to the OR overnight.",
+        "problems": ["Perforated sigmoid diverticulitis with purulent peritonitis s/p Hartmann's 10/07", "New end colostomy",
+                     "Open midline wound, healing by secondary intention", "Cocaine and alcohol use", "HTN",
+                     "Homelessness"],
+        "plan_lines": ["--- Emergent ex-lap, sigmoid colectomy, end colostomy", "--- Pip-tazo IV, ICU post-op, CIWA",
+                       "--- WOC nurse for wound and ostomy teaching", "--- SW for SUD resources and dc planning."],
+        "pn_update": "10/16: POD 9. Afebrile since 10/10, WBC normal. Tolerating regular diet, ostomy functioning, output "
+                     "600-900 mL/day. Switched to PO Augmentin 10/15 to finish 10/22. Wound clean, packing daily. CIWA "
+                     "scores 0-2, no withdrawal. Ok for dc 10/18.",
+        "pn_interval": "Pt walking halls independently, emptying own ostomy pouch.",
+        "exam_extra": "Abdomen soft, appropriately tender. LLQ end colostomy pink, moist, budded. Inferior midline wound packed.",
+        "doc2_kind": "wound",
+        "doc2": {
+            "subjective": "Per H&P- 52 years old male s/p Hartmann's procedure 10/07/2026 for perforated diverticulitis. "
+                          "Superior incision closed with staples, inferior 6 cm left open due to contamination. Patient "
+                          "reports pain 3/10 with packing changes. Practicing ostomy care.",
+            "objective": ["Patient sitting at edge of bed, alert, engaged in teaching",
+                          "Peritoneal fluid culture (10/07/2026): E. coli and Bacteroides fragilis, mixed flora",
+                          "Stoma: LLQ end colostomy, 32 mm round, pink, budded 1 cm, mucocutaneous junction intact",
+                          "Allergies: Codeine"],
+            "location": "MIDLINE ABDOMEN, INFERIOR (OPEN PORTION OF LAPAROTOMY)", "measure": "6.0 X 2.2 X 2.5 cm",
+            "undermining": "None", "tunneling": "None", "bed": "Red granulation 90%, yellow slough 10%",
+            "periwound": "intact, staples superior incision", "drainage": "moderate serosanguinous",
+            "care": "Cleansed with normal saline, packed with calcium alginate rope, covered with ABD pad and paper tape. "
+                    "Colostomy pouch: 2-piece, cut-to-fit 32 mm wafer, stoma powder and barrier ring.",
+            "plan": "Daily packing change with calcium alginate, cover with ABD pad. Change ostomy wafer every 3-4 days and "
+                    "PRN leak. Patient independent emptying pouch; needs assist cutting/applying wafer and cannot pack "
+                    "own midline wound - NOT independent. Home health wound/ostomy RN to follow. Staples out 10/21.",
+        },
+        "consult": {
+            "micro": ["Peritoneal fluid culture (10/07/2026): E. coli (pan-sensitive except ampicillin), Bacteroides "
+                      "fragilis", "Blood Culture x2 (10/06/2026): No growth at 5 days",
+                      "Urine drug screen (10/06/2026): Positive cocaine", "Hepatitis B sAg (10/07/2026): Positive, "
+                      "HBV DNA 210 IU/mL"],
+            "reason": "I was asked to see the patient for acute abdomen and free air",
+            "cc": "Abdominal pain",
+            "hpi": "52 yo male with 2 prior outpatient-treated episodes of diverticulitis presenting with peritonitis and "
+                   "septic shock physiology. CT with perforated sigmoid diverticulitis, pneumoperitoneum and purulent fluid "
+                   "in the pelvis (Hinchey III). Taken emergently for exploratory laparotomy, sigmoid colectomy and end "
+                   "colostomy on 10/07/2026. Inferior wound left open. ICU x 2 days post-op, extubated POD 1.",
+            "ros": "GI: Positive for incisional pain, improving. Tolerating diet. Negative for nausea.",
+            "exam": ["General: Thin male, comfortable", "HEENT: Anicteric", "Neck: Supple",
+                     "Chest: Clear bilaterally", "Cardiovascular: Regular rate rhythm",
+                     "Abdomen: Soft, staples superior midline, inferior wound packed; LLQ colostomy pink and functioning",
+                     "Extremities: No edema"],
+            "imaging": [("CT Abdomen/Pelvis With Contrast", "10/06/2026", "Perforated sigmoid diverticulitis with "
+                         "pneumoperitoneum and 6 cm pelvic fluid collection."),
+                        ("X-Ray Chest Single View", "10/06/2026", "Free air under the diaphragm. Lungs clear."),
+                        ("CT Abdomen/Pelvis With Contrast", "10/13/2026", "Post-operative changes. No residual abscess.")],
+            "assessment": ["-Perforated sigmoid diverticulitis, Hinchey III, s/p Hartmann's procedure 10/07/2026",
+                           "-Open inferior midline wound, healing well", "-End colostomy functioning",
+                           "-Cocaine and alcohol use"],
+            "plan": ["-amoxicillin-clavulanate 875 mg BID through 10/22/2026", "-daily wet packing of inferior wound; "
+                     "staple removal 10/21 at clinic", "-no lifting > 10 lb x 6 weeks, abdominal binder when up",
+                     "-surgery clinic f/u 10/21/2026", "-colostomy reversal can be considered in 3-6 months if abstinent "
+                     "from cocaine and tobacco", "-this was discussed with the patient."],
+        },
+        "sw_note": [
+            "SW consulted for homelessness and substance use.",
+            "Patient is a 52y.o. male admitted on 10/06/2026 for perforated colon and surgery. Patient reports he worked as "
+            "a line cook until 2023, then lost his apartment after his divorce. He has slept behind a laundromat on Sherman "
+            "Way for about 3 years and does odd jobs for the owner. Uses cocaine on weekends and drinks several times a "
+            "week; interested in outpatient treatment. Mother lives in Panorama City in a senior building and cannot have "
+            "him stay. No mental health history.",
+            "SW reviewed insurance (L.A. Care Medi-Cal) and offered IF RECUP referral - patient accepted. SW provided LA "
+            "County SAPC Substance Abuse Service Helpline 844-555-0141 and CES information. SW explained that we are not "
+            "able to guarantee placement at DC, patient understood.",
+            "Pending DC orders and recommendations. DCP: Recuperative care with home health wound/ostomy RN.",
+        ],
+        "sw_addendum": "2:50pm: SW confirmed ostomy supplies (2-piece, 32 mm) ordered through Valley Medical Supply, 30-day "
+                       "supply. Patient gave permission to share contact information with Illumination Foundation.",
+        "psychiatrist": "n/a",
+        "labs": {"WBC": [21.7, 18.4, 14.9, 11.2, 8.6], "Hgb": [14.2, 11.9, 10.6, 10.4, 10.9], "Hct": [42.8, 35.6, 31.9, 31.4, 32.8],
+                 "MCV": [98.6, 98.9, 99.2, 98.8, 99.0], "Plt": [138, 121, 166, 244, 318], "Na": [132, 134, 136, 137, 137],
+                 "Glucose": [164, 142, 118, 104, 96]},
+        "vitals_series": {"T": [38.9, 38.6, 38.1, 37.6, 37.3, 37.0, 36.9, 36.8, 36.8, 36.8],
+                          "HR": [128, 120, 110, 100, 94, 90, 86, 84, 82, 82],
+                          "SBP": [88, 98, 108, 116, 124, 128, 130, 132, 134, 134],
+                          "DBP": [54, 60, 66, 72, 76, 78, 80, 80, 82, 82], "RR": [24, 22, 20, 18, 18, 16, 16, 16, 16, 16],
+                          "SpO2": [96, 97, 97, 98, 98, 98, 98, 98, 98, 98]},
+        "lab_overrides": {"Lactic Acid": 4.1, "Procalcitonin": 8.6, "CRP": 28.9, "Albumin": 2.6, "AST": 58,
+                          "ALT (SGPT)": 41, "Aerobic Culture with Gram Stain": "E. coli, B. fragilis",
+                          "Magnesium": 1.5},
+        "consult_fu": "10/21/2026", "followups": [("Addiction Medicine", "SAPC outpatient - Van Nuys", "818-555-0168",
+                                                  "10/27/2026"),
+                                                 ("Hepatology", "Referral placed - chronic hepatitis B", "818-555-0166",
+                                                  "pending")],
+        "home_health": ("Valley Oaks Home Health  818-555-0170", ["Wound care"]),
+        "covid_doses": 1, "o2_note": "N/A", "o2_device": "None (Room air)",
+        "ambulate": "community distances", "fracture": False, "recent_surgery": True,
+        "mh_treatment": (False, ""), "pharmacy": "CVS - Sherman Way Van Nuys",
+        "living": ("Unhoused", "Unhoused - behind business"), "transport_barrier": "yes", "interpreter": None,
+        "family_adjust": "Mother supportive, unable to house",
+        "font": 2,
+    },
+    # 12. R MCA ischemic stroke: mild L hemiparesis and dysarthria, quad cane, uncontrolled HTN, smoker, tent in Fullerton.
+    {
+        "slug": "012",
+        "last": "REDCLOUD", "first": "LORRAINE", "mi": "J", "sex": "Female", "age": 61, "dob": "12/02/1964",
+        "mrn": "NF2051887", "account": "8840137265", "ssn4": "5582", "ssn": "XXX-XX-5582",
+        "address": "No fixed address - tent near Hillcrest Park", "city": "Fullerton, CA 92832", "phone": "None",
+        "language": "English", "english": True, "ethnicity": "American Indian (Lakota)", "marital": "Widowed",
+        "religion": "None", "homeless": True, "homeless_long": True,
+        "hospital": "North Fullerton Medical Center", "hospital_short": "N FULLERTON MC",
+        "hosp_addr": "2700 N Harbor Blvd, Fullerton, CA 92835", "hosp_phone": "714-555-0190", "hosp_fax": "714-555-0199",
+        "hosp_npi": "1902847351", "unit": "6 West Stroke Unit", "bed": "604", "nursing_phone": "714-555-0191",
+        "referrer": "Hannah Brooks, MSW", "referrer_first": "Hannah", "referrer_phone": "714-555-0192",
+        "referrer_email": "hbrooks@nfullertonmc.test", "authorized_by": "Dr. Rafael Ortiz", "authorized_phone": "714-555-0193",
+        "admit": "10/11/2026", "admit_time": "10/11/2026 07:31", "dc": "10/18/2026", "fax_date": "10/17/2026",
+        "fax_stamp": "OCT-17-2026",
+        "admitting": "Rafael Ortiz, MD", "attending": "Rafael Ortiz, MD", "referring_md": "Rafael Ortiz, MD",
+        "pcp": "Indian Health clinic - Sandra Whitehorse, NP", "pcp_phone": "714-555-0194",
+        "pcp_addr": "2900 W Commonwealth Ave, Fullerton, CA 92833",
+        "consultant": "Elena Petrova, MD", "consult_specialty": "Neurology",
+        "wound_rn": "Kevin Duong, PT, DPT", "sw": "Hannah Brooks, MSW", "hp_author": "Rafael Ortiz, MD",
+        "insurance": "CalOptima", "plan": "CalOptima Health Medi-Cal", "member_id": "84061297L", "cin": "84061297L",
+        "health_id": "CO-5582-8406", "group": "MCAL-OC", "aid_code": "60", "guarantor_status": "DISABLED",
+        "emergency": ("Tasha Redcloud", "Niece", "605-555-0128"),
+        "chief_complaint": "LEFT SIDE WEAKNESS, SLURRED SPEECH",
+        "form_cc": "R MCA ischemic stroke, mild L weakness/dysarthria, HTN, quad cane",
+        "qual_dx": "Acute ischemic stroke w/ L hemiparesis, HTN, tobacco use",
+        "adm_dx": ["Cerebral infarction due to thrombosis of right middle cerebral artery [I63.311]",
+                   "Hemiplegia and hemiparesis following cerebral infarction affecting left non-dominant side [I69.354]",
+                   "Dysarthria following cerebral infarction [I69.322]", "Essential (primary) hypertension [I10]",
+                   "Nicotine dependence, cigarettes [F17.210]"],
+        "wound": False, "wound_desc": "", "wound_independent": None,
+        "substances": {}, "withdrawals": False,
+        "mh": ["Depression"], "mh_type": "post-stroke depression", "o2": False, "self_meds": True,
+        "continent": True, "adls": True, "diabetic": False, "insulin": False, "anticoag": False,
+        "ambulatory": True, "device": "quad cane, L AFO", "car": False, "partner": False, "service_animal": False,
+        "tb": ("10/12/2026", "Negative (PPD 0 mm at 48 h)"), "communicable": "None",
+        "iv_abx": False,
+        "attached": ["Face Sheet", "H&P", "Med List", "Neuro consult", "PT/OT/SLP eval", "SW notes"],
+        "cover_msg": "Referral for recuperative care. 61 yo woman with R MCA ischemic stroke 10/11 (outside tPA window). Mild "
+                     "L arm/leg weakness and mild dysarthria; walks 200 ft with quad cane and L AFO, supervision. Mod I "
+                     "with ADLs using setup. BP was 212/118 on arrival, untreated for years - now on 3 meds. Home health "
+                     "PT/OT/speech ordered. Was living in a tent; no phone. Anticipated dc 10/18/2026.",
+        "pmh": ["Hypertension, untreated since 2021", "Hyperlipidemia", "Tobacco use, 35 pack-years",
+                "Depression", "Left knee arthroscopy (2008)"],
+        "psh": "Left knee arthroscopy (2008). Tubal ligation (1992).",
+        "sched_meds": ["aspirin, 81 mg, Oral, Daily", "clopidogrel (Plavix), 75 mg, Oral, Daily x 21 days (through 11/01/2026)",
+                       "atorvastatin, 80 mg, Oral, Nightly", "amLODIPine, 10 mg, Oral, Daily",
+                       "losartan, 50 mg, Oral, Daily", "hydroCHLOROthiazide, 25 mg, Oral, Daily",
+                       "nicotine patch, 21 mg/24 hr, Transdermal, Daily", "sertraline, 50 mg, Oral, Daily"],
+        "prn_meds": ["acetaminophen, 650 mg, Q6H PRN headache", "nicotine gum, 2 mg, Q2H PRN cravings",
+                     "senna, 8.6 mg, Nightly PRN constipation"],
+        "allergies": "Penicillin (hives)",
+        "alcohol": ("Yes", "1 - 2", "Monthly or less", "1 or 2", "Never"), "tobacco": "Current - 1 ppd",
+        "drugs": "Never",
+        "weight": "68.0 kg (150 lb)", "bmi": "26.6",
+        "vitals_hp": {"BP": "(!) 212/118", "Pulse": "92", "Resp": "18", "Temp": "36.9 °C (98.4 °F)", "SpO2": "97%"},
+        "vitals_pn": {"BP": "(!) 146/88", "Pulse": "76", "Resp": "16", "Temp": "36.7 °C (98.1 °F)", "SpO2": "97%"},
+        "hp_hpi": "Lorraine Redcloud is a 61 years old female with untreated hypertension and tobacco use who was brought in "
+                  "by EMS after a friend at the encampment found her unable to stand, with a droopy left face and slurred "
+                  "speech. Last known well was the prior evening around 9 pm, outside the window for tPA. She has lived in "
+                  "a tent in Fullerton for about 4 years since her husband died. In our ER, BP 212/118, NIHSS 6. CT head "
+                  "without hemorrhage; CTA with R M2 occlusion not amenable to thrombectomy. MRI confirmed R MCA territory "
+                  "infarct. Admitted to the stroke unit.",
+        "problems": ["Acute ischemic stroke, R MCA (M2), NIHSS 6 -> 2", "L hemiparesis (mild), dysarthria (mild)",
+                     "Hypertensive urgency, now controlled", "Hyperlipidemia (LDL 168)", "Tobacco use",
+                     "Post-stroke depression", "Homelessness - tent, no phone"],
+        "plan_lines": ["--- Permissive HTN x 24 h, then BP goal < 130/80", "--- DAPT x 21 days, high intensity statin",
+                       "--- MRI, CTA, TTE with bubble, telemetry for AF", "--- PT/OT/SLP, SW for dc planning."],
+        "pn_update": "10/16: NIHSS 2 (mild L arm drift, mild dysarthria). Telemetry 5 days without AF. TTE no PFO. BP 140s "
+                     "on 3 agents. Passed swallow eval, regular diet. Ok for dc 10/18 with home health PT/OT/SLP.",
+        "pn_interval": "Pt walking with quad cane and PT, speech clearer, tearful at times - sertraline started.",
+        "exam_extra": "Mild L nasolabial flattening. L arm drift without hitting bed. L grip 4/5, L hip flexion 4/5. Mild "
+                      "dysarthria.",
+        "doc2_kind": "pt",
+        "doc2": {
+            "subjective": "Pt seen for PT evaluation on the stroke unit. Pt reports she walked all over town before the "
+                          "stroke and carried her belongings in a cart. Now feels her left leg drag when tired.",
+            "objective": ["Pt seated in chair, alert and oriented x4, mild dysarthria, follows commands",
+                          "Bed mobility: Modified independent with rail", "Sit to stand: Supervision",
+                          "Gait: 200 ft with quad cane and L AFO, supervision, mild L foot drag when fatigued",
+                          "Stairs: 4 steps with rail, contact guard", "Balance: Berg 46/56",
+                          "LE strength: L hip flexion 4/5, L ankle dorsiflexion 3+/5, R 5/5"],
+            "location": "", "measure": "", "undermining": "", "tunneling": "", "bed": "", "periwound": "", "drainage": "",
+            "care": "",
+            "plan": "Recommend quad cane and L AFO (fitted 10/15). Home health PT 3x/week, OT 2x/week for L hand fine motor, "
+                    "SLP 2x/week for dysarthria. Pt should not return to tent - unsafe ground-level transfers and no way to "
+                    "call for help.",
+        },
+        "consult": {
+            "micro": ["Urinalysis (10/11/2026): Negative", "COVID-19 / Influenza PCR (10/11/2026): Not detected",
+                      "Urine drug screen (10/11/2026): Negative", "Blood Culture x2: Not drawn"],
+            "reason": "I was asked to see the patient for acute stroke",
+            "cc": "Left side weakness and slurred speech",
+            "hpi": "61 yo female, right-handed, with untreated HTN, HLD, 35 pack-year smoker, last known well 10/10 21:00, "
+                   "found 10/11 06:30 with L face/arm/leg weakness and dysarthria. NIHSS 6 on arrival. CT head negative for "
+                   "hemorrhage, ASPECTS 9. CTA: R M2 superior division occlusion, distal, not a thrombectomy candidate. "
+                   "MRI: acute R frontal and insular infarcts. Moderate intracranial atherosclerosis. No AF on 5 days of "
+                   "telemetry.",
+            "ros": "Neuro: Positive for L sided weakness and slurred speech, improving. Psych: Positive for low mood.",
+            "exam": ["General: Middle aged woman, alert, mildly tearful", "HEENT: Mild L lower facial weakness",
+                     "Neck: No carotid bruit", "Chest: Scattered rhonchi, clears with cough",
+                     "Cardiovascular: Regular rate rhythm", "Neuro: Mild dysarthria, L pronator drift, L grip 4/5, L leg 4/5, "
+                     "sensation intact, no neglect", "Extremities: No edema"],
+            "imaging": [("CT Head WO/W Contrast", "10/11/2026", "No hemorrhage. Early hypodensity R insula. ASPECTS 9."),
+                        ("MRI Brain WO Contrast", "10/11/2026", "Acute infarcts R frontal operculum and insula, R MCA "
+                         "superior division territory. Chronic small vessel disease."),
+                        ("Transthoracic echo (TTE)", "10/13/2026", "LVEF 60%, moderate LVH. Bubble study negative. No "
+                         "thrombus.")],
+            "assessment": ["-Acute ischemic stroke R MCA superior division, large-artery atherosclerosis vs small vessel",
+                           "-Major risk factors: uncontrolled HTN, smoking, LDL 168",
+                           "-Residual deficits mild: L hemiparesis, dysarthria (NIHSS 2)",
+                           "-Post-stroke depression"],
+            "plan": ["-aspirin 81 mg + clopidogrel 75 mg x 21 days, then aspirin alone", "-atorvastatin 80 mg, LDL goal < 70",
+                     "-BP goal < 130/80; amlodipine, losartan, HCTZ", "-30-day ambulatory cardiac monitor (Zio) to look for "
+                     "AF - placed 10/16", "-smoking cessation: nicotine patch + gum", "-stroke clinic f/u 11/09/2026",
+                     "-recuperative care strongly recommended; this was discussed with the patient."],
+        },
+        "sw_note": [
+            "SW consulted for homelessness.",
+            "Patient is a 61y.o. female admitted on 10/11/2026 for stroke. Patient reports she moved to Orange County from "
+            "South Dakota with her husband in 1998. After he died in 2022 she could not pay rent and has lived in a tent in "
+            "Fullerton for about 4 years. She receives SSI. No phone - hers was stolen in September. Niece Tasha in Rapid "
+            "City calls the unit and is supportive. Patient reports feeling down since the stroke; agreeable to medication. "
+            "Smokes 1 ppd, rare alcohol, denies drugs.",
+            "SW reviewed insurance (CalOptima Medi-Cal) and offered IF RECUP referral - patient accepted. SW also referred "
+            "to Southern California Indian Center for housing navigation and applied for a Lifeline phone. SW explained "
+            "that we are not able to guarantee placement at DC, patient understood.",
+            "Pending DC orders and recommendations. DCP: Recuperative care with home health PT/OT/SLP.",
+        ],
+        "sw_addendum": "4:10pm: Lifeline phone application submitted; until it arrives, contact patient through SW or niece "
+                       "Tasha 605-555-0128. Patient gave permission to share contact information with Illumination "
+                       "Foundation.",
+        "psychiatrist": "None - sertraline started inpatient, BH referral to CalOptima BH",
+        "labs": {"WBC": [10.2, 9.4, 8.8, 8.5, 8.3], "Hgb": [15.6, 14.9, 14.6, 14.8, 14.7], "Hct": [46.9, 44.8, 43.9, 44.3, 44.1],
+                 "MCV": [94.1, 94.3, 94.0, 94.2, 94.4], "Plt": [276, 262, 255, 260, 268], "Na": [139, 138, 137, 136, 136],
+                 "Glucose": [134, 108, 101, 97, 99]},
+        "vitals_series": {"T": [36.9, 36.8, 36.9, 36.7, 36.8, 36.7, 36.7, 36.8, 36.7, 36.7],
+                          "HR": [92, 88, 84, 82, 80, 78, 78, 76, 76, 76],
+                          "SBP": [212, 196, 184, 172, 164, 156, 152, 148, 146, 146],
+                          "DBP": [118, 108, 102, 98, 94, 92, 90, 88, 88, 88], "RR": [18, 18, 16, 16, 16, 16, 16, 16, 16, 16],
+                          "SpO2": [97, 97, 96, 97, 97, 97, 97, 97, 97, 97]},
+        "lab_overrides": {"Cholesterol": 246, "LDL Chol CALC": 168, "Triglycerides": 182,
+                          "HDL Cholesterol": 38, "Hemoglobin A1c": 5.9, "Creatinine": 1.1,
+                          "CT Head WO/W Contrast": "Final", "Transthoracic echo (TTE)": "Final",
+                          "QTc Calculation": 452, "ECG Interpretation": "Sinus rhythm, LVH"},
+        "consult_fu": "11/09/2026", "followups": [("Primary Care", "Sandra Whitehorse, NP", "714-555-0194", "10/23/2026"),
+                                                 ("Behavioral Health", "Referral placed - CalOptima BH", "855-555-0122",
+                                                  "pending")],
+        "home_health": ("Sunridge Home Health  714-555-0196", ["Physical therapy", "Occupational therapy", "Speech"]),
+        "covid_doses": 0, "o2_note": "N/A", "o2_device": "None (Room air)",
+        "ambulate": "200 ft w/ quad cane + L AFO, supervision", "fracture": False, "recent_surgery": False,
+        "mh_treatment": (True, "sertraline started - CalOptima BH referral"), "pharmacy": "Hospital meds-to-beds",
+        "living": ("Unhoused", "Tent"), "transport_barrier": "yes", "interpreter": None,
+        "family_adjust": "Niece supportive by phone",
+        "font": 0,
+    },
 ]

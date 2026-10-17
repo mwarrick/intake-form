@@ -366,7 +366,7 @@ def if_form_canvas(p, rng, c):
     yn(620, y, "Self Administer All Meds?", p["self_meds"], "N/A", fid="self_admin_meds")
     y += 38
     yn(120, y, "Continent of Bowel & Bladder?", p["continent"], fid="continent")
-    yn(780, y, "Colostomy/Ileostomy", False, fid="ostomy")
+    yn(780, y, "Colostomy/Ileostomy", p.get("ostomy", False), fid="ostomy")
     yn(1240, y, "Foley Catheter", False, fid="foley")
     y += 38
     yn(120, y, "Independent w/all ADL's?", p["adls"], "N/A")
@@ -604,7 +604,7 @@ def calaim(p, rng):
     y += 200
     c.t(150, y, "GI/GU", "arialb", 26)
     for i, s in enumerate(["Incontinent of bowel", "Incontinent of bladder", "Colostomy/ileostomy", "Foley catheter"]):
-        c.box(150, y + 40 + i * 34, s, False, 24)
+        c.box(150, y + 40 + i * 34, s, s == "Colostomy/ileostomy" and p.get("ostomy", False), 24)
     c.t(1060, y + 40, "Does the member require tube feeding?", "arial", 26)
     c.box(1060, y + 76, "Yes", False, 24)
     c.box(1170, y + 76, "No", True, 24)

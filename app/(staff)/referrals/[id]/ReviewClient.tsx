@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { saveDecision, saveReview } from "@/app/actions";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { FormSections } from "@/components/FormSections";
 import type { SupportingDoc } from "@/lib/documents";
-import { type FieldValue, type FormData, referrerFields, referrerSections, staffFields, staffSection } from "@/lib/form";
+import { type FieldValue, type FormData, fieldRegions, referrerFields, referrerSections, staffFields, staffSection } from "@/lib/form";
 import type { DocumentRow, Referral } from "@/lib/referrals";
 import { type Flag, fieldLabel, validate } from "@/lib/validate";
 
@@ -43,12 +43,21 @@ export function ReviewClient({ referral, documents, supporting, threshold }: Pro
   const pages = documents.filter((d) => d.kind === "page");
   const original = documents.find((d) => d.kind === "original");
   const attachments = documents.filter((d) => d.kind === "attachment");
+  // The field to show on the scan; `n` changes on every click so clicking the same field again re-centers it.
+  const [locate, setLocate] = useState<{ field: string; n: number } | null>(null);
+  const canLocate = referral.source === "scan" && pages.length > 0;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start">
         {pages.length > 0 && (
-          <ScanViewer pages={pages} formPages={referral.pipeline?.formPages ?? []} originalUrl={original?.url} />
+          <ScanViewer
+            pages={pages}
+            formPages={referral.pipeline?.formPages ?? []}
+            originalUrl={original?.url}
+            locate={locate}
+            onClearLocate={() => setLocate(null)}
+          />
         )}
         {referral.source === "portal" && (
           <div className={pages.length ? "mt-4" : ""}>
@@ -64,7 +73,12 @@ export function ReviewClient({ referral, documents, supporting, threshold }: Pro
           <>
             <PipelineSummary referral={referral} />
             <DocumentsPanel docs={supporting} flags={referral.doc_flags ?? []} fileUrls={fileUrls} />
-            <FieldsEditor referral={referral} threshold={threshold} />
+            <FieldsEditor
+              referral={referral}
+              threshold={threshold}
+              activeField={locate?.field ?? null}
+              onLocate={canLocate ? (field) => setLocate((l) => ({ field, n: (l?.n ?? 0) + 1 })) : undefined}
+            />
             <DecisionPanel referral={referral} />
           </>
         )}
@@ -73,14 +87,86 @@ export function ReviewClient({ referral, documents, supporting, threshold }: Pro
   );
 }
 
-function ScanViewer({ pages, formPages, originalUrl }: { pages: DocumentRow[]; formPages: number[]; originalUrl?: string }) {
-  const first = pages.find((p) => formPages.includes(p.page_number ?? -1)) ?? pages[0];
-  const [current, setCurrent] = useState(first?.page_number ?? 1);
-  const [zoom, setZoom] = useState(false);
+// Zoom levels as a multiple of the viewer's width; 1 fits the page width.
+const ZOOMS = [0.5, 0.75, 1, 1.5, 2, 3, 4];
+// Space kept around a located field so its printed label and neighbours stay in view.
+const PAD_X = 0.015;
+const PAD_Y = 0.008;
+
+function ScanViewer({
+  pages,
+  formPages,
+  originalUrl,
+  locate,
+  onClearLocate,
+}: {
+  pages: DocumentRow[];
+  formPages: number[];
+  originalUrl?: string;
+  locate: { field: string; n: number } | null;
+  onClearLocate: () => void;
+}) {
+  const formPage = pages.find((p) => formPages.includes(p.page_number ?? -1)) ?? pages[0];
+  const [current, setCurrent] = useState(formPage?.page_number ?? 1);
+  const [zoom, setZoom] = useState(1);
   const page = pages.find((p) => p.page_number === current);
+  const scroller = useRef<HTMLDivElement>(null);
+  const card = useRef<HTMLDivElement>(null);
+  // Centre of the area to scroll to once the page has laid out at the new zoom, as fractions of the page.
+  const pendingCenter = useRef<[number, number] | null>(null);
+  // Bumped to re-run the scroll even when locating a field changes neither the page nor the zoom.
+  const [scrollTick, setScrollTick] = useState(0);
+
+  const region = locate ? fieldRegions[locate.field] : undefined;
+  const box = region && current === formPage?.page_number
+    ? { left: region[0] - PAD_X, top: region[1] - PAD_Y, right: region[2] + PAD_X, bottom: region[3] + PAD_Y }
+    : null;
+
+  // Locating a field: go to the form page, zoom so the field fills about half the width (at most 200%), and centre it.
+  useEffect(() => {
+    if (!locate || !region || !formPage) return;
+    const width = region[2] - region[0] + 2 * PAD_X;
+    const fit = 0.6 / width;
+    const level = [...ZOOMS].reverse().find((z) => z <= fit && z <= 2) ?? 1;
+    setCurrent(formPage.page_number!);
+    setZoom((z) => Math.max(z, level, 1.5));
+    pendingCenter.current = [(region[0] + region[2]) / 2, (region[1] + region[3]) / 2];
+    setScrollTick((t) => t + 1);
+    // On narrow screens the scan sits above the fields; bring it into view when it's off screen.
+    const rect = card.current?.getBoundingClientRect();
+    if (rect && (rect.bottom < 80 || rect.top > window.innerHeight - 80)) card.current!.scrollIntoView({ block: "start" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locate]);
+
+  function scrollToPending() {
+    const el = scroller.current;
+    const img = el?.querySelector("img");
+    if (!el || !img || !pendingCenter.current || !img.complete || !img.naturalWidth) return;
+    const [cx, cy] = pendingCenter.current;
+    el.scrollTo({
+      left: cx * img.clientWidth - el.clientWidth / 2,
+      top: cy * img.clientHeight - el.clientHeight / 2,
+    });
+    pendingCenter.current = null;
+  }
+  useLayoutEffect(scrollToPending, [zoom, current, scrollTick]);
+
+  // Zoom around the centre of what's on screen rather than jumping to the top left.
+  function changeZoom(next: number) {
+    const el = scroller.current;
+    const img = el?.querySelector("img");
+    if (el && img?.clientWidth) {
+      pendingCenter.current = [
+        (el.scrollLeft + el.clientWidth / 2) / img.clientWidth,
+        (el.scrollTop + el.clientHeight / 2) / img.clientHeight,
+      ];
+    }
+    setZoom(next);
+  }
+  const zoomIndex = ZOOMS.indexOf(zoom);
 
   return (
-    <div className="card flex h-full flex-col overflow-hidden">
+    <div ref={card} className="card flex flex-col overflow-hidden lg:h-[calc(100vh-2rem)]">
       <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 p-2">
         {pages.map((p) => (
           <button
@@ -95,26 +181,64 @@ function ScanViewer({ pages, formPages, originalUrl }: { pages: DocumentRow[]; f
             {formPages.includes(p.page_number!) && " ★"}
           </button>
         ))}
-        <span className="ml-auto flex gap-2">
-          <button className="btn-secondary px-2 py-0.5 text-xs" onClick={() => setZoom((z) => !z)}>
-            {zoom ? "Fit width" : "Zoom"}
+        {box && locate && (
+          <span className="flex items-center gap-1 rounded bg-sky-50 px-2 py-0.5 text-xs text-sky-800">
+            {fieldLabel(locate.field)}
+            <button className="text-sky-600 hover:text-sky-900" onClick={onClearLocate} aria-label="Clear highlight">
+              ×
+            </button>
+          </span>
+        )}
+        <span className="ml-auto flex items-center gap-1">
+          <button
+            className="btn-secondary px-2 py-0.5 text-xs"
+            disabled={zoomIndex <= 0}
+            onClick={() => changeZoom(ZOOMS[zoomIndex - 1])}
+            aria-label="Zoom out"
+            title="Zoom out"
+          >
+            −
+          </button>
+          <button
+            className="btn-secondary w-14 px-1 py-0.5 text-xs tabular-nums"
+            onClick={() => changeZoom(1)}
+            title="Fit page width"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            className="btn-secondary px-2 py-0.5 text-xs"
+            disabled={zoomIndex >= ZOOMS.length - 1}
+            onClick={() => changeZoom(ZOOMS[zoomIndex + 1])}
+            aria-label="Zoom in"
+            title="Zoom in"
+          >
+            +
           </button>
           {originalUrl && (
-            <a className="btn-secondary px-2 py-0.5 text-xs" href={originalUrl} target="_blank" rel="noreferrer">
+            <a className="btn-secondary ml-1 px-2 py-0.5 text-xs" href={originalUrl} target="_blank" rel="noreferrer">
               Original
             </a>
           )}
         </span>
       </div>
-      <div className="min-h-[60vh] flex-1 overflow-auto bg-slate-100">
+      <div ref={scroller} className="h-[70vh] overflow-auto bg-slate-100 lg:h-auto lg:min-h-0 lg:flex-1">
         {page?.url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={page.url}
-            alt={`Scanned page ${page.page_number}`}
-            className={zoom ? "max-w-none" : "w-full"}
-            style={zoom ? { width: "200%" } : undefined}
-          />
+          <div className="relative mx-auto" style={{ width: `${zoom * 100}%` }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={page.url} alt={`Scanned page ${page.page_number}`} className="block w-full" onLoad={scrollToPending} />
+            {box && (
+              <div
+                className="pointer-events-none absolute rounded-sm bg-sky-400/15 ring-2 ring-sky-500"
+                style={{
+                  left: `${box.left * 100}%`,
+                  top: `${box.top * 100}%`,
+                  width: `${(box.right - box.left) * 100}%`,
+                  height: `${(box.bottom - box.top) * 100}%`,
+                }}
+              />
+            )}
+          </div>
         ) : (
           <p className="p-6 text-sm text-slate-500">Page image not available.</p>
         )}
@@ -249,7 +373,17 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "gr
   );
 }
 
-function FieldsEditor({ referral, threshold }: { referral: Referral; threshold: number }) {
+function FieldsEditor({
+  referral,
+  threshold,
+  onLocate,
+  activeField,
+}: {
+  referral: Referral;
+  threshold: number;
+  onLocate?: (field: string) => void;
+  activeField: string | null;
+}) {
   const router = useRouter();
   const [data, setData] = useState<FormData>(referral.data);
   const [dirty, setDirty] = useState(false);
@@ -314,12 +448,20 @@ function FieldsEditor({ referral, threshold }: { referral: Referral; threshold: 
         extraction={extraction}
         threshold={threshold}
         disabled={pending}
+        onLocate={onLocate}
+        activeField={activeField}
       />
 
       <div className="card sticky bottom-3 flex flex-wrap items-center justify-end gap-2 p-3">
         {saveError && <span className="text-sm text-red-700">{saveError}</span>}
         <span className="mr-auto text-sm text-slate-600">
-          {confirmed ? `Fields confirmed ${new Date(referral.reviewed_at!).toLocaleString()}` : dirty ? "Unsaved changes" : "Check highlighted fields against the scan"}
+          {confirmed
+            ? `Fields confirmed ${new Date(referral.reviewed_at!).toLocaleString()}`
+            : dirty
+              ? "Unsaved changes"
+              : onLocate
+                ? "Click a field to see it on the scan"
+                : "Check highlighted fields against the scan"}
         </span>
         <button className="btn-secondary" disabled={pending || !dirty} onClick={() => save(false)}>
           Save

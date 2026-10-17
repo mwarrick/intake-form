@@ -1,3 +1,4 @@
+import regionsJson from "@/schema/field-regions.json";
 import schemaJson from "@/schema/referral-form.json";
 
 export type FieldType =
@@ -61,6 +62,11 @@ export const referrerFields: Field[] = referrerSections.flatMap((s) => s.fields)
 export const paperFields: Field[] = referrerFields.filter((f) => !f.notOnPaper);
 export const staffFields: Field[] = staffSection.fields;
 export const fieldsById = new Map(allFields.map((f) => [f.id, f]));
+
+/** Where a field sits on the paper form page: [left, top, right, bottom] as fractions of the page. */
+export type Region = [number, number, number, number];
+/** Generated from the blank form PDF by scripts/make_regions.py. */
+export const fieldRegions = regionsJson as unknown as Record<string, Region>;
 
 export const YES_NO = ["Yes", "No"] as const;
 

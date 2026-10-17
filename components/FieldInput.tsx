@@ -29,17 +29,26 @@ interface Props {
   extraction?: FieldExtraction;
   threshold?: number;
   disabled?: boolean;
+  /** Called when the field is clicked or focused, to show it on the scan. */
+  onLocate?: () => void;
+  /** The field currently shown on the scan. */
+  active?: boolean;
 }
 
-export function FieldInput({ field, value, onChange, required, flags, extraction, threshold = 0.75, disabled }: Props) {
+export function FieldInput({ field, value, onChange, required, flags, extraction, threshold = 0.75, disabled, onLocate, active }: Props) {
   const id = `f-${field.id}`;
   const attention = flags?.some((f) => f.kind !== "eligibility");
   const wide = field.type === "longtext" || field.type === "multi_choice";
 
   return (
     <div
-      className={`${wide ? "sm:col-span-2" : ""} rounded-md p-2 ${attention ? "bg-amber-50 ring-1 ring-amber-200" : ""}`}
+      className={`${wide ? "sm:col-span-2" : ""} rounded-md p-2 ${attention ? "bg-amber-50 ring-1 ring-amber-200" : ""} ${
+        active ? "ring-2 ring-sky-400" : ""
+      } ${onLocate ? "cursor-pointer" : ""}`}
       data-field={field.id}
+      onClick={onLocate}
+      onFocusCapture={onLocate}
+      title={onLocate ? "Click to show this field on the scan" : undefined}
     >
       <div className="mb-1 flex items-baseline justify-between gap-2">
         <label htmlFor={id} className="text-sm font-medium text-slate-700">

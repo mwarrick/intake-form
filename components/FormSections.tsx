@@ -1,7 +1,7 @@
 "use client";
 
 import { FieldInput } from "@/components/FieldInput";
-import { type FieldValue, type FormData, type Section, isRequired, isVisible } from "@/lib/form";
+import { type FieldValue, type FormData, type Section, fieldRegions, isRequired, isVisible } from "@/lib/form";
 import { type Extraction, type Flag, flagsByField } from "@/lib/validate";
 
 interface Props {
@@ -14,9 +14,12 @@ interface Props {
   extraction?: Extraction;
   threshold?: number;
   disabled?: boolean;
+  /** Show a field on the scan when it's clicked; only fields with a known place on the paper form get it. */
+  onLocate?: (id: string) => void;
+  activeField?: string | null;
 }
 
-export function FormSections({ sections, data, onChange, mode, flags = [], extraction, threshold, disabled }: Props) {
+export function FormSections({ sections, data, onChange, mode, flags = [], extraction, threshold, disabled, onLocate, activeField }: Props) {
   const byField = flagsByField(flags);
   return (
     <div className="space-y-4">
@@ -42,6 +45,8 @@ export function FormSections({ sections, data, onChange, mode, flags = [], extra
                   extraction={extraction?.[f.id]}
                   threshold={threshold}
                   disabled={disabled}
+                  onLocate={onLocate && fieldRegions[f.id] ? () => onLocate(f.id) : undefined}
+                  active={activeField === f.id}
                 />
               ))}
             </div>

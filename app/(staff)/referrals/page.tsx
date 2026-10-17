@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { DateRangePicker } from "@/components/DateRangePicker";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge, statusLabel } from "@/components/StatusBadge";
 import { requireUser } from "@/lib/auth";
 import { addDays, localDate, weekStart } from "@/lib/metrics";
-import { listReferrals, neighborDays, undecidedBefore, withOriginalScan } from "@/lib/referrals";
+import { type Status, listReferrals, neighborDays, undecidedBefore, withOriginalScan } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,11 @@ const shortDay = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateStrin
 const spanLabel = (from: string, to: string) => (from === to ? shortDay(from) : `${shortDay(from)} – ${shortDay(to)}`);
 const days = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1;
 // Every link names its days; plain /referrals is the default view, which falls back to the latest day with referrals.
-const rangeHref = (from: string, to: string) => (from === to ? `/referrals?date=${from}` : `/referrals?from=${from}&to=${to}`);
+// A status filter, when given, rides along so changing days keeps it.
+const rangeHref = (from: string, to: string, status?: Status | null) =>
+  (from === to ? `/referrals?date=${from}` : `/referrals?from=${from}&to=${to}`) + (status ? `&status=${status}` : "");
+/** Queue statuses in the order work moves through them; drafts never reach the queue. */
+const FILTER_STATUSES: Status[] = ["needs_review", "reviewed", "approved", "denied", "withdrawn", "processing", "failed"];
 /** Preset spans ending no later than today; weeks start Monday, as on the dashboard. */
 function quickRanges(today: string) {
   const week = weekStart(today);
@@ -44,9 +48,10 @@ function quickRanges(today: string) {
 const validDay =(d: string | undefined, today: string) =>
   d && /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d)) && d <= today ? d : null;
 
-export default async function Queue({ searchParams }: { searchParams: Promise<{ date?: string; from?: string; to?: string }> }) {
+export default async function Queue({ searchParams }: { searchParams: Promise<{ date?: string; from?: string; to?: string; status?: string }> }) {
   await requireUser("/referrals");
   const params = await searchParams;
+  const status = FILTER_STATUSES.find((s) => s === params.status) ?? null;
   const today = localDate(new Date());
   // ?date= is a single day; ?from=&to= a range (either end alone means that one day).
   let from = validDay(params.from, today) ?? validDay(params.to, today) ?? validDay(params.date, today);
@@ -69,7 +74,11 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
   const prevRange = prev && { from: addDays(prev, 1 - len), to: prev };
   const nextRange = next && { from: next, to: addDays(next, len - 1) < today ? addDays(next, len - 1) : today };
   const undecided = await undecidedBefore(from);
-  const scanned = await withOriginalScan(referrals.map((r) => r.id));
+  const counts = new Map<Status, number>();
+  for (const r of referrals) counts.set(r.status, (counts.get(r.status) ?? 0) + 1);
+  const shown = status ? referrals.filter((r) => r.status === status) : referrals;
+  const scanned = await withOriginalScan(shown.map((r) => r.id));
+  const href = (f: string, t: string) => rangeHref(f, t, status);
   const unit = isRange ? "range" : "day";
   return (
     <div className="space-y-4">
@@ -86,7 +95,7 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
 
       <nav aria-label="Choose dates" className="flex flex-wrap items-center gap-2">
         {prevRange ? (
-          <Link href={rangeHref(prevRange.from, prevRange.to)} className="btn-secondary" title={`Previous ${unit} with referrals`}>
+          <Link href={href(prevRange.from, prevRange.to)} className="btn-secondary" title={`Previous ${unit} with referrals`}>
             <span aria-hidden="true">←</span> {spanLabel(prevRange.from, prevRange.to)}
           </Link>
         ) : (
@@ -94,9 +103,9 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
             <span aria-hidden="true">←</span> Previous
           </span>
         )}
-        <DateRangePicker from={from} to={to} today={today} />
+        <DateRangePicker from={from} to={to} today={today} status={status} />
         {nextRange ? (
-          <Link href={rangeHref(nextRange.from, nextRange.to)} className="btn-secondary" title={`Next ${unit} with referrals`}>
+          <Link href={href(nextRange.from, nextRange.to)} className="btn-secondary" title={`Next ${unit} with referrals`}>
             {spanLabel(nextRange.from, nextRange.to)} <span aria-hidden="true">→</span>
           </Link>
         ) : (
@@ -110,7 +119,7 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
             return (
               <Link
                 key={q.label}
-                href={rangeHref(q.from, q.to)}
+                href={href(q.from, q.to)}
                 className={`rounded px-2.5 py-1 ${active ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
                 aria-current={active ? "page" : undefined}
               >
@@ -120,10 +129,32 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
           })}
         </span>
         <h2 className="ml-1 text-sm font-medium text-slate-700" aria-live="polite">
-          {isRange ? `${longDay(from)} – ${longDay(to)}` : `${isToday ? "Today, " : ""}${longDay(from)}`}: {referrals.length} referral
+          {isRange ? `${longDay(from)} – ${longDay(to)}` : `${isToday ? "Today, " : ""}${longDay(from)}`}:{" "}
+          {status && `${shown.length} ${statusLabel(status).toLowerCase()} of `}
+          {referrals.length} referral
           {referrals.length === 1 ? "" : "s"}
           {referrals.length >= 1000 && " (showing the newest 1,000; choose fewer days to see the rest)"}
         </h2>
+      </nav>
+
+      <nav aria-label="Filter by status" className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-slate-600">Status</span>
+        <span className="flex flex-wrap gap-1 rounded-md border border-slate-200 bg-white p-1">
+          {[null, ...FILTER_STATUSES.filter((s) => counts.has(s) || s === status)].map((s) => {
+            const active = s === status;
+            return (
+              <Link
+                key={s ?? "all"}
+                href={rangeHref(from, to, s)}
+                className={`rounded px-2.5 py-1 ${active ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+                aria-current={active ? "page" : undefined}
+              >
+                {s ? statusLabel(s) : "All"}{" "}
+                <span className={active ? "text-white/80" : "text-slate-400"}>{s ? (counts.get(s) ?? 0) : referrals.length}</span>
+              </Link>
+            );
+          })}
+        </span>
       </nav>
 
       {fellBack && (
@@ -158,14 +189,15 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {referrals.length === 0 && (
+            {shown.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                  {isRange ? "No referrals received on these dates." : "No referrals received on this date."}
+                  {status ? `No ${statusLabel(status).toLowerCase()} referrals` : "No referrals"}{" "}
+                  {isRange ? "received on these dates." : "received on this date."}
                 </td>
               </tr>
             )}
-            {referrals.map((r) => {
+            {shown.map((r) => {
               const flags = r.flags ?? [];
               const docFlags = r.doc_flags ?? [];
               const elig = new Set([...flags, ...docFlags].filter((f) => f.kind === "eligibility").map((f) => f.message)).size;

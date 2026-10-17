@@ -11,6 +11,9 @@ const STYLES: Record<Status, [string, string]> = {
   failed: ["Read failed", "bg-red-100 text-red-800"],
 };
 
+/** The words a status badge shows, for filters and other lists of statuses. */
+export const statusLabel = (status: Status) => STYLES[status]?.[0] ?? status;
+
 export function StatusBadge({ status }: { status: Status }) {
   const [label, cls] = STYLES[status] ?? [status, "bg-slate-100 text-slate-700"];
   return <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>;

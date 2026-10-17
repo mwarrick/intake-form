@@ -55,3 +55,6 @@ __pycache__/
 
 # generated import graph (npm run deps:graph)
 /docs/deps.html
+
+# Real referral packets: never commit
+/samples/packets-real/

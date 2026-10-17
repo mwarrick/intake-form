@@ -67,6 +67,7 @@ describe.skipIf(!run)("extraction accuracy", () => {
         reread: result.pipeline.rereadFields.length,
         tokens,
         seconds: Math.round(seconds),
+        wrong,
       });
       console.log(`\n${pdf}: ${paperFields.length - wrong.length}/${paperFields.length} fields correct`);
       for (const w of wrong) {
@@ -80,7 +81,7 @@ describe.skipIf(!run)("extraction accuracy", () => {
 
   it("writes the summary", () => {
     console.log(`\nModels: ${JSON.stringify(models)}`);
-    console.table(summary);
+    console.table(summary.map(({ wrong: _, ...row }) => row));
     writeFileSync(join(DIR, "..", `eval-${Date.now()}.json`), JSON.stringify({ models, summary }, null, 2));
   });
 });

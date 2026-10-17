@@ -464,12 +464,20 @@ function FieldsEditor({
                 ? "Click a field to see it on the scan"
                 : "Check highlighted fields against the scan"}
         </span>
-        <button className="btn-secondary" disabled={pending || !dirty} onClick={() => save(false)}>
-          Save
-        </button>
-        <button className="btn-primary" disabled={pending} onClick={() => save(true)}>
-          {confirmed ? "Save changes" : "Confirm fields"}
-        </button>
+        {confirmed ? (
+          <button className="btn-primary" disabled={pending || !dirty} onClick={() => save(true)}>
+            Save changes
+          </button>
+        ) : (
+          <>
+            <button className="btn-secondary" disabled={pending || !dirty} onClick={() => save(false)}>
+              Save
+            </button>
+            <button className="btn-primary" disabled={pending} onClick={() => save(true)}>
+              Confirm fields
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

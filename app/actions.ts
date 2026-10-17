@@ -185,6 +185,32 @@ async function createPortalReferral(
   return { id, uploads: await createUploadTargets(paths) };
 }
 
+/**
+ * Staff add supporting documents to an existing referral, e.g. ones that arrived after the fax.
+ * A file without a checklist label is identified by the reader. Returns upload targets; the browser
+ * uploads, then calls the /documents route to read them.
+ */
+export async function addDocuments(referralId: string, attachments: AttachmentMeta[]) {
+  return reported(async () => {
+    await staffOrThrow();
+    if (!attachments.length || attachments.length > 20) throw new Error("Add between 1 and 20 files");
+    const batch = Date.now();
+    const paths = attachments.map((a, i) => `${referralId}/attachments/${batch}-${i + 1}-${safeName(a.fileName)}`);
+    const { error } = await db().from(T.documents).insert(
+      attachments.map((a, i) => ({
+        referral_id: referralId,
+        kind: "attachment",
+        label: schema.attachments.items.includes(a.label) ? a.label : null,
+        file_name: a.fileName,
+        mime_type: a.mimeType,
+        storage_path: paths[i],
+      })),
+    );
+    if (error) throw new Error(error.message);
+    return { uploads: await createUploadTargets(paths) };
+  });
+}
+
 async function loadExtraction(id: string): Promise<Extraction> {
   const { data, error } = await db().from(T.referrals).select("extraction").eq("id", id).single();
   if (error) throw new Error(error.message);

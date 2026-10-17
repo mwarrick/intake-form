@@ -1,6 +1,6 @@
 import "server-only";
 import { crossCheck } from "@/lib/crosscheck";
-import { type DocData, type DocType, type SupportingDoc, docJsonSchema, docTypeByLabel, docTypesById } from "@/lib/documents";
+import { DOC_TYPES, type DocData, type DocType, type SupportingDoc, docJsonSchema, docTypeByLabel, docTypesById } from "@/lib/documents";
 import { type PageImage, type PageType, type Usage, jsonCall, models } from "@/lib/extract";
 import type { FormData } from "@/lib/form";
 import { BUCKET, T, db } from "@/lib/supabase";
@@ -80,9 +80,15 @@ export async function readAttachments(referralId: string): Promise<void> {
     (attachments ?? [])
       .filter((a) => !done.has(a.id))
       .map(async (a) => {
-        const type = docTypeByLabel.get(a.label ?? "");
-        if (!type) return;
-        const id = await insertDoc({ referral_id: referralId, doc_type: type.id, label: a.label, document_id: a.id });
+        // A label names the checklist item it was attached to; no label means "detect automatically".
+        const chosen = a.label ? docTypeByLabel.get(a.label) : undefined;
+        if (a.label && !chosen) return;
+        const id = await insertDoc({
+          referral_id: referralId,
+          doc_type: chosen?.id ?? "unknown",
+          label: chosen?.label ?? a.file_name,
+          document_id: a.id,
+        });
         await finishDocWith(id, async (usage) => {
           const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(a.storage_path);
           if (dlErr || !blob) throw new Error(`Could not download ${a.file_name}: ${dlErr?.message}`);
@@ -91,10 +97,40 @@ export async function readAttachments(referralId: string): Promise<void> {
           const input: DocInput = mime.startsWith("image/")
             ? { images: [{ pageNumber: 1, dataUrl }] }
             : { file: { dataUrl, filename: a.file_name || "document.pdf" } };
+          const type = chosen ?? (await detectDocType(input, usage));
+          if (!chosen) {
+            await supabase
+              .from(T.supporting)
+              .update({ doc_type: type?.id ?? "other", label: type?.label ?? a.file_name })
+              .eq("id", id);
+          }
+          if (!type) throw new Error("This doesn't look like one of the checklist documents.");
           return readDocument(type, input, usage);
         });
       }),
   );
+}
+
+/** Which checklist document an uploaded file is, for files added without choosing one. */
+async function detectDocType(input: DocInput, usage: Usage): Promise<DocType | null> {
+  const ids = DOC_TYPES.map((d) => d.id);
+  const { doc_type } = await jsonCall<{ doc_type: string }>({
+    step: "doc:detect",
+    model: models.classify,
+    instructions: `You sort hospital records attached to a recuperative care referral. Say which one of these documents the file is, or "other" if it is none of them:\n${DOC_TYPES.map((d) => `- ${d.id}: ${d.label}. ${d.recognize}`).join("\n")}`,
+    text: "Which document is this?",
+    images: (input.images ?? []).map((p) => ({ dataUrl: p.dataUrl, detail: "low" })),
+    files: input.file ? [input.file] : undefined,
+    schemaName: "document_type",
+    jsonSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["doc_type"],
+      properties: { doc_type: { type: "string", enum: [...ids, "other"] } },
+    },
+    usage,
+  });
+  return docTypesById.get(doc_type) ?? null;
 }
 
 async function finishDocWith(id: string, run: (usage: Usage) => Promise<DocData>): Promise<void> {

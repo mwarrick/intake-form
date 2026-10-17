@@ -250,7 +250,18 @@ function fieldHint(f: Field): string {
   return parts.join("");
 }
 
-export function fieldsJsonSchema(fields: Field[]): Record<string, unknown> {
+// Where a field is, so the review screen can outline it on any version of the form.
+const locationProperties = {
+  page: { type: ["integer", "null"], description: "Packet page number the field's printed label is on; null if the field isn't on these pages." },
+  left: { type: ["number", "null"], description: "Box around the printed label and its answer area, as fractions of the page image (0 = left edge, 1 = right edge)." },
+  top: { type: ["number", "null"], description: "Top of that box (0 = top edge of the page image, 1 = bottom)." },
+  right: { type: ["number", "null"], description: "Right of that box." },
+  bottom: { type: ["number", "null"], description: "Bottom of that box." },
+};
+const LOCATION_KEYS = Object.keys(locationProperties);
+
+/** `locate: false` leaves out each field's page and box (the second reading keeps the first one's). */
+export function fieldsJsonSchema(fields: Field[], { locate = true } = {}): Record<string, unknown> {
   return {
     type: "object",
     additionalProperties: false,
@@ -266,7 +277,7 @@ export function fieldsJsonSchema(fields: Field[]): Record<string, unknown> {
             {
               type: "object",
               additionalProperties: false,
-              required: ["value", "raw", "confidence", "corrected", "redacted", "page", "left", "top", "right", "bottom"],
+              required: ["value", "raw", "confidence", "corrected", "redacted", ...(locate ? LOCATION_KEYS : [])],
               properties: {
                 value: valueSchema(f),
                 raw: { type: ["string", "null"], description: "Exactly what is handwritten or marked, before normalizing. null if blank." },
@@ -279,12 +290,7 @@ export function fieldsJsonSchema(fields: Field[]): Record<string, unknown> {
                   type: "boolean",
                   description: "true if the answer area is covered by a solid black box (removed for privacy); value is then null.",
                 },
-                // Where the field is, so the review screen can outline it on any version of the form.
-                page: { type: ["integer", "null"], description: "Packet page number the field's printed label is on; null if the field isn't on these pages." },
-                left: { type: ["number", "null"], description: "Box around the printed label and its answer area, as fractions of the page image (0 = left edge, 1 = right edge)." },
-                top: { type: ["number", "null"], description: "Top of that box (0 = top edge of the page image, 1 = bottom)." },
-                right: { type: ["number", "null"], description: "Right of that box." },
-                bottom: { type: ["number", "null"], description: "Bottom of that box." },
+                ...(locate ? locationProperties : {}),
               },
             },
           ]),
@@ -294,6 +300,11 @@ export function fieldsJsonSchema(fields: Field[]): Record<string, unknown> {
     },
   };
 }
+
+const LOCATION_RULE = `
+- Location: for every field, give the page and a box around its printed label and answer area (the line, boxes or
+  options a referrer writes in), as fractions of that page image. Even a blank field has a location. Use null only
+  when the field isn't printed on these pages (this version of the form doesn't ask it).`;
 
 const EXTRACT_INSTRUCTIONS = `You transcribe hand-filled "${schema.form}" (${schema.formCode}) referral forms that were scanned or faxed.
 Rules:
@@ -308,9 +319,6 @@ Rules:
 - Phone numbers: return digits formatted as (XXX) XXX-XXXX, keeping any extension.
 - Last 4 of SSN: exactly 4 digits.
 - Keep medical abbreviations as written (e.g. "CHF exacerbation", "LLE cellulitis", "Rt heel stage 2").
-- Location: for every field, give the page and a box around its printed label and answer area (the line, boxes or
-  options a referrer writes in), as fractions of that page image. Even a blank field has a location. Use null only
-  when the field isn't printed on these pages (this version of the form doesn't ask it).
 - Confidence: 0.95+ only when the writing is clear; 0.6-0.85 when you had to interpret messy writing or faint marks; below 0.6 when you are guessing. A clearly blank field has high confidence that it is blank.`;
 
 interface RawField {
@@ -345,6 +353,8 @@ async function readFields(opts: {
   fields: Field[];
   pages: PageImage[];
   extraText?: string;
+  /** Ask for each field's page and box too; costly, so only the first reading does. */
+  locate?: boolean;
   usage: Usage;
 }): Promise<{
   fields: Record<string, RawField>;
@@ -353,7 +363,7 @@ async function readFields(opts: {
   return jsonCall({
     step: opts.step,
     model: opts.model,
-    instructions: EXTRACT_INSTRUCTIONS,
+    instructions: opts.locate === false ? EXTRACT_INSTRUCTIONS : EXTRACT_INSTRUCTIONS + LOCATION_RULE,
     text: [
       `Transcribe these fields from the form page image(s). The images are packet page${opts.pages.length > 1 ? "s" : ""} ${opts.pages.map((p) => p.pageNumber).join(", ")}, in that order.`,
       ...opts.fields.map(fieldHint),
@@ -361,7 +371,7 @@ async function readFields(opts: {
     ].join("\n"),
     images: opts.pages.map((p) => ({ dataUrl: p.dataUrl, detail: "high" })),
     schemaName: "referral_fields",
-    jsonSchema: fieldsJsonSchema(opts.fields),
+    jsonSchema: fieldsJsonSchema(opts.fields, { locate: opts.locate !== false }),
     usage: opts.usage,
   });
 }
@@ -466,6 +476,8 @@ export async function runPipeline(scanned: PageImage[], onProgress?: (p: Progres
       pages: formPages,
       extraText:
         "These fields need a careful second reading: some were hard to read on a first pass, and patient identity fields are always double-checked. Look closely at each one; zoom into the area of the form where its label is printed. Read every character of IDs and dates, and watch for writing that runs into printed text.",
+      // Boxes made this step ten times slower; the first reading's are kept.
+      locate: false,
       usage,
     });
     const reread = normalize(Object.fromEntries(unsure.map((f) => [f.id, second.fields[f.id]?.value])), unsure);
@@ -475,8 +487,8 @@ export async function runPipeline(scanned: PageImage[], onProgress?: (p: Progres
       const prev = extraction[f.id];
       const conf = clamp(r.confidence);
       const corrected = prev.corrected || r.corrected ? { corrected: true } : {};
-      // Keep the first reading's place for the field unless only the second reading gave one.
-      const location = withLocation(prev.location ?? fieldLocation(r, formPageNumbers));
+      // The second reading doesn't place fields; keep the first reading's box.
+      const location = withLocation(prev.location);
       if (sameValue(reread[f.id], data[f.id])) {
         // Two models agreeing independently is stronger evidence than either alone.
         extraction[f.id] = { ...prev, ...corrected, ...location, confidence: Math.max(prev.confidence, conf), model: `${prev.model}+${models.reread}` };

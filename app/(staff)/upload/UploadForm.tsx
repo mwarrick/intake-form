@@ -31,12 +31,14 @@ export function UploadForm() {
       working(pages.length, { step: "upload", total: pages.length });
       const target = await startScan({ fileName: file.name, mimeType: file.type || "application/pdf" }, pages.length);
       if ("error" in target) throw new Error(target.error);
-      await Promise.all([
-        uploadSigned(target.original, file),
-        ...pages.map((p, i) => uploadSigned(target.pages[i], p, "image/jpeg")),
-      ]);
+      await Promise.all(pages.map((p, i) => uploadSigned(target.pages[i], p, "image/jpeg")));
 
+      // The reader only needs the page images, so it starts now while the original (often 10+ MB) finishes uploading.
       working(pages.length);
+      const original = uploadSigned(target.original, file).then(
+        () => null,
+        (e: unknown) => (e instanceof Error ? e : new Error(String(e))),
+      );
       const res = await fetch(`/api/referrals/${target.id}/process`, { method: "POST" });
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Processing failed (${res.status})`);
 
@@ -50,6 +52,9 @@ export function UploadForm() {
         if (s && s.status !== "processing") break;
         if (s?.progress) working(pages.length, undefined, s.progress);
       }
+      // Leaving the page would cancel the original's upload.
+      const originalError = await original;
+      if (originalError) throw new Error(`The form was read, but the original file didn't upload: ${originalError.message}`);
       router.push(`/referrals/${target.id}`);
     } catch (e) {
       setPhase({ step: "error", message: e instanceof Error ? e.message : String(e) });

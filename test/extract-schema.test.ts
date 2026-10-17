@@ -35,6 +35,14 @@ describe("extraction schema", () => {
     const v = (s.properties as any).fields.properties.o2.properties.value;
     expect(v.enum).toEqual(["Yes", "No", null]);
   });
+  it("leaves out page and box for the second reading", () => {
+    const second = fieldsJsonSchema(paperFields, { locate: false });
+    expect(checkStrict(second)).toEqual([]);
+    const field = (second.properties as any).fields.properties.o2;
+    expect(field.required).toEqual(["value", "raw", "confidence", "corrected", "redacted"]);
+    expect(Object.keys(field.properties)).not.toContain("page");
+    expect((s.properties as any).fields.properties.o2.required).toContain("bottom");
+  });
 });
 
 describe("field locations from the reader", () => {

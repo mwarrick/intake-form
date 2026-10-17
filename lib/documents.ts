@@ -250,6 +250,11 @@ export function docJsonSchema(t: DocType): Record<string, unknown> {
       },
     };
   }
+  props.redacted = {
+    type: "array",
+    items: { type: "string", enum: t.fields.map((f) => f.id) },
+    description: "Fields whose value is covered by a solid black box (removed for privacy). Those fields are null.",
+  };
   props.notes = { type: "string", description: "Anything else a referral coordinator should know from this document. Empty if nothing." };
   return { type: "object", additionalProperties: false, required: Object.keys(props), properties: props };
 }

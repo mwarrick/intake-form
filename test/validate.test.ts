@@ -89,3 +89,23 @@ describe("form helpers", () => {
     expect(out.behavioral_flags).toEqual(["Forgetful"]);
   });
 });
+
+describe("IHH's internal criteria and redacted answers", () => {
+  it("treats a registered sex offender as case by case, not an exclusion", () => {
+    const flags = validate({ ...complete(), behavioral_flags: ["Registered Sex Offender"] });
+    expect(flags).toHaveLength(1);
+    expect(flags[0].kind).toBe("eligibility");
+    expect(flags[0].message).toMatch(/case by case, not an automatic denial/);
+  });
+
+  it("doesn't flag a redacted required field as missing or hard to read", () => {
+    const d = { ...complete(), patient_name: null, dob: null };
+    const extraction = {
+      patient_name: { confidence: 0.2, raw: null, model: "m", redacted: true },
+      dob: { confidence: 0.2, raw: null, model: "m" },
+    };
+    const flags = validate(d, { extraction });
+    expect(kinds(flags, "patient_name")).toEqual([]);
+    expect(kinds(flags, "dob")).toEqual(["missing", "low_confidence"]);
+  });
+});

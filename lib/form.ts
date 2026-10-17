@@ -30,7 +30,7 @@ export interface Field {
   explainWhen?: string;
   /** Asked on the online form only; there is no place for it on the paper form, so the reader skips it. */
   notOnPaper?: boolean;
-  // "must_be_yes" | "review_if_yes" for yes_no fields, or option -> "exclusion" for multi_choice
+  // "must_be_yes" | "review_if_yes" for yes_no fields, or option -> "exclusion" | "review" (case by case) for multi_choice
   eligibility?: string | Record<string, string>;
 }
 

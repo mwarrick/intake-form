@@ -45,6 +45,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | R-10 | A packet with **no referral form** (seen in a real packet: fax cover, face sheet, H&P, notes, no form) is not read as if every page were the form. The form fields stay blank for the coordinator to type, the review screen says no form page was found, and the supporting documents are still read. | 📋 |
 | R-11 | **Sideways and upside-down pages** (real packets have 19 sideways medication pages, an upside-down PT evaluation, labs and vitals scanned sideways) are detected when the pages are labelled, turned upright, checked once more, and saved upright so the review screen shows them the right way up. | 📋 |
 | R-12 | Pages of one face sheet, authorization or H&P **split up by other pages** (a real packet had its authorization pages out of order) are read as one document, not two that may disagree. Notes, vitals, medication lists and the rest still group only consecutive pages, since a packet can hold several of them. | 📋 |
+| R-13 | **Redacted fields** (solid black boxes in the de-identified real packets) are recorded as redacted, not blank: the form reader and the document reader say which fields are blacked out, a redacted required field is not flagged as missing or hard to read and is not re-read, and a check that needs a redacted value (vitals age, authorization number) says it can't tell from this packet. | 📋 |
 
 ### 3.3 Online referral portal
 
@@ -70,6 +71,25 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | D-6 | **Remove** on a supporting document deletes what was read from it, and the uploaded file if it was added separately (fax pages stay with the scan). Checks re-run afterwards. | ✅ |
 | D-7 | The checklist's **Client's Demographic Page** is the referral form itself, so it is never listed as missing. A hospital face sheet is still read when sent (phone, member ID, emergency contact), and the online form offers it as an optional upload. | ✅ |
 | D-8 | **Other records found in real packets:** labs, imaging, cardiac catheterization report, ECG, psychiatry consult, social work notes, wound notes, physician orders, nursing flowsheets. They are labelled "other" and not read today. Candidates: psychiatry consult (behavioral health), social work notes (housing), wound notes (wound care), labs (infections, A1c for insulin). | 📋 |
+
+### 3.4a Admission criteria (IHH's internal outline)
+
+IHH's internal *Admission Criteria and Eligibility Outline* (November 2023, `docs/1-referral-intake/criteria/`, rule IDs in `admission-criteria.json`) wins over the shorter list on the referral form when they disagree. Where the outline is silent (tuberculosis, refusing detox) the form's exclusion applies. Until now the app checked only the form's list.
+
+| ID | Requirement | Status |
+|---|---|---|
+| C-1 | **Registered sex offender is case by case** (OTH-2), not an exclusion: the flag says offenses involving violence are likely denied and never reads as an automatic denial. | 📋 |
+| C-2 | **IV medication is allowed with home health** established to maintain the IV and give the medication, or with the patient giving their own IV antibiotics (OTH-3, ID-3, INT-E3). The flag asks the coordinator to confirm home health instead of saying patients must self-administer. | 📋 |
+| C-3 | **Wheelchair users** (MOB-1, MOB-4): walking under 100 ft is not a failure for a wheelchair-dependent patient who transfers and uses the chair independently. | 📋 |
+| C-4 | **Mental health** (MH-1 to MH-5): suicidal ideation, command hallucinations, acute alcohol intoxication held under 72 hours or CIWA-Ar 8 or more, conservatorship or FSP, not stable on medications. | 📋 |
+| C-5 | **Infection control** (INF-1, INF-2, OTH-4): MRSA swab documented negative, COVID swab negative within 24 hours of admission, isolation cleared; tuberculosis from the form. | 📋 |
+| C-6 | **Last five sets of vitals** (ID-1, CARD-1, RESP-2) read instead of only the newest, with signs of sepsis (continued fever, high heart rate, low blood pressure) flagged. | 📋 |
+| C-7 | **Diabetes** (DM-1 to DM-6): five consecutive glucose readings improving, insulin started less than 24 hours before admission, DKA ruled out from the ED, glucometer and insulin teaching. | 📋 |
+| C-8 | **Cardiac** (CARD-2 to CARD-6): three troponins with two negative, EKG sent, ejection fraction, IV antihypertensives within 24 hours, anticoagulation for atrial fibrillation. | 📋 |
+| C-9 | **Conditions by body system:** diagnoses read from the H&P and notes are matched against the eligible and ineligible lists (e.g. osteomyelitis, BiPAP, decompensated cirrhosis, C. diff, stroke with deficit, DKA), citing the rule ID. | 📋 |
+| C-10 | **One result per rule:** met, not met, or *can't tell from this packet*, with the page it came from. "Not in the packet" is unknown, never normal. | 📋 |
+| C-11 | **Gaps in the written rules** (the outline's own table: troponin after a heart attack, resolved DKA, C. diff end point, COVID swab timing, home health wording, "not yet" outcome) are shown as needing the coordinator's judgment, not decided by the app. | 📋 |
+| C-12 | New document types the rules ask for: labs (glucose, troponin, A1C, MRSA and COVID swabs), imaging, EKG, respiratory therapy notes (see D-8). | 📋 |
 
 ### 3.5 Coordinator queue and review
 
@@ -149,6 +169,7 @@ Referrals arrive mostly as faxed, hand-filled paper forms with supporting medica
 | T-5 | Sample 2 as a single 10-page faxed packet (`samples/synthetic/packets/sample-2-messy-packet.pdf`) and as separate files, the form alone plus one file per document (`samples/synthetic/packets/sample-2-messy-separate/`), for trying the whole flow and **Add documents**. | ✅ |
 | T-8 | Seven more handwritten faxed packets (`npm run packets`, `samples/synthetic/packets/packet-4` to `packet-10`): form only (2), complete with all 7 checklist documents and a face sheet (2), and missing 4, 5 or 6 of the 7 (3). Each form has deliberate mistakes, listed with the pages, included and missing documents, and written answers in the packet's `.json`. | ✅ |
 | T-9 | **Packets shaped like the real ones** (11 seen, 14 to 34 pages): fax cover first, form last or missing, sideways and upside-down pages, a document split by other pages, duplicate face sheets, record types outside the checklist. The synthetic packets are at most 10 pages, upright, with the form near the front. | 📋 |
+| T-10 | **Score against IHH's real decisions** (`docs/1-referral-intake/eval/decisions.json`: 7 approved, 4 denied, no reasons recorded). The decisions stay out of the reader's sight; the eval compares the app's flags with each outcome for IHH staff to judge. | 📋 |
 
 ## 4. Deferred past the prototype
 
@@ -164,12 +185,14 @@ Use cases found since (admission, housing, roles, integration, safety logic) are
 | X-4 | ⏸ **Email notifications** to referrers on receipt and on decision. Coordinators contact referrers themselves for now. |
 | X-5 | ⏸ **Automatic fax/email intake** from RECUP@ or a fax-to-email service, instead of manual upload. |
 | X-6 | ⏸ **Export** of approved referrals (CSV, EHR, CalOptima paperwork). |
+| X-9 | ⏸ **Children's recuperative care** criteria (`docs/1-referral-intake/criteria/childrens-admission-criteria.md`): the app covers adults only. |
 
 ## 5. Open items
 
 - **Live use so far:** sample referrals have been uploaded to the live app and read. Real handwriting from actual faxes is still untested.
 - **Known reading weak spot:** handwriting that runs into printed text (e.g. a digit touching a label) can be misread with high confidence; patient identity fields are always re-read and highlighted when the two readings disagree, but other fields aren't.
 - **Real packets (R01 to R11):** confirm the "IHH referral form" in them is RC0725-SH, and that the "CalAIM authorization form" is the same health plan authorization the checklist calls CalOptima.
+- **Real packets stay out of the repository:** the event rules say not to copy them into a team's repo. They sit in `samples/packets-real/`, which git ignores; consider pointing the app at a folder outside the repository instead.
 - **Test accounts:** 20 mock staff accounts (from `MOCK_DATA.csv`; 6 picked at random as clinical) exist in production with no password, so anyone who enters one of those emails can sign in. Remove or deactivate them before real referrals arrive.
 - **Mock patients:** 5 fictional approved patients (ids starting `a1000000-`) and 120 history referrals (ids starting `b2000000-`) are in production for demos. Delete them before real referrals arrive.
 - **Real staff list:** import current staff from Illumination's HR or email admin rather than LinkedIn, and confirm the firstname+lastname email format matches their real addresses.

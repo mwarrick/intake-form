@@ -115,8 +115,12 @@ function DocCard({ doc, url, referralId }: { doc: SupportingDoc; url?: string; r
 
 function DocDetails({ data, fields, tables }: { data: DocData; fields: DocField[]; tables: DocTable[] }) {
   const shown = fields.filter((f) => !isBlank(data[f.id]));
+  const redacted = Array.isArray(data.redacted) ? fields.filter((f) => (data.redacted as unknown[]).includes(f.id)) : [];
   return (
     <div className="mt-2 space-y-2 text-sm">
+      {redacted.length > 0 && (
+        <p className="text-xs text-slate-500">Blacked out (removed for privacy): {redacted.map((f) => f.label).join(", ")}</p>
+      )}
       {shown.length > 0 && (
         <dl className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)] gap-x-3 gap-y-1">
           {shown.map((f) => (

@@ -55,7 +55,11 @@ export function FieldInput({ field, value, onChange, required, flags, extraction
           {field.label}
           {required && <span className="ml-0.5 text-red-600">*</span>}
         </label>
-        {extraction && (
+        {extraction?.redacted && value == null ? (
+          <span className="shrink-0 rounded bg-slate-800 px-1.5 py-0.5 text-[11px] font-medium text-white" title="Blacked out on the scan (removed for privacy)">
+            Redacted
+          </span>
+        ) : extraction && (
           <span
             className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium tabular-nums ${confidenceTone(extraction.confidence, threshold)}`}
             title={`Read by ${extraction.model}${extraction.raw ? ` · written as "${extraction.raw}"` : ""}`}

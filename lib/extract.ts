@@ -262,7 +262,7 @@ export function fieldsJsonSchema(fields: Field[]): Record<string, unknown> {
             {
               type: "object",
               additionalProperties: false,
-              required: ["value", "raw", "confidence", "corrected"],
+              required: ["value", "raw", "confidence", "corrected", "redacted"],
               properties: {
                 value: valueSchema(f),
                 raw: { type: ["string", "null"], description: "Exactly what is handwritten or marked, before normalizing. null if blank." },
@@ -270,6 +270,10 @@ export function fieldsJsonSchema(fields: Field[]): Record<string, unknown> {
                 corrected: {
                   type: "boolean",
                   description: "true if anything in this field was crossed out, scribbled over, struck through or written over.",
+                },
+                redacted: {
+                  type: "boolean",
+                  description: "true if the answer area is covered by a solid black box (removed for privacy); value is then null.",
                 },
               },
             },
@@ -284,6 +288,7 @@ export function fieldsJsonSchema(fields: Field[]): Record<string, unknown> {
 const EXTRACT_INSTRUCTIONS = `You transcribe hand-filled "${schema.form}" (${schema.formCode}) referral forms that were scanned or faxed.
 Rules:
 - Read only what is written or marked on the form. Never infer or invent a value. If a field is blank, value is null (or [] for check-all lists).
+- Solid black boxes are redactions (removed for privacy), not blanks. If a field's answer is covered by one, value is null and redacted is true. Never guess what is under it.
 - Yes/No questions are answered by circling "Yes" or "No", ticking a box, or writing a mark next to one option. A word with an asterisk (Yes* / No*) means that answer requires an explanation; the asterisk is printed, not part of the answer.
 - Crossed-out answers: a mark or option that is scribbled over, struck through, crossed out with lines or zigzags, or blacked out is CANCELLED. It is never the answer, even if it was also circled or ticked. The answer is the remaining clean mark on the other option; if every mark is cancelled, value is null. Set corrected to true for that field, describe both marks in raw (e.g. "Yes circled and scribbled out; No circled"), and mention it in notes.
 - If both options look marked and neither is crossed out, use the one that looks intended, keep confidence below 0.6, and set corrected to true.
@@ -302,7 +307,10 @@ async function readFields(opts: {
   pages: PageImage[];
   extraText?: string;
   usage: Usage;
-}): Promise<{ fields: Record<string, { value: unknown; raw: string | null; confidence: number; corrected?: boolean }>; notes: string }> {
+}): Promise<{
+  fields: Record<string, { value: unknown; raw: string | null; confidence: number; corrected?: boolean; redacted?: boolean }>;
+  notes: string;
+}> {
   return jsonCall({
     step: opts.step,
     model: opts.model,
@@ -379,15 +387,23 @@ export async function runPipeline(scanned: PageImage[], onProgress?: (p: Progres
       const r = first.fields[f.id];
       return [
         f.id,
-        { confidence: clamp(r?.confidence ?? 0), raw: r?.raw ?? null, model: models.extract, ...(r?.corrected ? { corrected: true } : {}) },
+        {
+          confidence: clamp(r?.confidence ?? 0),
+          raw: r?.raw ?? null,
+          model: models.extract,
+          ...(r?.corrected ? { corrected: true } : {}),
+          ...(r?.redacted && data[f.id] == null ? { redacted: true } : {}),
+        },
       ];
     }),
   );
 
   // Step 3: an independent second reading by a stronger model of the uncertain fields, answers that were
-  // crossed out or changed, and the patient identity fields.
+  // crossed out or changed, and the patient identity fields. A redacted field has nothing to re-read.
   const unsure = fields.filter(
-    (f) => extraction[f.id].confidence < rereadThreshold || extraction[f.id].corrected || alwaysReread.includes(f.id),
+    (f) =>
+      !extraction[f.id].redacted &&
+      (extraction[f.id].confidence < rereadThreshold || extraction[f.id].corrected || alwaysReread.includes(f.id)),
   );
   let rereadModel: string | null = null;
   if (unsure.length && models.reread) {

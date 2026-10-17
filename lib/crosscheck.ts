@@ -98,9 +98,10 @@ export function crossCheck(data: FormData, docs: SupportingDoc[], receivedAt: st
     for (const med of rows(d.medications)) {
       const route = (med.route ?? "").toUpperCase();
       const drug = [med.name, med.dose].filter(Boolean).join(" ");
+      // IHH's internal criteria (OTH-3, ID-3, INT-E3) accept IV medication when home health maintains the IV
+      // and gives it, or the patient gives their own IV antibiotics; the form has no home health question for it.
       if (/\bIV\b|INTRAVENOUS|PICC/.test(route)) {
-        add("eligibility", `IV medication: ${drug} (patients must self-administer their medications)`);
-        if (data.self_admin_meds === "Yes") add("conflict", `Form says patient self-administers all meds, but ${drug} is IV`, "self_admin_meds");
+        add("eligibility", `IV medication: ${drug}. Accepted only with home health established to maintain the IV and give it; confirm it is arranged`);
       }
       if (/insulin|glargine|lispro|aspart|lantus|humalog|novolog/i.test(med.name ?? "") && data.insulin !== "Yes") {
         add("conflict", `${src} includes insulin (${drug}); the form doesn't say insulin`, "insulin");
@@ -111,7 +112,8 @@ export function crossCheck(data: FormData, docs: SupportingDoc[], receivedAt: st
     if (doc.doc_type === "vitals" && doc === newestVitals) {
       const taken = str(d.taken_at);
       const hours = taken ? (Date.parse(receivedAt) - Date.parse(taken)) / 3_600_000 : NaN;
-      if (!taken) add("document", "Vitals: no date/time found");
+      if (!taken && redacted(d, "taken_at")) add("document", "Vitals: date blacked out, so can't tell from this packet whether they are from the last 24 hours");
+      else if (!taken) add("document", "Vitals: no date/time found");
       else if (hours > 24) add("document", `Vitals are ${Math.round(hours)} hours old (checklist asks for the last 24 hours)`);
     }
 
@@ -119,7 +121,9 @@ export function crossCheck(data: FormData, docs: SupportingDoc[], receivedAt: st
     if (doc.doc_type === "authorization") {
       const status = (str(d.status) ?? "").toLowerCase();
       if (status && !status.includes("approved")) add("document", `Authorization status: ${d.status}`);
-      if (!str(d.authorization_number)) add("document", "Authorization number not found on the authorization");
+      if (!str(d.authorization_number) && !redacted(d, "authorization_number")) {
+        add("document", "Authorization number not found on the authorization");
+      }
       const days = typeof d.approved_days === "number" ? d.approved_days : null;
       const asked = typeof data.los_authorized_days === "number" ? data.los_authorized_days : null;
       if (days !== null && asked !== null && days < asked) {
@@ -138,6 +142,10 @@ export function crossCheck(data: FormData, docs: SupportingDoc[], receivedAt: st
   }
 }
 
+/** The reader saw a black box (removed for privacy) over this field: unknown, not missing. */
+function redacted(d: DocData, field: string): boolean {
+  return Array.isArray(d.redacted) && (d.redacted as unknown[]).includes(field);
+}
 function str(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
 }

@@ -11,7 +11,8 @@ Rules:
 - Dates as ISO yyyy-mm-dd; date-times as yyyy-mm-ddTHH:MM in the document's local time.
 - Booleans: true or false only when the document states it (e.g. "independent with transfers", "A&Ox4", "hx of dementia"); otherwise null.
 - For lists of medications or infections, include every row.
-- Where the document has several entries over time (vitals, notes), use the most recent.`;
+- Where the document has several entries over time (vitals, notes), use the most recent.
+- Solid black boxes are redactions (removed for privacy), not missing information. Set a field covered by one to null and list it in redacted. Never guess what is under it.`;
 
 export interface DocInput {
   images?: PageImage[];

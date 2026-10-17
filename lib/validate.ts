@@ -26,6 +26,8 @@ export interface FieldExtraction {
   firstPass?: { value: unknown; confidence: number; model: string };
   /** An answer was crossed out or changed on the paper; always checked by a person. */
   corrected?: boolean;
+  /** The answer is covered by a solid black box (removed for privacy): unknown, not blank. */
+  redacted?: boolean;
 }
 
 export type Extraction = Record<string, FieldExtraction>;
@@ -36,7 +38,9 @@ const ELIGIBILITY_MESSAGES: Record<string, string> = {
   active_infection: "Active infection must be cleared by a doctor or CID before admission",
   meds_30_day_supply: "Patient must arrive with a 30-day supply of all medications",
   "Cognitive Impairment": "Cognitive impairment is an exclusion criterion",
-  "Registered Sex Offender": "Registered sex offenders are not eligible",
+  // IHH's internal criteria (OTH-2) win over the form's "not eligible": the coordinator decides.
+  "Registered Sex Offender":
+    "Registered sex offender: decided case by case, not an automatic denial (an offense involving violence will likely be denied)",
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -91,8 +95,11 @@ export function validate(data: FormData, opts: ValidateOptions = {}): Flag[] {
 
   for (const f of fields) {
     const v = data[f.id];
+    const ex = opts.extraction?.[f.id];
+    // A blacked-out answer is unknown, not missing, and there is nothing to read more carefully.
+    const redacted = !!ex?.redacted && isEmpty(v);
 
-    if (isRequired(f, data) && isEmpty(v)) {
+    if (isRequired(f, data) && isEmpty(v) && !redacted) {
       flags.push({ kind: "missing", field: f.id, message: `${f.label} is required` });
     }
 
@@ -108,14 +115,15 @@ export function validate(data: FormData, opts: ValidateOptions = {}): Flag[] {
 
     if (f.type === "multi_choice" && f.eligibility && typeof f.eligibility === "object" && Array.isArray(v)) {
       for (const opt of v) {
-        if (f.eligibility[opt] === "exclusion") {
-          flags.push({ kind: "eligibility", field: f.id, message: ELIGIBILITY_MESSAGES[opt] ?? `${opt} is an exclusion` });
+        const rule = f.eligibility[opt];
+        if (rule === "exclusion" || rule === "review") {
+          const fallback = rule === "exclusion" ? `${opt} is an exclusion` : `${opt}: decided case by case`;
+          flags.push({ kind: "eligibility", field: f.id, message: ELIGIBILITY_MESSAGES[opt] ?? fallback });
         }
       }
     }
 
-    const ex = opts.extraction?.[f.id];
-    if (ex) {
+    if (ex && !redacted) {
       if (f.type === "date" && isAmbiguousDate(ex.raw)) {
         flags.push({
           kind: "ambiguous",

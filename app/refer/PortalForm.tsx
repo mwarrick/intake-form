@@ -164,7 +164,7 @@ export function PortalForm({ threshold }: { threshold: number }) {
 
       {eligibility.length > 0 && (
         <div className="rounded-md border border-purple-200 bg-purple-50 p-3 text-sm text-purple-800">
-          <p className="font-medium">Some answers don’t meet the admission criteria.</p>
+          <p className="font-medium">Some answers need review against the admission criteria.</p>
           <p className="mt-0.5">You can still submit; a referral coordinator will review and may contact you.</p>
         </div>
       )}

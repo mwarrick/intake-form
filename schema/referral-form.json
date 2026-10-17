@@ -339,7 +339,7 @@
           ],
           "eligibility": {
             "Cognitive Impairment": "exclusion",
-            "Registered Sex Offender": "exclusion"
+            "Registered Sex Offender": "review"
           }
         },
         {

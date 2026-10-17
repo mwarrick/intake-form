@@ -105,3 +105,27 @@ describe("document schemas", () => {
     for (const t of DOC_TYPES) expect(check(docJsonSchema(t)), t.id).toBe(true);
   });
 });
+
+describe("IV medication and redacted documents", () => {
+  const base = () => form("sample-1-clean");
+
+  it("asks for home health for IV medication instead of ruling it out", () => {
+    const meds = doc("medications", { medications: [{ name: "Ceftriaxone", dose: "2 g", route: "IV", frequency: "Daily" }] });
+    const flags = crossCheck({ ...base(), self_admin_meds: "Yes" }, [meds], "2026-10-10T14:20");
+    const iv = flags.filter((f) => f.message.startsWith("IV medication"));
+    expect(iv).toHaveLength(1);
+    expect(iv[0].message).toMatch(/home health/);
+    expect(flags.some((f) => f.kind === "conflict" && f.field === "self_admin_meds")).toBe(false);
+  });
+
+  it("says it can't tell when the vitals date or authorization number is blacked out", () => {
+    const docs = [
+      doc("vitals", { taken_at: null, redacted: ["taken_at"] }),
+      doc("authorization", { authorization_number: null, status: "Approved", redacted: ["authorization_number"] }),
+    ];
+    const messages = crossCheck(base(), docs, "2026-10-10T14:20").map((f) => f.message);
+    expect(messages).toContain("Vitals: date blacked out, so can't tell from this packet whether they are from the last 24 hours");
+    expect(messages).not.toContain("Vitals: no date/time found");
+    expect(messages).not.toContain("Authorization number not found on the authorization");
+  });
+});

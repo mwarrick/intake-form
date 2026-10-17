@@ -185,6 +185,26 @@
     "BNP": 88,
     "D-Dimer": 0.48
   },
+  "consult_fu": "11/18/2026",
+  "followups": [],
+  "home_health": null,
+  "covid_doses": 4,
+  "o2_note": "Room air - weaned 10/12",
+  "o2_device": "Nasal cannula 3 L/min -> Room air (10/12)",
+  "ambulate": "150 ft w/ FWW",
+  "recent_surgery": false,
+  "mh_treatment": [
+    false,
+    ""
+  ],
+  "pharmacy": "CVS - Crown Valley Pkwy",
+  "living": [
+    "Vehicle",
+    "Car"
+  ],
+  "transport_barrier": "yes",
+  "interpreter": "Yes - Spanish #40122",
+  "family_adjust": "Supportive",
   "pages": {
     "1": "fax cover sheet",
     "2": "Illumination LA/OC referral form (handwritten)",

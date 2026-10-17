@@ -181,6 +181,33 @@
     "Iron": 22,
     "Hemoglobin A1c": 5.6
   },
+  "consult_fu": "10/28/2026",
+  "followups": [
+    [
+      "Dermatology",
+      "Referral placed - urgent",
+      "714-555-0166",
+      "pending"
+    ]
+  ],
+  "home_health": null,
+  "covid_doses": 2,
+  "o2_note": "N/A",
+  "o2_device": "None (Room air)",
+  "ambulate": "community distances",
+  "recent_surgery": false,
+  "mh_treatment": [
+    true,
+    "escitalopram - county BH psychiatrist"
+  ],
+  "pharmacy": null,
+  "living": [
+    "Unhoused",
+    "Unhoused"
+  ],
+  "transport_barrier": "no",
+  "interpreter": null,
+  "family_adjust": "Family not available",
   "pages": {
     "1": "fax cover sheet",
     "2": "Illumination LA/OC referral form (handwritten)",

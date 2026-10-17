@@ -58,3 +58,6 @@ __pycache__/
 
 # Real referral packets: never commit
 /samples/packets-real/
+
+# Simulated unredacted packets: keep the generator and answer keys, not the PDFs
+/samples/synthetic/unredacted-sim-*.pdf

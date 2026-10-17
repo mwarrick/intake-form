@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate three simulated, unredacted 31-page fax referral packets.
+"""Generate simulated, unredacted 31-page fax referral packets.
 
 The real packets in samples/packets-real/ have names, dates, MRNs, phone numbers and parts of the clinical text
 blacked out. These simulated packets follow the same 31 pages as R11.pdf, with every field filled in for a
@@ -17,11 +17,14 @@ fictional patient (scripts/unredacted_sim_patients.py), so extraction can be tes
     25-30   lab and study flowsheets, printed landscape and faxed sideways
     31      vital signs flowsheet, sideways
 
-    .venv/bin/python scripts/make_unredacted_sims.py     # writes samples/synthetic/unredacted-sim-00{1,2,3}.pdf and .json
+    .venv/bin/python scripts/make_unredacted_sims.py           # writes samples/synthetic/unredacted-sim-NNN.pdf and .json
+    .venv/bin/python scripts/make_unredacted_sims.py 004 005   # only those patients
+    .venv/bin/python scripts/make_unredacted_sims.py --layout  # schema/layouts/la-oc.json, for lining fields up on scans
 """
 import json
 import random
 import sys
+from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -65,10 +68,26 @@ class Canvas:
         self.w, self.h = w, h
         self.rng = rng or random.Random(0)
         self.pen = pen
+        # Where each form field and printed word went, for schema/layouts/la-oc.json (see form_layout()).
+        self.regions: dict[str, list[float]] = {}
+        self.words: list[tuple[str, list[float]]] = []
 
     def t(self, x, y, s, face="arial", size=26, fill=0, anchor="la"):
-        self.d.text((x, y), str(s), font=F(face, size), fill=fill, anchor=anchor)
-        return F(face, size).getlength(str(s))
+        s, f = str(s), F(face, size)
+        self.d.text((x, y), s, font=f, fill=fill, anchor=anchor)
+        left, top, _, bottom = self.d.textbbox((x, y), s, font=f, anchor=anchor)
+        at = 0
+        for w in s.split(" "):
+            if w:
+                x0 = left + f.getlength(s[:at])
+                self.words.append((w, [x0, top, x0 + f.getlength(w), bottom]))
+            at += len(w) + 1
+        return f.getlength(s)
+
+    def mark(self, fid, x0, y0, x1, y1):
+        """Record that field fid covers this box (boxes for the same field are joined)."""
+        r = self.regions.get(fid)
+        self.regions[fid] = [min(r[0], x0), min(r[1], y0), max(r[2], x1), max(r[3], y1)] if r else [x0, y0, x1, y1]
 
     def wrap(self, x, y, width, s, face="arial", size=26, lh=None, fill=0):
         f, lh = F(face, size), lh or int(size * 1.32)
@@ -116,8 +135,10 @@ class Canvas:
                             fill=20, width=4)
         return x + size + 8 + (F(face, size).getlength(label) if label else 0)
 
-    def field(self, x, y, label, value, x1, size=24, face="arial", hand_size=40):
+    def field(self, x, y, label, value, x1, size=24, face="arial", hand_size=40, fid=None):
         """Printed label, underline to x1, and a handwritten value on it."""
+        if fid:
+            self.mark(fid, x, y - 6, x1, y + size + 10)
         lx = x + self.t(x, y, label, face, size) + 8
         self.line(lx, y + size + 4, x1, y + size + 4, w=1)
         self.hand(lx + 6, y + size - hand_size + 6, value, hand_size)
@@ -215,7 +236,10 @@ def fax_cover(p, rng):
 # ---------------------------------------------------------------- page 2: Illumination LA/OC referral form
 
 def if_form(p, rng):
-    c = Canvas(rng=rng, pen=p["font"])
+    return if_form_canvas(p, rng, Canvas(rng=rng, pen=p["font"])).img
+
+
+def if_form_canvas(p, rng, c):
     c.t(120, 120, "ILLUMINATION", "arial", 20)
     c.t(120, 146, "RECUPERATIVE", "arialb", 40)
     c.t(1580, 160, "LA/OC REFERRAL FORM", "arial", 40, fill=110, anchor="ra")
@@ -225,44 +249,47 @@ def if_form(p, rng):
            "at 714-555-0109.", "arial", 19)
     c.rect(105, 310, 1600, 430)
     y = 320
-    c.field(115, y, "Referring Hospital", p["hospital"], 840, 22, hand_size=34)
-    c.field(860, y, "Dept/Floor", p["unit"], 1590, 22, hand_size=34)
-    c.field(115, y + 28, "SW/CM/RN:", p["referrer"], 840, 22, hand_size=34)
-    c.field(860, y + 28, "Phone/pager#:", p["referrer_phone"], 1590, 22, hand_size=34)
-    c.field(115, y + 56, "E-mail", p["referrer_email"], 840, 22, hand_size=34)
-    c.field(860, y + 56, "Nursing station#:", p["nursing_phone"], 1590, 22, hand_size=34)
-    c.field(115, y + 84, "Authorized by:", p["authorized_by"], 840, 22, hand_size=34)
-    c.field(860, y + 84, "phone#:", p["authorized_phone"], 1590, 22, hand_size=34)
+    c.field(115, y, "Referring Hospital", p["hospital"], 840, 22, hand_size=34, fid="referring_hospital")
+    c.field(860, y, "Dept/Floor", p["unit"], 1590, 22, hand_size=34, fid="dept_floor")
+    c.field(115, y + 28, "SW/CM/RN:", p["referrer"], 840, 22, hand_size=34, fid="referrer_name")
+    c.field(860, y + 28, "Phone/pager#:", p["referrer_phone"], 1590, 22, hand_size=34, fid="referrer_phone")
+    c.field(115, y + 56, "E-mail", p["referrer_email"], 840, 22, hand_size=34, fid="referrer_email")
+    c.field(860, y + 56, "Nursing station#:", p["nursing_phone"], 1590, 22, hand_size=34, fid="nursing_station_phone")
+    c.field(115, y + 84, "Authorized by:", p["authorized_by"], 840, 22, hand_size=34, fid="authorized_by")
+    c.field(860, y + 84, "phone#:", p["authorized_phone"], 1590, 22, hand_size=34, fid="authorized_by_phone")
     y = 460
-    c.field(110, y, "Patient Name", f"{p['first'].title()} {p['last'].title()}", 720, 22)
-    c.field(730, y, "MRN", p["mrn"], 1080, 22)
-    c.field(1090, y, "DOB", p["dob"], 1590, 22)
+    c.field(110, y, "Patient Name", f"{p['first'].title()} {p['last'].title()}", 720, 22, fid="patient_name")
+    c.field(730, y, "MRN", p["mrn"], 1080, 22, fid="mrn")
+    c.field(1090, y, "DOB", p["dob"], 1590, 22, fid="dob")
     y += 42
     x = c.t(110, y, "Gender:", "arial", 22) + 125
     for g in ["Male", "Female", "Transgender"]:
         x = c.box(x, y, g, p["sex"] == g, 22, mark="x") + 30
-    c.field(x, y, "Ethnicity:", p["ethnicity"], 1150, 22, hand_size=34)
-    c.field(1160, y, "Social Security# (last 4)", p["ssn4"], 1590, 22, hand_size=34)
+    c.mark("gender", 110, y - 6, x - 30, y + 32)
+    c.field(x, y, "Ethnicity:", p["ethnicity"], 1150, 22, hand_size=34, fid="ethnicity")
+    c.field(1160, y, "Social Security# (last 4)", p["ssn4"], 1590, 22, hand_size=34, fid="ssn_last4")
     y += 40
     c.box(110, y, "ED Visit", False, 22)
     c.box(290, y, "Hospital Admit", True, 22, mark="x")
-    c.field(520, y, "Date", p["admit"], 900, 22, hand_size=34)
+    c.field(520, y, "Date", p["admit"], 900, 22, hand_size=34, fid="admit_date")
     c.field(1000, y, "Expected Discharge Date", p["dc"], 1590, 22, hand_size=34)
     y += 42
-    c.field(110, y, "Insurance Type:", p["insurance"], 560, 22)
+    c.field(110, y, "Insurance Type:", p["insurance"], 560, 22, fid="insurance")
     x = c.t(580, y, "English Speaking?", "arial", 22) + 590
     x = c.box(x, y, "Yes", p["english"], 22) + 20
     x = c.box(x, y, "No", not p["english"], 22) + 20
-    c.field(x + 10, y, "*Primary Language Spoken:", p["language"], 1590, 22)
+    c.field(x + 10, y, "*Primary Language Spoken:", p["language"], 1590, 22, fid="preferred_language")
     y += 46
     c.t(110, y, "PLEASE VERIFY:", "arialb", 20)
     c.box(300, y, "Currently homeless", p["homeless"], 20)
     c.t(560, y, "Check if:", "arial", 20)
-    c.box(660, y, "Homeless for more than 1 year continuously or 4 episodes in last 3 years", p["homeless_long"], 20)
+    end = c.box(660, y, "Homeless for more than 1 year continuously or 4 episodes in last 3 years", p["homeless_long"], 20)
+    c.mark("housing_situation", 110, y - 6, end, y + 28)
     y += 40
     c.t(110, y, "CHIEF COMPLAINT/ADMITTING DIAGNOSIS:", "arialb", 20)
     c.hand(120, y + 18, p["form_cc"], 36 if len(p["form_cc"]) < 80 else 31)
     c.line(110, y + 56, 1590, y + 56, 1)
+    c.mark("chief_complaint", 110, y - 4, 1590, y + 60)
     y += 80
     x = c.t(110, y, "SUBSTANCE ABUSE?", "arialb", 20) + 125
     x = c.box(x, y, "None", not p["substances"], 20) + 20
@@ -279,64 +306,84 @@ def if_form(p, rng):
     x = c.t(110, y, "ANY WOUNDS?", "arialb", 20) + 125
     x = c.box(x, y, "Yes", p["wound"], 20, mark="x") + 16
     x = c.box(x, y, "No", not p["wound"], 20, mark="x") + 16
-    c.field(x, y, "If/Loc/Size/Stage:", p["wound_desc"], 1590, 20, hand_size=34)
+    c.mark("wounds", 110, y - 6, x - 16, y + 28)
+    c.field(x, y, "If/Loc/Size/Stage:", p["wound_desc"], 1590, 20, hand_size=34, fid="wounds_detail")
     y += 40
     x = c.t(110, y, "Independent with wound care?", "arial", 20) + 120
     wi = p["wound_independent"]
     x = c.box(x, y, "Yes", wi is True, 20) + 16
     x = c.box(x, y, "No", wi is False, 20) + 16
+    c.mark("independent_wound_care", 110, y - 6, x - 16, y + 28)
+    hx = x
     x = c.t(x, y, "If no, will Home Health be ordered?", "arial", 20) + x + 10
     hh = p["wound"] and wi is False
     x = c.box(x, y, "Yes", hh, 20) + 16
-    c.box(x, y, "no", p["wound"] and not hh, 20)
+    c.mark("home_health_ordered", hx, y - 6, c.box(x, y, "no", p["wound"] and not hh, 20), y + 28)
     y += 40
     x = c.t(110, y, "PPD/TB test or Chest XRAY performed?", "arial", 20) + 120
     x = c.box(x, y, "yes", bool(p["tb"]), 20) + 16
     x = c.box(x, y, "no", not p["tb"], 20, mark="x") + 16
-    c.field(x + 20, y, "Date:", p["tb"][0] if p["tb"] else "N/A", 1040, 20, hand_size=32)
-    c.field(1050, y, "Results:", p["tb"][1] if p["tb"] else "", 1590, 20, hand_size=28)
+    c.mark("tb_test_done", 110, y - 6, x - 16, y + 28)
+    c.field(x + 20, y, "Date:", p["tb"][0] if p["tb"] else "N/A", 1040, 20, hand_size=32, fid="tb_test_date")
+    c.field(1050, y, "Results:", p["tb"][1] if p["tb"] else "", 1590, 20, hand_size=28, fid="tb_test_results")
     y += 46
     x = c.t(110, y, "ANY LIMITATIONS, BEHAVIORAL CHALLENGES OR MENTAL HEALTH ISSUES?", "arialb", 19) + 120
-    c.box(x, y, "None", not p["mh"], 20)
-    c.box(x + 120, y, "Auditory/Visual Hallucinations", False, 20)
+    c.mark("has_limitations", 110, y - 6, c.box(x, y, "None", not p["mh"], 20), y + 28)
+    c.mark("behavioral_flags", x + 120, y - 6, c.box(x + 120, y, "Auditory/Visual Hallucinations", False, 20), y + 28)
     y += 40
     x = c.box(110, y, "Mental Health DX IF yes, what type?:", bool(p["mh"]), 20, mark="x")
+    c.mark("behavioral_flags", 110, y - 6, x, y + 28)
     c.hand(x + 20, y - 14, p["mh_type"], 36)
     c.line(x + 10, y + 24, 1150, y + 24, 1)
-    c.box(1180, y, "Non-compliant", False, 20)
-    c.box(1400, y, "forgetful", False, 20)
+    c.mark("mental_health_dx_type", x + 10, y - 10, 1150, y + 28)
+    c.mark("behavioral_flags", 1180, y - 6, c.box(1180, y, "Non-compliant", False, 20), y + 28)
+    c.mark("behavioral_flags", 1400, y - 6, c.box(1400, y, "forgetful", False, 20), y + 28)
     y += 40
-    c.box(110, y, "Cognitive Impairment", False, 20)
-    c.box(400, y, "Reg. Sex offender", False, 20)
-    c.box(650, y, "other, please explain ____________________________", False, 20)
+    c.mark("behavioral_flags", 110, y - 6, c.box(110, y, "Cognitive Impairment", False, 20), y + 28)
+    c.mark("behavioral_flags", 400, y - 6, c.box(400, y, "Reg. Sex offender", False, 20), y + 28)
+    c.mark("behavioral_explain", 650, y - 6, c.box(650, y, "other, please explain ____________________________", False, 20), y + 28)
     y += 60
     c.rect(105, y, 1600, y + 320)
     y += 16
 
-    def yn(x, y, label, val, explain=None):
+    def yn(x, y, label, val, explain=None, fid=None, explain_fid=None):
+        x0 = x
         x = c.t(x, y, label, "arial", 20) + x + 10
         x = c.box(x, y, "Yes", val is True, 20) + 14
         x = c.box(x, y, "No", val is False, 20) + 14
+        if fid:
+            c.mark(fid, x0, y - 6, x - 14, y + 28)
         if explain is not None:
+            ex = x
             x = c.t(x, y, "*Please explain:", "arial", 20) + x + 6
             c.hand(x, y - 14, explain, 32)
             c.line(x, y + 22, x + 220, y + 22, 1)
+            if explain_fid:
+                c.mark(explain_fid, ex, y - 10, x + 220, y + 28)
 
-    yn(120, y, "Requires O2?", p["o2"])
-    yn(620, y, "Self Administer All Meds?", p["self_meds"], "N/A")
+    yn(120, y, "Requires O2?", p["o2"], fid="o2")
+    yn(620, y, "Self Administer All Meds?", p["self_meds"], "N/A", fid="self_admin_meds")
     y += 38
-    yn(120, y, "Continent of Bowel & Bladder?", p["continent"])
-    yn(780, y, "Colostomy/Ileostomy", False)
-    yn(1240, y, "Foley Catheter", False)
+    yn(120, y, "Continent of Bowel & Bladder?", p["continent"], fid="continent")
+    yn(780, y, "Colostomy/Ileostomy", False, fid="ostomy")
+    yn(1240, y, "Foley Catheter", False, fid="foley")
     y += 38
     yn(120, y, "Independent w/all ADL's?", p["adls"], "N/A")
     y += 38
     x = c.t(120, y, "Diabetic?", "arialb", 20) + 130
     x = c.box(x, y, "No", not p["diabetic"], 20) + 14
     x = c.box(x, y, "If Yes, then:", p["diabetic"], 20) + 14
+    c.mark("diabetes", 120, y - 6, x - 14, y + 28)
+    ix = x
     x = c.box(x, y, "Insulin", p["insulin"], 20) + 14
+    c.mark("insulin", ix, y - 6, x - 14, y + 28)
+    ox = x
     x = c.box(x, y, "Oral Meds", p["diabetic"] and not p["insulin"], 20) + 30
+    c.mark("diabetes_oral_meds", ox, y - 6, x - 30, y + 28)
+    cx = x
     x = c.t(x, y, "Communicable Diseases?:", "arial", 20) + x + 8
+    c.mark("active_infection", cx, y - 6, x, y + 28)
+    c.mark("active_infection_explain", x, y - 16, 1590, y + 28)
     c.hand(x, y - 16, p["communicable"], 30 if len(p["communicable"]) > 12 else 34)
     y += 38
     x = c.t(120, y, "Anticoagulants?:", "arial", 20) + 130
@@ -344,14 +391,15 @@ def if_form(p, rng):
     x = c.box(x, y, "IF yes, Requires INR/PT/PTT checks through Home Health or Clinic?", p["anticoag"], 20) + 10
     c.hand(x, y - 14, "None", 32)
     y += 38
-    yn(120, y, "Ambulatory?", p["ambulatory"])
-    yn(560, y, "Assistive device?", bool(p["device"]), p["device"] or "N/A")
+    yn(120, y, "Ambulatory?", p["ambulatory"], fid="ambulatory")
+    yn(560, y, "Assistive device?", bool(p["device"]), p["device"] or "N/A", fid="assistive_device", explain_fid="assistive_device_explain")
     y += 38
-    yn(120, y, "Does Patient have a car?", p["car"])
+    yn(120, y, "Does Patient have a car?", p["car"], fid="car")
     yn(620, y, "Spouse/Partner?", p["partner"])
-    yn(1130, y, "Service Animal?", p["service_animal"])
+    yn(1130, y, "Service Animal?", p["service_animal"], fid="service_animal")
     y += 70
     c.t(830, y, "Length of Stay authorized in Recuperative Care:____days", "arialb", 22, anchor="ma")
+    c.mark("los_authorized_days", *c.d.textbbox((830, y), "Length of Stay authorized in Recuperative Care:____days", font=F("arialb", 22), anchor="ma"))
     y += 40
     x = c.t(110, y, "Attached Docs:", "arialb", 20) + 120
     for d in ["Face Sheet", "H&P", "Med List", "Psych notes", "Surgical notes", "PT/OT Eval.", "SW notes"]:
@@ -368,7 +416,7 @@ def if_form(p, rng):
         "arial", 20)
     c.t(830, y + 130, "WWW.IFRECUP.TEST  |  COPYRIGHT © 2016, ILLUMINATION FOUNDATION. ALL RIGHTS RESERVED.", "arial", 15,
         fill=90, anchor="ma")
-    return c.img
+    return c
 
 
 # ---------------------------------------------------------------- pages 3-8: CalAIM referral/authorization request
@@ -489,16 +537,10 @@ def calaim(p, rng):
     c.field(150, y, "ED visit/hospital admit date:", p["admit"], 760, 26, hand_size=hs)
     c.field(800, y, "Expected discharge date:", p["dc"], 1400, 26, hand_size=hs)
     y += 80
-    spec = p["consult_specialty"]
     x = c.t(150, y, "Will the member need any specialist follow-up care?", "arialb", 26) + 170
     x = c.box(x, y, "Yes", True, 26) + 20
     c.box(x, y, "No", False, 26)
-    fu = {"Infectious Diseases": [(spec, p["consultant"], p["hosp_phone"], "10/28/2026")],
-          "Pulmonary Disease": [(spec, p["consultant"], p["hosp_phone"], "11/18/2026")]}[spec]
-    if p["slug"] == "001":
-        fu.append(("Dermatology", "Referral placed - urgent", "714-555-0166", "pending"))
-    if p["slug"] == "003":
-        fu.append(("Podiatry", p["referring_md"], "657-555-0118", "10/21/2026"))
+    fu = [(p["consult_specialty"], p["consultant"], p["hosp_phone"], p["consult_fu"])] + [tuple(f) for f in p["followups"]]
     y += 46
     for i in range(3):
         row = fu[i] if i < len(fu) else ("", "", "", "")
@@ -510,11 +552,11 @@ def calaim(p, rng):
     c.t(150, y, "Authorized Home Health Provider", "arialb", 27)
     y += 44
     x = c.t(150, y, "Service(s):", "arial", 26) + 160
-    hh = p["slug"] == "003"
+    hh = p["home_health"]
     for s in ["Physical therapy", "Occupational therapy", "Speech", "Wound care"]:
-        x = c.box(x, y, s, hh and s == "Wound care", 26) + 26
+        x = c.box(x, y, s, bool(hh) and s in hh[1], 26) + 26
     if hh:
-        c.field(150, y + 50, "Agency:", "Coastline Home Health  657-555-0161", 1200, 26, hand_size=36)
+        c.field(150, y + 50, "Agency:", hh[0], 1200, 26, hand_size=36)
     pages.append(c.img)
 
     # Page 4
@@ -535,7 +577,7 @@ def calaim(p, rng):
     for i, dose in enumerate(["Dose 1:", "Dose 2:", "Booster 1:", "Booster 2:"]):
         yy = y + 106 + i * 36
         c.t(1060, yy, dose, "arial", 26)
-        had = i < (2 if p["slug"] != "002" else 4)
+        had = i < p["covid_doses"]
         c.box(1200, yy, "Yes", had, 24)
         c.box(1300, yy, "No", not had, 24)
     y += 290
@@ -557,7 +599,7 @@ def calaim(p, rng):
         x = c.box(x, y + 40, s, True, 26, mark="x") + 24
     c.t(150, y + 90, "Respiratory", "arialb", 26)
     x = c.box(150, y + 130, "Requires O2 (Explain):", p["o2"], 26)
-    c.hand(x + 20, y + 112, "Room air - weaned 10/12" if p["slug"] == "002" else "N/A", 34)
+    c.hand(x + 20, y + 112, p["o2_note"], 34)
     y += 200
     c.t(150, y, "GI/GU", "arialb", 26)
     for i, s in enumerate(["Incontinent of bowel", "Incontinent of bladder", "Colostomy/ileostomy", "Foley catheter"]):
@@ -571,13 +613,13 @@ def calaim(p, rng):
     x = c.box(x, y + 40, "Yes", p["adls"], 26) + 20
     c.box(x, y + 40, "No", not p["adls"], 26)
     c.field(150, y + 80, "How far can the member ambulate?",
-            {"001": "community distances", "002": "150 ft w/ FWW", "003": "50 ft heel WB w/ walker"}[p["slug"]], 1300, 26,
+            p["ambulate"], 1300, 26,
             hand_size=36)
     x = c.t(150, y + 130, "Does the member use DME?", "arial", 26) + 170
     x = c.box(x, y + 130, "Yes", bool(p["device"]), 26, mark="x") + 20
     c.box(x, y + 130, "No", not p["device"], 26, mark="x")
     c.field(150, y + 170, "If yes, please explain:", p["device"] or "", 1300, 26, hand_size=34)
-    for i, (lbl, v) in enumerate([("Fractures:", False), ("Recent surgery:", p["slug"] == "003")]):
+    for i, (lbl, v) in enumerate([("Fractures:", p["fracture"]), ("Recent surgery:", p["recent_surgery"])]):
         yy = y + 220 + i * 44
         c.t(150, yy, lbl, "arial", 26)
         c.box(370, yy, "Yes", v, 26)
@@ -631,8 +673,8 @@ def calaim(p, rng):
         x = c.box(x, y + 40, s, s in p["mh"], 26, mark="x") + 30
     x = c.box(150, y + 80, "Trauma-related", "Trauma-related" in p["mh"], 26, mark="x") + 30
     c.box(x, y + 80, "Other (please explain):", False, 26)
-    tx = {"001": "escitalopram - county BH psychiatrist", "002": "", "003": "none - referred to CalOptima BH"}[p["slug"]]
-    x = c.box(150, y + 130, "Current treatment:", p["slug"] == "001", 26)
+    on, tx = p["mh_treatment"]
+    x = c.box(150, y + 130, "Current treatment:", on, 26)
     c.hand(x + 20, y + 114, tx, 34)
     c.t(150, y + 190, "Requires assistance with ADLs, please explain:", "arial", 26)
     c.hand(760, y + 174, "N/A", 36)
@@ -660,7 +702,7 @@ def calaim(p, rng):
     y = 250
     c.t(150, y, "Health Information", "arialb", 27)
     x = c.t(150, y + 40, "Does the member have a preferred pharmacy?", "arial", 26) + 170
-    pharm = {"001": None, "002": "CVS - Crown Valley Pkwy", "003": "Hospital meds-to-beds"}[p["slug"]]
+    pharm = p["pharmacy"]
     x = c.box(x, y + 40, "Yes", bool(pharm), 26) + 20
     c.box(x, y + 40, "No", not pharm, 26)
     c.field(150, y + 80, "If yes, where:", pharm or "", 1000, 26, hand_size=34)
@@ -964,13 +1006,7 @@ def consult(p, rng):
     c = Canvas(rng=rng)
     ehr_banner(c, p)
     items = [("b", "Microbiology:"), ("p", "Microbiology Results (last 30 days)")]
-    micro = {"001": ["Wound Culture, scalp (10/10/2026): Staphylococcus aureus, MSSA - Cefazolin S, Clindamycin S, "
-                     "Doxycycline S", "Blood Culture x2 (10/10/2026): No growth at 72 hours", "Fungal culture, scalp: pending"],
-             "002": ["Blood Culture x2 (10/09/2026): No growth at 96 hours", "Sputum Culture (10/10/2026): Normal respiratory "
-                     "flora", "Legionella / Strep pneumo urine Ag: Negative", "Respiratory panel PCR: Negative"],
-             "003": ["Bone Culture, R 5th metatarsal (10/09/2026): Staphylococcus aureus (MSSA); Streptococcus agalactiae",
-                     "MRSA nares PCR (10/07/2026): POSITIVE", "Blood Culture x2 (10/07/2026): No growth at 5 days"]}[p["slug"]]
-    items += [("bul", micro), ("gap", 20), ("b", "Anti-microbials:")]
+    items += [("bul", k["micro"]), ("gap", 20), ("b", "Anti-microbials:")]
     for name, date, res in k["imaging"]:
         items += [("gap", 14), ("p", name), ("p", f"Result Date: {date}"), ("p", res)]
     blocks(c, 190, items, size=22)
@@ -1024,22 +1060,22 @@ def sw(p, rng):
     rows1 = [("Assessment", None), ("Assessment Type", "Initial;Face to Face"), ("Referral Data", None),
              ("Referral Source", "Nurse"), ("Referral Name", "Homeless"), ("Referral Reason", "Homeless"),
              ("Patient Information", None), ("Where was the patient admitted from?", "Unhoused"),
-             ("Living Arrangements", "Unhoused" if p["slug"] != "002" else "Vehicle"), ("Primary Caretaker(s)", "Self"),
-             ("Type of Residence", "Unhoused" if p["slug"] != "002" else "Car"),
+             ("Living Arrangements", p["living"][0]), ("Primary Caretaker(s)", "Self"),
+             ("Type of Residence", p["living"][1]),
              ("Primary Family/Caregiver Contact Name, Number and Relationship", " ".join(x for x in p["emergency"] if x)),
              ("Permission to Contact", "Yes"), ("Emergency/Primary Contact Language Preference", p["language"]),
              ("Home Care Services", "No"), ("Additional Services on Admission", "Not Applicable"),
              ("In the past 12 months, has lack of transportation kept you from medical appointments or from getting "
-              "medications?", "yes" if p["slug"] != "001" else "no"),
+              "medications?", p["transport_barrier"]),
              ("Is Patient Minor?", "No"), ("Child Welfare Services Involvement", "No"),
-             ("Interpreter used?", "Yes - Spanish #40122" if not p["english"] else "Not Needed"),
+             ("Interpreter used?", p["interpreter"] or "Not Needed"),
              ("Anticipated Discharge Disposition/Needs", "Recuperative care"), ("Activities of Daily Living", None),
              ("Prior to Level of Function", "Ambulatory"), ("Assistive Device", p["device"] or "Not applicable"),
              ("Ambulation", "Independent" if not p["device"] else "Assisted with device"), ("Dressing", "Independent"),
              ("Feeding", "Independent"), ("Behavior", "Oriented"),
              ("Communication", f"Talks;Understands speaking;Understands {p['language']}"), ("Income Information", None),
              ("Veterans Affiliation", "No"), ("Adjustment to Illness", None), ("Patient's Adjustment", "Acceptance"),
-             ("Family's Adjustment", "Family not available" if p["slug"] != "002" else "Supportive"),
+             ("Family's Adjustment", p["family_adjust"]),
              ("Mental Health Assessment", None), ("Hospitalization History", "No"), ("Past Mental Health Issues", mh),
              ("Mental Status", "No issues")]
     rows2 = [("Mental Status - Orientation", "oriented and alert"), ("Behavioral Assessment", "No issues"),
@@ -1252,7 +1288,7 @@ def flowsheet_pages(p, rng):
             c.t(gx0 + i * step, y, s, "arial", 17, anchor="ma")
         c.line(90, y + 30, c.w - 90, y + 30, 1, fill=190)
         y += 40
-    c.t(90, y + 20, f"O2 Device: {'Nasal cannula 3 L/min -> Room air (10/12)' if p['slug'] == '002' else 'None (Room air)'}",
+    c.t(90, y + 20, f"O2 Device: {p['o2_device']}",
         "arial", 19)
     c.t(90, y + 54, f"Weight: {p['weight']}    BMI: {p['bmi']}", "arial", 19)
     pages.append(c.img.rotate(90, expand=True))
@@ -1294,10 +1330,41 @@ def build(p):
     print(f"wrote {pdf.relative_to(ROOT)} ({TOTAL} pages)")
 
 
+def form_layout():
+    """Write schema/layouts/la-oc.json: where each field and each printed word sits on the LA/OC form, as fractions
+    of the page [left, top, right, bottom]. lib/align.ts finds the words on a scan and lines the fields up with it."""
+    c = Canvas(rng=random.Random(0))
+    # Drawing the page fills in c.regions and c.words; the handwriting isn't recorded.
+    if_form_canvas(PATIENTS[0], random.Random(0), c)
+    frac = lambda b: [round(b[0] / W, 4), round(b[1] / H, 4), round(b[2] / W, 4), round(b[3] / H, 4)]  # noqa: E731
+    norm = [("".join(ch for ch in w.lower() if ch.isalnum()), b) for w, b in c.words]
+    counts = Counter(t for t, _ in norm)
+    # Words printed once and long enough not to be confused with others.
+    anchors = [{"t": t, "b": frac(b)} for t, b in norm if counts[t] == 1 and len(t) >= 4 and not t.isdigit()]
+    # The printed words inside each field ("Requires", "O2", "Yes", "No"), so the box can be snapped to them on a scan.
+    labels = {
+        fid: [{"t": t, "b": frac(b)} for t, b in norm if t and r[0] <= (b[0] + b[2]) / 2 <= r[2] and r[1] <= (b[1] + b[3]) / 2 <= r[3]]
+        for fid, r in c.regions.items()
+    }
+    out = ROOT / "schema" / "layouts" / "la-oc.json"
+    out.parent.mkdir(exist_ok=True)
+    regions = ",\n".join(f'    "{k}": {json.dumps(frac(v))}' for k, v in c.regions.items())
+    label_rows = ",\n".join(f'    "{k}": {json.dumps(v)}' for k, v in labels.items() if v)
+    words = ",\n".join(f"    {json.dumps(a)}" for a in anchors)
+    out.write_text(f'{{\n  "name": "Illumination LA/OC referral form",\n  "regions": {{\n{regions}\n  }},\n'
+                   f'  "labels": {{\n{label_rows}\n  }},\n  "anchors": [\n{words}\n  ]\n}}\n')
+    print(f"wrote {len(c.regions)} field regions and {len(anchors)} anchor words to {out.relative_to(ROOT)}")
+
+
 def main():
     HAND.extend(ensure_fonts())
+    if sys.argv[1:] == ["--layout"]:
+        form_layout()
+        return
+    only = set(sys.argv[1:])
     for p in PATIENTS:
-        build(p)
+        if not only or p["slug"] in only:
+            build(p)
 
 
 if __name__ == "__main__":

@@ -191,6 +191,38 @@
     "Iron": 60,
     "Lactic Acid": 1.9
   },
+  "consult_fu": "10/28/2026",
+  "followups": [
+    [
+      "Podiatry",
+      "Elise Park, DPM",
+      "657-555-0118",
+      "10/21/2026"
+    ]
+  ],
+  "home_health": [
+    "Coastline Home Health  657-555-0161",
+    [
+      "Wound care"
+    ]
+  ],
+  "covid_doses": 2,
+  "o2_note": "N/A",
+  "o2_device": "None (Room air)",
+  "ambulate": "50 ft heel WB w/ walker",
+  "recent_surgery": true,
+  "mh_treatment": [
+    false,
+    "none - referred to CalOptima BH"
+  ],
+  "pharmacy": "Hospital meds-to-beds",
+  "living": [
+    "Unhoused",
+    "Unhoused"
+  ],
+  "transport_barrier": "yes",
+  "interpreter": null,
+  "family_adjust": "Family not available",
   "pages": {
     "1": "fax cover sheet",
     "2": "Illumination LA/OC referral form (handwritten)",

@@ -45,3 +45,6 @@ next-env.d.ts
 /.cache/
 /samples/eval-*.json
 __pycache__/
+
+# personal Claude Code settings
+.claude/settings.local.json

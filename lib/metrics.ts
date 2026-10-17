@@ -43,6 +43,18 @@ export interface Metrics {
   criteria: Count[];
   acuity: { label: string; count: number; of: number }[];
   capacity: { inCare: number; arrivingNext7: number; endingNext7: number; avgDaysAuthorized: number | null };
+  /** Approved referrals in the range: how stays went, from the staff box. */
+  stays: {
+    exited: number;
+    medianLos: number | null;
+    avgLos: number | null;
+    leftEarly: number;
+    extensionAsked: number;
+    extended: number;
+    /** Past the authorized end with no exit date and no extension. */
+    noExit: number;
+    los: Count[];
+  };
   housing: {
     admitted: number;
     assessed: number;
@@ -145,17 +157,39 @@ export function computeMetrics(
   // Capacity as of today, across every approved referral (not just the range).
   const stays = referrals
     .filter((r) => r.status === "approved" && typeof r.data.admission_date === "string")
-    .map((r) => {
-      const start = r.data.admission_date as string;
-      const days = typeof r.data.los_authorized_days === "number" ? r.data.los_authorized_days : null;
-      return { start, end: days ? addDays(start, days) : null, days };
-    });
+    .map((r) => ({ start: r.data.admission_date as string, end: stayEnd(r.data) }));
   const next7 = addDays(today, 7);
   const capacity = {
     inCare: stays.filter((s) => s.start <= today && (!s.end || s.end > today)).length,
     arrivingNext7: stays.filter((s) => s.start > today && s.start <= next7).length,
     endingNext7: stays.filter((s) => s.start <= today && s.end && s.end > today && s.end <= next7).length,
     avgDaysAuthorized: mean(approved.map((r) => r.data.los_authorized_days).filter((d): d is number => typeof d === "number")),
+  };
+
+  // How stays went, for approved referrals in the range.
+  const admittedInRange = approved.filter((r) => typeof r.data.admission_date === "string");
+  const exits = admittedInRange.flatMap((r) => {
+    const exit = str(r.data.exit_date);
+    if (!exit) return [];
+    const los = typeof r.data.total_los === "number" ? r.data.total_los : daysBetween(r.data.admission_date as string, exit);
+    return [{ r, exit, los }];
+  });
+  const authorizedEnd = (r: MetricReferral) => (typeof r.data.los_authorized_days === "number" ? addDays(r.data.admission_date as string, r.data.los_authorized_days) : null);
+  const stayOutcomes = {
+    exited: exits.length,
+    medianLos: median(exits.map((x) => x.los)),
+    avgLos: mean(exits.map((x) => x.los)),
+    leftEarly: exits.filter(({ r, exit }) => {
+      const end = authorizedEnd(r);
+      return end !== null && exit < end && r.data.extension_requested !== "Yes";
+    }).length,
+    extensionAsked: admittedInRange.filter((r) => r.data.extension_requested === "Yes" || r.data.extension_requested === "No").length,
+    extended: admittedInRange.filter((r) => r.data.extension_requested === "Yes").length,
+    noExit: admittedInRange.filter((r) => {
+      const end = authorizedEnd(r);
+      return !str(r.data.exit_date) && r.data.extension_requested !== "Yes" && end !== null && end <= today;
+    }).length,
+    los: LOS_BUCKETS.map(([label, lo, hi]) => ({ label, count: exits.filter((x) => x.los >= lo && x.los <= hi).length })),
   };
 
   // Housing: approved patients in the range admitted at least a week ago.
@@ -199,10 +233,35 @@ export function computeMetrics(
     criteria,
     acuity,
     capacity,
+    stays: stayOutcomes,
     housing,
   };
 }
 
+const LOS_BUCKETS: [string, number, number][] = [
+  ["Under 2 weeks", 0, 13],
+  ["2–3 weeks", 14, 20],
+  ["3–4 weeks", 21, 29],
+  ["30 days or more", 30, Infinity],
+];
+
+/**
+ * The day a stay ends: the exit date once recorded, else the authorized end. An extension with no exit yet has no
+ * known end, so the patient counts as still in care.
+ */
+export function stayEnd(data: FormData): string | null {
+  const exit = str(data.exit_date);
+  if (exit) return exit;
+  if (data.extension_requested === "Yes") return null;
+  return typeof data.admission_date === "string" && typeof data.los_authorized_days === "number" ? addDays(data.admission_date, data.los_authorized_days) : null;
+}
+
+function str(v: unknown): string | null {
+  return typeof v === "string" && v ? v : null;
+}
+function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
+}
 function minutes(r: MetricReferral): number {
   return (Date.parse(r.decided_at!) - Date.parse(r.created_at)) / 60_000;
 }

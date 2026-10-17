@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type MetricReferral, computeMetrics, localDate } from "@/lib/metrics";
+import { type MetricReferral, computeMetrics, localDate, stayEnd } from "@/lib/metrics";
 
 let n = 0;
 const ref = (over: Partial<MetricReferral> & { minutes?: number }): MetricReferral => {
@@ -71,6 +71,30 @@ describe("computeMetrics", () => {
     expect(m.weekly[0].week).toBe("2026-09-28");
     expect(m.weekly.reduce((a, w) => a + w.approved + w.denied + w.pending, 0)).toBe(5);
     expect(m.acuity.find((a) => a.label === "Wound care")).toEqual({ label: "Wound care", count: 1, of: 2 });
+  });
+});
+
+describe("stays", () => {
+  const stay = (data: Record<string, unknown>) => ref({ minutes: 30, data: { approved: "Yes", admission_date: "2026-09-01", los_authorized_days: 14, ...data } });
+  const referrals = [
+    stay({ exit_date: "2026-09-15", total_los: 14, extension_requested: "No" }),
+    stay({ exit_date: "2026-09-12", total_los: 11 }),
+    stay({ exit_date: "2026-09-29", total_los: 28, extension_requested: "Yes" }),
+    stay({ extension_requested: "No" }),
+    stay({ admission_date: "2026-10-10", extension_requested: "Yes" }),
+  ];
+  const m = computeMetrics(referrals, [], new Map(), { from: "2026-09-28", to: "2026-10-12" }, TODAY);
+
+  it("measures length of stay, early exits and extensions", () => {
+    expect(m.stays).toMatchObject({ exited: 3, medianLos: 14, leftEarly: 1, extended: 2, extensionAsked: 4, noExit: 1 });
+    expect(m.stays.los.map((b) => b.count)).toEqual([1, 1, 1, 0]);
+  });
+
+  it("ends a stay on its exit date, and leaves an extended stay open", () => {
+    expect(stayEnd({ admission_date: "2026-09-01", los_authorized_days: 14 })).toBe("2026-09-15");
+    expect(stayEnd({ admission_date: "2026-09-01", los_authorized_days: 14, exit_date: "2026-09-10" })).toBe("2026-09-10");
+    expect(stayEnd({ admission_date: "2026-09-01", los_authorized_days: 14, extension_requested: "Yes" })).toBeNull();
+    expect(m.capacity.inCare).toBe(1);
   });
 });
 

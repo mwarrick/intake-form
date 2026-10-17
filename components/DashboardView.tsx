@@ -15,6 +15,7 @@ const share = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` 
 export function DashboardView({ m, range, toFix }: { m: Metrics; range: string; toFix?: number }) {
   const t = m.totals;
   const hs = m.housing;
+  const st = m.stays;
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -36,6 +37,7 @@ export function DashboardView({ m, range, toFix }: { m: Metrics; range: string; 
             <Link
               key={r.id}
               href={`/dashboard?range=${r.id}`}
+              scroll={false}
               className={`rounded px-2.5 py-1 ${range === r.id ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
               aria-current={range === r.id ? "page" : undefined}
             >
@@ -111,6 +113,22 @@ export function DashboardView({ m, range, toFix }: { m: Metrics; range: string; 
         </Card>
       </div>
 
+      <Card title="Stays" note="Approved patients in this range; length of stay from admission to exit">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Mini label="Exited" value={String(st.exited)} note="with an exit date" />
+            <Mini label="Median length of stay" value={st.medianLos === null ? "—" : `${st.medianLos} days`} note={st.avgLos === null ? "" : `${st.avgLos} days on average`} />
+            <Mini label="Left early" value={share(st.leftEarly, st.exited)} note={`${st.leftEarly} before the authorized end`} />
+            <Mini label="Extension requested" value={share(st.extended, st.extensionAsked)} note={`${st.extended} of ${st.extensionAsked} answered`} />
+            <Mini label="No exit recorded" value={String(st.noExit)} note="past the authorized end, no extension" />
+          </div>
+          <div>
+            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">Length of stay</p>
+            <BarList items={st.exited ? st.los : []} total={st.exited} empty="No exits in this range." />
+          </div>
+        </div>
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Acuity of approved patients" note="For staffing and supplies">
           <BarList items={m.acuity.filter((a) => a.of).map((a) => ({ label: a.label === "Controlled medication" ? `Controlled medication (of ${a.of} with a med list)` : a.label, count: a.count }))} total={t.approved} />
@@ -137,7 +155,7 @@ export function DashboardView({ m, range, toFix }: { m: Metrics; range: string; 
       </div>
 
       <p className="text-xs text-slate-400">
-        Not shown yet: arrivals and no-shows, exits and where people went, hospital returns, ECM enrollment. See docs/FUTURE.md.
+        Not shown yet: arrivals and no-shows, where people went after exit, hospital returns, ECM enrollment. See docs/FUTURE.md.
       </p>
     </div>
   );

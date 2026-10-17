@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Assessment } from "@/lib/assessment";
 import { requireUser } from "@/lib/auth";
 import { buildHandoff } from "@/lib/handoff";
-import { addDays, localDate } from "@/lib/metrics";
+import { addDays, localDate, stayEnd } from "@/lib/metrics";
 import { type Referral, assessmentStatuses, listAdmissions } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
@@ -17,8 +17,8 @@ export default async function Admissions() {
   const assessments = await assessmentStatuses(referrals.map((r) => r.id));
   const today = localDate(new Date());
   const date = (r: Referral) => (typeof r.data.admission_date === "string" ? r.data.admission_date : null);
-  // A stay has ended once its authorized days are up; those patients drop off both lists.
-  const ends = (r: Referral) => (date(r) && typeof r.data.los_authorized_days === "number" ? addDays(date(r)!, r.data.los_authorized_days) : null);
+  // A stay has ended on its exit date, or once its authorized days are up; those patients drop off both lists.
+  const ends = (r: Referral) => (date(r) ? stayEnd(r.data) : null);
   const arriving = referrals.filter((r) => (date(r) ?? "9999") >= today);
   const inCare = referrals.filter((r) => (date(r) ?? "9999") < today && (ends(r) ?? "9999") > today).reverse();
 

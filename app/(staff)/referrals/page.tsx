@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/StatusBadge";
 import { requireUser } from "@/lib/auth";
-import { docStatuses, listReferrals } from "@/lib/referrals";
+import { listReferrals, withOriginalScan } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +15,7 @@ function age(iso: string) {
 export default async function Queue() {
   await requireUser("/referrals");
   const referrals = await listReferrals();
-  // The first item on the form's checklist: the hospital face sheet.
-  const demographics = await docStatuses(referrals.map((r) => r.id), "demographics");
+  const scanned = await withOriginalScan(referrals.map((r) => r.id));
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -39,7 +38,7 @@ export default async function Queue() {
               <th className="px-4 py-2 font-medium">Referring hospital</th>
               <th className="px-4 py-2 font-medium">Source</th>
               <th className="px-4 py-2 font-medium">Status</th>
-              <th className="px-4 py-2 font-medium" title="Client's Demographic Page, the first item on the referral checklist">Demographic page</th>
+              <th className="px-4 py-2 font-medium" title="The original faxed or scanned referral form, as uploaded">Fax/scan received</th>
               <th className="px-4 py-2 font-medium">Flags</th>
             </tr>
           </thead>
@@ -79,7 +78,7 @@ export default async function Queue() {
                     <StatusBadge status={r.status} />
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-xs">
-                    <DocIndicator status={demographics.get(r.id)} reading={r.status === "processing"} />
+                    <ScanIndicator received={scanned.has(r.id)} online={r.source !== "scan"} />
                   </td>
                   <td className="px-4 py-2.5 text-xs">
                     {conflicts > 0 && <span className="mr-2 font-medium text-red-700">{conflicts} conflict{conflicts > 1 ? "s" : ""}</span>}
@@ -97,15 +96,21 @@ export default async function Queue() {
   );
 }
 
-/** Received, still being read, or missing; shape and word as well as color. */
-function DocIndicator({ status, reading }: { status?: "done" | "processing" | "failed"; reading: boolean }) {
-  if (status === "done" || status === "failed")
+/** Received or missing; shape and word as well as color. Online referrals have no fax, so they show a dash unless one was added. */
+function ScanIndicator({ received, online }: { received: boolean; online: boolean }) {
+  if (received)
     return (
-      <span className="inline-flex items-center gap-1 font-medium text-emerald-700" title={status === "failed" ? "Received, but it couldn't be read" : undefined}>
+      <span className="inline-flex items-center gap-1 font-medium text-emerald-700">
         <span aria-hidden="true">✓</span> Received
       </span>
     );
-  if (status === "processing" || reading) return <span className="text-sky-700">Reading…</span>;
+  if (online)
+    return (
+      <span className="text-slate-400" title="Online referral, no fax expected">
+        <span aria-hidden="true">—</span>
+        <span className="sr-only">Not applicable</span>
+      </span>
+    );
   return (
     <span className="inline-flex items-center gap-1 font-medium text-red-700">
       <span aria-hidden="true">✕</span> Missing

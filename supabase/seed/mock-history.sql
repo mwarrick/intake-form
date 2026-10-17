@@ -123,6 +123,15 @@ select
   '[]'::jsonb, f.doc_flags, f.decided_at, f.decided_at
 from flagged f;
 
+-- A demographic page (hospital face sheet) for every history referral; the flags above never list it as missing.
+insert into "ILLINTAKE_supporting_docs" (referral_id, created_at, doc_type, label, status, data)
+select r.id, r.created_at, 'demographics', 'Client''s Demographic Page', 'done',
+  jsonb_build_object('patient_name', r.patient_name, 'dob', r.data->>'dob', 'sex', left(r.data->>'gender', 1), 'address', 'homeless',
+    'insurance', 'CalOptima Health (Medi-Cal)', 'member_id', 'C' || (17000000 + substr(r.id::text, 25)::int), 'emergency_contact', 'None listed',
+    'preferred_language', r.data->>'preferred_language', 'notes', null)
+from "ILLINTAKE_referrals" r
+where r.id::text like 'b2000000-%';
+
 -- Housing assessments for approved patients admitted at least 5 days ago: most complete, some drafts, some not started.
 insert into "ILLINTAKE_assessments" (referral_id, created_at, updated_at, status, data, completed_at)
 select

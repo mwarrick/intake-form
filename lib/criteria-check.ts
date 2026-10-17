@@ -91,7 +91,25 @@ Specific rules:
   guard, min/mod/max assist) decide it. Supervision or any physical assist is not independent.
 - Cognition (COG-2, FORM-M3): AOx4 means oriented to person, place, time and situation. AOx3 or less, or
   "confused" in the most recent notes, is a concern. Delirium or encephalopathy that has cleared by the latest note
-  is not.`;
+  is not.
+- Conditions by body system (eligible and exclude rules for skin, bones, neurology, GI, kidney, eyes, respiratory,
+  circulatory, endocrine): judge only conditions the patient has now or was treated for this stay. A condition the
+  patient doesn't have is not_applicable. "Immediately following" means this hospitalization.
+- Where the outline leaves a case unclear (a resolved DKA, troponins after a heart attack, whether a past episode
+  still counts), use unknown and say what the coordinator has to decide.
+- Diabetes (DM-, END-): a patient without diabetes is not_applicable on every DM- rule. DM-2 and DM-4 apply only to
+  referrals from the emergency department. DM-3 is about insulin newly started this stay; insulin the patient already
+  used at home is not new. For DM-1 and END-E1, list the glucose readings you found in note, oldest first.
+- Cardiac (CARD-, CIR-): CARD-2 applies only if troponins were drawn, CARD-4 only with atrial fibrillation. Quote the
+  ejection fraction for CARD-5. CARD-6 and CIR-X2: IV blood pressure medication (IV labetalol, IV hydralazine,
+  nicardipine or other drips) in the last 24 hours is a concern; earlier in the stay and now controlled on oral
+  medication is ok; when the timing can't be told, unknown.
+- Vitals (CARD-1, RESP-2): the packet should have five sets; say how many you found.
+- Respiratory (RESP-, RSP-): BiPAP needed now is a concern (RSP-X5); BiPAP earlier in the stay and since weaned is
+  not. CPAP for sleep apnea is eligible (RSP-E7). New home oxygen must be ordered by the hospital (RESP-3).
+- General (GEN-, FORM-M1): ok when the packet shows the patient is unhoused or at risk and too ill to recover
+  alone. OTH-2 is a concern only if the packet says the patient is a registered sex offender; it is always the
+  coordinator's call.`;
 
 /** Judge one group of rules against the packet's text. Every rule in the group gets a result. */
 export async function checkGroup(group: string, pages: PageText[], usage: Usage): Promise<RuleResult[]> {
@@ -143,7 +161,19 @@ export async function checkGroup(group: string, pages: PageText[], usage: Usage)
   });
 }
 
-/** Every group, in parallel. */
+/**
+ * Every group, in parallel. A group whose call fails leaves its rules unknown rather than sinking the whole check;
+ * if every group fails, the check fails.
+ */
 export async function checkCriteria(pages: PageText[], usage: Usage, groups = Object.keys(RULE_GROUPS)): Promise<RuleResult[]> {
-  return (await Promise.all(groups.map((g) => checkGroup(g, pages, usage)))).flat();
+  const settled = await Promise.allSettled(groups.map((g) => checkGroup(g, pages, usage)));
+  const failed = settled.filter((s): s is PromiseRejectedResult => s.status === "rejected");
+  if (failed.length === groups.length) throw failed[0].reason;
+  return settled.flatMap((s, i) =>
+    s.status === "fulfilled"
+      ? s.value
+      : RULE_GROUPS[groups[i]].rules.map(
+          (id): RuleResult => ({ rule_id: id, outcome: "unknown", evidence: null, pages: [], note: "This group's check failed; use Run again." }),
+        ),
+  );
 }

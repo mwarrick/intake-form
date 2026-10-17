@@ -1,5 +1,7 @@
 import "server-only";
-import { runPipeline, rereadThreshold, type PageImage } from "@/lib/extract";
+import { RULE_GROUPS, type CriteriaCheck } from "@/lib/criteria";
+import { checkCriteria, transcribePages } from "@/lib/criteria-check";
+import { runPipeline, rereadThreshold, models, type PageImage, type PageType, type Usage } from "@/lib/extract";
 import type { ReadProgress } from "@/lib/progress";
 import { readPacketDocuments, refreshDocFlags } from "@/lib/extract-docs";
 import { allFields, emptyData } from "@/lib/form";
@@ -22,23 +24,7 @@ export async function processScan(referralId: string): Promise<void> {
     await supabase.from(T.referrals).update({ pipeline: { progress } }).eq("id", referralId);
   };
   try {
-    const { data: docs, error } = await supabase
-      .from(T.documents)
-      .select("page_number, storage_path, mime_type")
-      .eq("referral_id", referralId)
-      .eq("kind", "page")
-      .order("page_number");
-    if (error) throw new Error(error.message);
-    if (!docs?.length) throw new Error("No page images were uploaded");
-
-    const pages: PageImage[] = await Promise.all(
-      docs.map(async (d) => {
-        const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(d.storage_path);
-        if (dlErr || !blob) throw new Error(`Could not download page ${d.page_number}: ${dlErr?.message}`);
-        const b64 = Buffer.from(await blob.arrayBuffer()).toString("base64");
-        return { pageNumber: d.page_number as number, dataUrl: `data:${d.mime_type || "image/jpeg"};base64,${b64}` };
-      }),
-    );
+    const { docs, pages } = await loadPages(referralId);
 
     const result = await runPipeline(pages, saveProgress);
     // Save pages that were turned upright, so the review screen shows them the right way up.
@@ -72,9 +58,12 @@ export async function processScan(referralId: string): Promise<void> {
       .eq("id", referralId);
     if (upErr) throw new Error(upErr.message);
 
-    // The form is ready for review now; supporting documents in the packet are read after it.
-    await readPacketDocuments(referralId, result.pages, result.pipeline.pageTypes ?? []);
-    await refreshDocFlags(referralId, data);
+    // The form is ready for review now; supporting documents in the packet are read after it, while the
+    // admission criteria are checked against the whole packet. A referrer's pre-fill upload is only their form.
+    await Promise.all([
+      readPacketDocuments(referralId, result.pages, result.pipeline.pageTypes ?? []).then(() => refreshDocFlags(referralId, data)),
+      prefill ? null : checkReferralCriteria(referralId, result.pages, result.pipeline.pageTypes ?? []),
+    ]);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error(`processScan ${referralId} failed:`, e);
@@ -83,5 +72,56 @@ export async function processScan(referralId: string): Promise<void> {
       // A failed pre-fill stays a draft: the referrer can still type the form in.
       .update({ status: prefill ? "draft" : "failed", error: message, updated_at: new Date().toISOString() })
       .eq("id", referralId);
+  }
+}
+
+/** A referral's scanned pages, in order, as stored (pages the reader turned were saved upright). */
+async function loadPages(referralId: string) {
+  const supabase = db();
+  const { data: docs, error } = await supabase
+    .from(T.documents)
+    .select("page_number, storage_path, mime_type")
+    .eq("referral_id", referralId)
+    .eq("kind", "page")
+    .order("page_number");
+  if (error) throw new Error(error.message);
+  if (!docs?.length) throw new Error("No page images were uploaded");
+
+  const pages: PageImage[] = await Promise.all(
+    docs.map(async (d) => {
+      const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(d.storage_path);
+      if (dlErr || !blob) throw new Error(`Could not download page ${d.page_number}: ${dlErr?.message}`);
+      const b64 = Buffer.from(await blob.arrayBuffer()).toString("base64");
+      return { pageNumber: d.page_number as number, dataUrl: `data:${d.mime_type || "image/jpeg"};base64,${b64}` };
+    }),
+  );
+  return { docs, pages };
+}
+
+/**
+ * Check IHH's admission criteria (lib/criteria.ts) against every page of the packet and store one result per rule
+ * on the referral. Without pages (Run again on the review screen) it reads the stored ones. Never throws: a failed
+ * check is saved as failed, and the referral itself is unaffected.
+ */
+export async function checkReferralCriteria(referralId: string, pages?: PageImage[], pageTypes?: PageType[]): Promise<void> {
+  const supabase = db();
+  const groups = Object.keys(RULE_GROUPS);
+  const base: CriteriaCheck = { status: "running", startedAt: new Date().toISOString(), groups, model: models.criteria };
+  const save = (c: CriteriaCheck) => supabase.from(T.referrals).update({ criteria: c }).eq("id", referralId);
+  await save(base);
+  const usage: Usage = [];
+  try {
+    if (!pages || !pageTypes) {
+      const { data: ref, error } = await supabase.from(T.referrals).select("pipeline").eq("id", referralId).single();
+      if (error) throw new Error(error.message);
+      pages = (await loadPages(referralId)).pages;
+      pageTypes = (ref.pipeline?.pageTypes ?? []) as PageType[];
+    }
+    const text = await transcribePages(pages, pageTypes, usage);
+    const results = await checkCriteria(text, usage, groups);
+    await save({ ...base, status: "done", finishedAt: new Date().toISOString(), results, usage });
+  } catch (e) {
+    console.error(`criteria check ${referralId} failed:`, e);
+    await save({ ...base, status: "failed", finishedAt: new Date().toISOString(), usage, error: e instanceof Error ? e.message : String(e) });
   }
 }

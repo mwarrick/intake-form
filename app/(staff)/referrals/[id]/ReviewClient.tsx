@@ -3,15 +3,17 @@
 import { useRouter } from "next/navigation";
 import { type SyntheticEvent, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { saveDecision, saveReview } from "@/app/actions";
+import { CriteriaPanel } from "@/components/CriteriaPanel";
 import { DeleteReferral } from "@/components/DeleteReferral";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { ReadingProgress } from "@/components/ReadingProgress";
 import { FormSections } from "@/components/FormSections";
+import { CRITERIA_STALE_MS } from "@/lib/criteria";
 import type { SupportingDoc } from "@/lib/documents";
-import { type FieldValue, type FormData, fieldRegions, referrerFields, referrerSections, staffFields, staffSection } from "@/lib/form";
+import { type FieldValue, type FormData, referrerFields, referrerSections, staffFields, staffSection } from "@/lib/form";
 import type { ReadProgress, ReadStatus } from "@/lib/progress";
 import type { DocumentRow, Referral } from "@/lib/referrals";
-import { type Flag, fieldLabel, validate } from "@/lib/validate";
+import { type FieldLocation, type Flag, fieldLabel, validate } from "@/lib/validate";
 
 interface Props {
   referral: Referral;
@@ -28,20 +30,22 @@ export function ReviewClient({ referral, documents, supporting, threshold }: Pro
   const justSubmitted = Date.now() - new Date(referral.created_at).getTime() < 3 * 60 * 1000;
   const awaitingDocs =
     referral.source === "portal" && justSubmitted && documents.some((d) => d.kind === "attachment") && !supporting.some((s) => s.document_id);
+  const criteriaStatus = referral.criteria?.status ?? null;
+  const criteriaRunning = criteriaStatus === "running" && Date.now() - Date.parse(referral.criteria!.startedAt) < CRITERIA_STALE_MS;
 
   // Poll while the reader is working on the form or documents: show its progress, and refresh the page when something changes.
   const [progress, setProgress] = useState<ReadProgress | null>(referral.pipeline?.progress ?? null);
   useEffect(() => {
-    if (!processing && !docsPending && !awaitingDocs) return;
+    if (!processing && !docsPending && !awaitingDocs && !criteriaRunning) return;
     const t = setInterval(async () => {
       const res = await fetch(`/api/referrals/${referral.id}/status`, { cache: "no-store" }).catch(() => null);
       const body: ReadStatus | null = res?.ok ? await res.json() : null;
       if (!body) return;
       setProgress(body.progress);
-      if (body.status !== referral.status || body.docsPending !== docsPending) router.refresh();
+      if (body.status !== referral.status || body.docsPending !== docsPending || body.criteria !== criteriaStatus) router.refresh();
     }, processing ? 1500 : 3000);
     return () => clearInterval(t);
-  }, [processing, docsPending, awaitingDocs, referral.id, referral.status, router]);
+  }, [processing, docsPending, awaitingDocs, criteriaRunning, criteriaStatus, referral.id, referral.status, router]);
 
   const fileUrls = new Map(documents.filter((d) => d.url).map((d) => [d.id, d.url!]));
 
@@ -50,8 +54,18 @@ export function ReviewClient({ referral, documents, supporting, threshold }: Pro
   const attachments = documents.filter((d) => d.kind === "attachment");
   // The field to show on the scan; `n` changes on every click so clicking the same field again re-centers it.
   const [locate, setLocate] = useState<{ field: string; n: number } | null>(null);
+  // A page to show, from a criteria result's page link; `n` changes on every click like `locate`.
+  const [showPage, setShowPage] = useState<{ page: number; n: number } | null>(null);
   // Any referral with a scan: faxed ones, and online ones the referrer pre-filled from their paper form.
   const canLocate = pages.length > 0;
+  // Where the reader found each field on this scan; older readings have none, so those fields only open the form page.
+  const locations = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(referral.extraction ?? {}).flatMap(([id, ex]) => (ex.location ? [[id, ex.location]] : [])),
+      ) as Record<string, FieldLocation>,
+    [referral.extraction],
+  );
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -60,9 +74,11 @@ export function ReviewClient({ referral, documents, supporting, threshold }: Pro
           <ScanViewer
             pages={pages}
             formPages={referral.pipeline?.formPages ?? []}
+            locations={locations}
             originalUrl={original?.url}
             locate={locate}
             onClearLocate={() => setLocate(null)}
+            showPage={showPage}
           />
         )}
         {referral.source === "portal" && (
@@ -78,6 +94,13 @@ export function ReviewClient({ referral, documents, supporting, threshold }: Pro
         {!processing && referral.status !== "failed" && (
           <>
             <PipelineSummary referral={referral} />
+            {(referral.source === "scan" || referral.criteria) && pages.length > 0 && (
+              <CriteriaPanel
+                referralId={referral.id}
+                check={referral.criteria}
+                onShowPage={(page) => setShowPage((s) => ({ page, n: (s?.n ?? 0) + 1 }))}
+              />
+            )}
             <DocumentsPanel docs={supporting} flags={referral.doc_flags ?? []} fileUrls={fileUrls} referralId={referral.id} />
             <FieldsEditor
               referral={referral}
@@ -102,15 +125,19 @@ const PAD_Y = 0.008;
 function ScanViewer({
   pages,
   formPages,
+  locations,
   originalUrl,
   locate,
   onClearLocate,
+  showPage,
 }: {
   pages: DocumentRow[];
   formPages: number[];
+  locations: Record<string, FieldLocation>;
   originalUrl?: string;
   locate: { field: string; n: number } | null;
   onClearLocate: () => void;
+  showPage: { page: number; n: number } | null;
 }) {
   // A packet with no form page has nowhere to show a field, so it opens on its first page.
   const formPage = pages.find((p) => formPages.includes(p.page_number ?? -1));
@@ -131,28 +158,50 @@ function ScanViewer({
   // Bumped to re-run the scroll even when locating a field changes neither the page nor the zoom.
   const [scrollTick, setScrollTick] = useState(0);
 
-  const region = locate ? fieldRegions[locate.field] : undefined;
-  const box = region && current === formPage?.page_number
+  // The reader's box for the field, on the page it found it; without one the field only opens the form page.
+  const located = locate ? locations[locate.field] : undefined;
+  const region = located && pages.some((p) => p.page_number === located.page) ? located.box : undefined;
+  const box = region && current === located!.page
     ? { left: region[0] - PAD_X, top: region[1] - PAD_Y, right: region[2] + PAD_X, bottom: region[3] + PAD_Y }
     : null;
 
-  // Locating a field: go to the form page, zoom so the field fills about half the width (at most 200%), and centre it.
+  // Locating a field: go to its page, zoom so the field fills about half the width (at most 200%), and centre it.
+  // A field with no box opens the form page at the top, fitted to the width.
   useEffect(() => {
-    if (!locate || !region || !formPage) return;
-    const width = region[2] - region[0] + 2 * PAD_X;
-    const fit = 0.6 / width;
-    const level = [...ZOOMS].reverse().find((z) => z <= fit && z <= 2) ?? 1;
-    setCurrent(formPage.page_number!);
-    // Field positions are on the upright form, so show it upright.
-    setTurn(formPage.page_number!, 0);
-    setZoom((z) => Math.max(z, level, 1.5));
-    pendingCenter.current = [(region[0] + region[2]) / 2, (region[1] + region[3]) / 2];
+    if (!locate) return;
+    const target = region ? located!.page : formPage?.page_number;
+    if (target == null) return;
+    setCurrent(target);
+    // Field positions are on the upright page, so show it upright.
+    setTurn(target, 0);
+    if (region) {
+      const width = region[2] - region[0] + 2 * PAD_X;
+      const fit = 0.6 / width;
+      const level = [...ZOOMS].reverse().find((z) => z <= fit && z <= 2) ?? 1;
+      setZoom((z) => Math.max(z, level, 1.5));
+      pendingCenter.current = [(region[0] + region[2]) / 2, (region[1] + region[3]) / 2];
+    } else {
+      setZoom(1);
+      pendingCenter.current = null;
+      scroller.current?.scrollTo({ top: 0, left: 0 });
+    }
     setScrollTick((t) => t + 1);
     // On narrow screens the scan sits above the fields; bring it into view when it's off screen.
     const rect = card.current?.getBoundingClientRect();
     if (rect && (rect.bottom < 80 || rect.top > window.innerHeight - 80)) card.current!.scrollIntoView({ block: "start" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locate]);
+
+  // A page link from the criteria check: open that page at the top, keeping the zoom.
+  useEffect(() => {
+    if (!showPage || !pages.some((p) => p.page_number === showPage.page)) return;
+    setCurrent(showPage.page);
+    onClearLocate();
+    scroller.current?.scrollTo({ top: 0 });
+    const rect = card.current?.getBoundingClientRect();
+    if (rect && (rect.bottom < 80 || rect.top > window.innerHeight - 80)) card.current!.scrollIntoView({ block: "start" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPage]);
 
   function onImageLoad(e: SyntheticEvent<HTMLImageElement>) {
     const img = e.currentTarget;
@@ -214,9 +263,10 @@ function ScanViewer({
             {formPages.includes(p.page_number!) && " ★"}
           </button>
         ))}
-        {box && locate && (
+        {locate && (box || !region) && (
           <span className="flex items-center gap-1 rounded bg-sky-50 px-2 py-0.5 text-xs text-sky-800">
             {fieldLabel(locate.field)}
+            {!region && <span className="text-sky-600" title="The reader didn't give a position for this field">· place not known</span>}
             <button className="text-sky-600 hover:text-sky-900" onClick={onClearLocate} aria-label="Clear highlight">
               ×
             </button>

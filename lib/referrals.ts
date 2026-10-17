@@ -2,6 +2,7 @@ import "server-only";
 import type { FormData } from "@/lib/form";
 import type { Extraction, Flag } from "@/lib/validate";
 import type { Assessment } from "@/lib/assessment";
+import type { CriteriaCheck } from "@/lib/criteria";
 import type { SupportingDoc } from "@/lib/documents";
 import type { PipelineResult } from "@/lib/extract";
 import { loadSupporting } from "@/lib/extract-docs";
@@ -24,6 +25,8 @@ export interface Referral {
   /** Supporting documents vs. the form and admission criteria (lib/crosscheck.ts). */
   doc_flags: Flag[];
   pipeline: Partial<PipelineResult["pipeline"]>;
+  /** IHH's admission criteria checked against the whole packet; null until it has run. */
+  criteria: CriteriaCheck | null;
   error: string | null;
   reviewed_at: string | null;
   /** When the approve/deny decision was recorded; null for undecided referrals and decisions made before it was kept. */

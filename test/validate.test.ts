@@ -98,6 +98,14 @@ describe("IHH's internal criteria and redacted answers", () => {
     expect(flags[0].message).toMatch(/case by case, not an automatic denial/);
   });
 
+  it("asks to confirm a wheelchair user instead of requiring 100 ft of walking", () => {
+    const d = { ...complete(), ambulatory: "No", assistive_device: "Yes", assistive_device_explain: "Manual W/C, transfers on own" };
+    const flags = validate(d).filter((f) => f.field === "ambulatory");
+    expect(flags).toHaveLength(1);
+    expect(flags[0].message).toMatch(/wheelchair.*MOB-3, MOB-4/);
+    expect(validate({ ...complete(), ambulatory: "No" }).find((f) => f.field === "ambulatory")?.message).toMatch(/walk 100 ft/);
+  });
+
   it("doesn't flag a redacted required field as missing or hard to read", () => {
     const d = { ...complete(), patient_name: null, dob: null };
     const extraction = {

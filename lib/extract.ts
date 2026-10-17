@@ -4,7 +4,7 @@ import { type Field, type FormData, normalize, paperFields, schema } from "@/lib
 import { DOC_TYPES } from "@/lib/documents";
 import type { ReadProgress } from "@/lib/progress";
 import { ORIENTATIONS, ORIENTATION_HINT, type Orientation, turnFor, turnImage } from "@/lib/upright";
-import type { Extraction } from "@/lib/validate";
+import type { Extraction, FieldLocation } from "@/lib/validate";
 
 export interface PageImage {
   pageNumber: number;
@@ -42,6 +42,10 @@ export const models = {
   // Supporting documents (H&P, med list, culture…) are mostly typed text.
   docs: process.env.OPENAI_MODEL_DOCS || "gpt-5.4-mini",
   extract: process.env.OPENAI_MODEL_EXTRACT || "gpt-5.4-mini",
+  // Transcribing every page of a packet to text for the admission criteria check.
+  transcribe: process.env.OPENAI_MODEL_TRANSCRIBE || "gpt-5.4-mini",
+  // Judging the admission criteria against the whole packet: needs the strongest reasoning.
+  criteria: process.env.OPENAI_MODEL_CRITERIA || "gpt-5.5",
   // Set OPENAI_MODEL_REREAD to an empty string to skip the second reading.
   reread: process.env.OPENAI_MODEL_REREAD ?? "gpt-5.5",
 };
@@ -262,7 +266,7 @@ export function fieldsJsonSchema(fields: Field[]): Record<string, unknown> {
             {
               type: "object",
               additionalProperties: false,
-              required: ["value", "raw", "confidence", "corrected", "redacted"],
+              required: ["value", "raw", "confidence", "corrected", "redacted", "page", "left", "top", "right", "bottom"],
               properties: {
                 value: valueSchema(f),
                 raw: { type: ["string", "null"], description: "Exactly what is handwritten or marked, before normalizing. null if blank." },
@@ -275,6 +279,12 @@ export function fieldsJsonSchema(fields: Field[]): Record<string, unknown> {
                   type: "boolean",
                   description: "true if the answer area is covered by a solid black box (removed for privacy); value is then null.",
                 },
+                // Where the field is, so the review screen can outline it on any version of the form.
+                page: { type: ["integer", "null"], description: "Packet page number the field's printed label is on; null if the field isn't on these pages." },
+                left: { type: ["number", "null"], description: "Box around the printed label and its answer area, as fractions of the page image (0 = left edge, 1 = right edge)." },
+                top: { type: ["number", "null"], description: "Top of that box (0 = top edge of the page image, 1 = bottom)." },
+                right: { type: ["number", "null"], description: "Right of that box." },
+                bottom: { type: ["number", "null"], description: "Bottom of that box." },
               },
             },
           ]),
@@ -298,7 +308,36 @@ Rules:
 - Phone numbers: return digits formatted as (XXX) XXX-XXXX, keeping any extension.
 - Last 4 of SSN: exactly 4 digits.
 - Keep medical abbreviations as written (e.g. "CHF exacerbation", "LLE cellulitis", "Rt heel stage 2").
+- Location: for every field, give the page and a box around its printed label and answer area (the line, boxes or
+  options a referrer writes in), as fractions of that page image. Even a blank field has a location. Use null only
+  when the field isn't printed on these pages (this version of the form doesn't ask it).
 - Confidence: 0.95+ only when the writing is clear; 0.6-0.85 when you had to interpret messy writing or faint marks; below 0.6 when you are guessing. A clearly blank field has high confidence that it is blank.`;
+
+interface RawField {
+  value: unknown;
+  raw: string | null;
+  confidence: number;
+  corrected?: boolean;
+  redacted?: boolean;
+  page?: number | null;
+  left?: number | null;
+  top?: number | null;
+  right?: number | null;
+  bottom?: number | null;
+}
+
+/** A field's place from the reader, if it gave a usable one: a box inside one of the form pages. */
+export function fieldLocation(r: RawField | undefined, pages: number[]): FieldLocation | undefined {
+  if (!r || r.page == null || !pages.includes(r.page)) return undefined;
+  const box = [r.left, r.top, r.right, r.bottom];
+  if (!box.every((n) => typeof n === "number" && Number.isFinite(n))) return undefined;
+  // Some models answer in thousandths or percent rather than fractions.
+  const scale = Math.max(...(box as number[])) > 1.5 ? (Math.max(...(box as number[])) > 100 ? 1000 : 100) : 1;
+  const [left, top, right, bottom] = (box as number[]).map((n) => Math.min(1, Math.max(0, n / scale)));
+  // A box that's empty, or covers most of the page, doesn't point anywhere.
+  if (right - left < 0.01 || bottom - top < 0.005 || right - left > 0.98 || bottom - top > 0.3) return undefined;
+  return { page: r.page, box: [left, top, right, bottom] };
+}
 
 async function readFields(opts: {
   step: string;
@@ -308,7 +347,7 @@ async function readFields(opts: {
   extraText?: string;
   usage: Usage;
 }): Promise<{
-  fields: Record<string, { value: unknown; raw: string | null; confidence: number; corrected?: boolean; redacted?: boolean }>;
+  fields: Record<string, RawField>;
   notes: string;
 }> {
   return jsonCall({
@@ -316,7 +355,7 @@ async function readFields(opts: {
     model: opts.model,
     instructions: EXTRACT_INSTRUCTIONS,
     text: [
-      `Transcribe these fields from the form page image(s):`,
+      `Transcribe these fields from the form page image(s). The images are packet page${opts.pages.length > 1 ? "s" : ""} ${opts.pages.map((p) => p.pageNumber).join(", ")}, in that order.`,
       ...opts.fields.map(fieldHint),
       opts.extraText ?? "",
     ].join("\n"),
@@ -335,30 +374,38 @@ function sameValue(a: unknown, b: unknown): boolean {
 
 type ProgressStep = Omit<ReadProgress, "startedAt">;
 
+export interface SortedPages {
+  /** The pages, turned upright where needed. */
+  pages: PageImage[];
+  pageTypes: PageType[];
+  classifyNotes?: string;
+  classifyModel: string | null;
+  turned: { page: number; degrees: number }[];
+}
+
+/**
+ * A one-page upload is the form page; otherwise the cheap model labels every page and says which ones
+ * are sideways or upside down, and those are turned upright.
+ */
+export async function sortPages(scanned: PageImage[], usage: Usage): Promise<SortedPages> {
+  if (scanned.length <= 1) {
+    return { pages: scanned, pageTypes: scanned.map((p) => ({ page: p.pageNumber, type: "referral_form" })), classifyModel: null, turned: [] };
+  }
+  const sorted = await classifyPages(scanned, usage);
+  const { pages, turned } = await turnUpright(scanned, sorted.orientations, usage);
+  return { pages, pageTypes: sorted.pages, classifyNotes: sorted.notes, classifyModel: models.classify, turned };
+}
+
 export async function runPipeline(scanned: PageImage[], onProgress?: (p: ProgressStep) => Promise<void>): Promise<PipelineResult> {
   const usage: Usage = [];
   const report = async (p: ProgressStep) => onProgress?.(p).catch((e) => console.warn("progress update failed:", e));
   const fields = paperFields;
 
-  // Step 1: a one-page upload is the form page; otherwise let the cheap model label every page and
-  // say which ones are sideways or upside down, and turn those upright.
-  let pages = scanned;
-  let formPages = pages;
-  let pageTypes: PageType[] = pages.map((p) => ({ page: p.pageNumber, type: "referral_form" }));
-  let classifyNotes: string | undefined;
-  let classifyModel: string | null = null;
-  let turned: { page: number; degrees: number }[] = [];
-  if (pages.length > 1) {
-    classifyModel = models.classify;
-    await report({ step: "classify", pages: pages.length });
-    const sorted = await classifyPages(pages, usage);
-    classifyNotes = sorted.notes;
-    pageTypes = sorted.pages;
-    ({ pages, turned } = await turnUpright(pages, sorted.orientations, usage));
-    const form = new Set(sorted.pages.filter((p) => p.type === "referral_form").map((p) => p.page));
-    // No form page in a packet: leave the form blank for the coordinator rather than reading every page as the form.
-    formPages = pages.filter((p) => form.has(p.pageNumber));
-  }
+  // Step 1: label the pages and turn sideways ones upright.
+  if (scanned.length > 1) await report({ step: "classify", pages: scanned.length });
+  const { pages, pageTypes, classifyNotes, classifyModel, turned } = await sortPages(scanned, usage);
+  // No form page in a packet: leave the form blank for the coordinator rather than reading every page as the form.
+  const formPages = pages.filter((p) => pageTypes.some((t) => t.page === p.pageNumber && t.type === "referral_form"));
 
   if (!formPages.length) {
     return {
@@ -381,6 +428,8 @@ export async function runPipeline(scanned: PageImage[], onProgress?: (p: Progres
   // Step 2: read every field.
   await report({ step: "extract", pages: pages.length, formPages: formPages.map((p) => p.pageNumber) });
   const first = await readFields({ step: "extract", model: models.extract, fields, pages: formPages, usage });
+  const formPageNumbers = formPages.map((p) => p.pageNumber);
+  const withLocation = (location: FieldLocation | undefined) => (location ? { location } : {});
   const data = normalize(Object.fromEntries(fields.map((f) => [f.id, first.fields[f.id]?.value])), fields);
   const extraction: Extraction = Object.fromEntries(
     fields.map((f) => {
@@ -393,6 +442,7 @@ export async function runPipeline(scanned: PageImage[], onProgress?: (p: Progres
           model: models.extract,
           ...(r?.corrected ? { corrected: true } : {}),
           ...(r?.redacted && data[f.id] == null ? { redacted: true } : {}),
+          ...withLocation(fieldLocation(r, formPageNumbers)),
         },
       ];
     }),
@@ -425,9 +475,11 @@ export async function runPipeline(scanned: PageImage[], onProgress?: (p: Progres
       const prev = extraction[f.id];
       const conf = clamp(r.confidence);
       const corrected = prev.corrected || r.corrected ? { corrected: true } : {};
+      // Keep the first reading's place for the field unless only the second reading gave one.
+      const location = withLocation(prev.location ?? fieldLocation(r, formPageNumbers));
       if (sameValue(reread[f.id], data[f.id])) {
         // Two models agreeing independently is stronger evidence than either alone.
-        extraction[f.id] = { ...prev, ...corrected, confidence: Math.max(prev.confidence, conf), model: `${prev.model}+${models.reread}` };
+        extraction[f.id] = { ...prev, ...corrected, ...location, confidence: Math.max(prev.confidence, conf), model: `${prev.model}+${models.reread}` };
       } else {
         extraction[f.id] = {
           confidence: Math.min(conf, 0.6),
@@ -435,6 +487,7 @@ export async function runPipeline(scanned: PageImage[], onProgress?: (p: Progres
           model: models.reread,
           firstPass: { value: data[f.id], confidence: prev.confidence, model: prev.model },
           ...corrected,
+          ...location,
         };
         data[f.id] = reread[f.id];
       }

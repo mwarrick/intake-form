@@ -15,4 +15,6 @@ export interface ReadStatus {
   progress: ReadProgress | null;
   docsPending: number;
   docsTotal: number;
+  /** The admission criteria check (lib/criteria.ts): running, done, failed, or null before it has run. */
+  criteria: string | null;
 }

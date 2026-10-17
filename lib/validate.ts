@@ -1,3 +1,4 @@
+import { isWheelchair } from "@/lib/crosscheck";
 import { type Field, type FormData, fieldsById, isEmpty, isRequired, referrerFields } from "@/lib/form";
 
 export type FlagKind =
@@ -28,13 +29,21 @@ export interface FieldExtraction {
   corrected?: boolean;
   /** The answer is covered by a solid black box (removed for privacy): unknown, not blank. */
   redacted?: boolean;
+  /** Where the reader found the field on the scan, so the review screen can outline it on any version of the form. */
+  location?: FieldLocation;
+}
+
+/** A packet page and a box on it: [left, top, right, bottom] as fractions of the page image. */
+export interface FieldLocation {
+  page: number;
+  box: [number, number, number, number];
 }
 
 export type Extraction = Record<string, FieldExtraction>;
 
 const ELIGIBILITY_MESSAGES: Record<string, string> = {
   self_admin_meds: "Patient must be able to self-administer medications",
-  ambulatory: "Patient must be able to walk 100 ft. and transfer independently",
+  ambulatory: "Patient must be able to walk 100 ft. (rest breaks, a walker or cane are fine) and transfer independently",
   active_infection: "Active infection must be cleared by a doctor or CID before admission",
   meds_30_day_supply: "Patient must arrive with a 30-day supply of all medications",
   "Cognitive Impairment": "Cognitive impairment is an exclusion criterion",
@@ -109,7 +118,12 @@ export function validate(data: FormData, opts: ValidateOptions = {}): Flag[] {
     if (f.type === "yes_no" && typeof f.eligibility === "string") {
       const fails = (f.eligibility === "must_be_yes" && v === "No") || (f.eligibility === "review_if_yes" && v === "Yes");
       if (fails) {
-        flags.push({ kind: "eligibility", field: f.id, message: ELIGIBILITY_MESSAGES[f.id] ?? `${f.label}: ${v}` });
+        // IHH's internal criteria (MOB-3, MOB-4) accept a wheelchair user who transfers and uses the chair independently.
+        const message =
+          f.id === "ambulatory" && isWheelchair(data.assistive_device_explain)
+            ? "Not ambulatory, uses a wheelchair: accepted if they transfer and use the chair independently (MOB-3, MOB-4); confirm"
+            : (ELIGIBILITY_MESSAGES[f.id] ?? `${f.label}: ${v}`);
+        flags.push({ kind: "eligibility", field: f.id, message });
       }
     }
 

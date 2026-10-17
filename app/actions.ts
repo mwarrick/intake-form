@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { rereadThreshold } from "@/lib/extract";
 import { type FormData, allFields, emptyData, normalize, referrerFields, schema, staffFields } from "@/lib/form";
+import { fullName, staffOrThrow } from "@/lib/auth";
 import { refreshDocFlags } from "@/lib/extract-docs";
 import { summaryColumns } from "@/lib/referrals";
 import { T, createUploadTargets, db, safeName, type UploadTarget } from "@/lib/supabase";
@@ -34,7 +35,11 @@ async function reported<T>(fn: () => Promise<T>): Promise<T | { error: string }>
  * "scan" is a fax for the coordinator queue; "prefill" is a referrer's paper form that pre-fills the online form.
  */
 export async function startScan(original: FileMeta, pageCount: number, purpose: "scan" | "prefill" = "scan") {
-  return reported(() => createScan(original, pageCount, purpose));
+  return reported(async () => {
+    // Faxes go straight to the coordinator queue, so only staff can upload them. Pre-fill is the public form's.
+    if (purpose === "scan") await staffOrThrow();
+    return createScan(original, pageCount, purpose);
+  });
 }
 
 async function createScan(original: FileMeta, pageCount: number, purpose: "scan" | "prefill"): Promise<StartScanResult> {
@@ -188,7 +193,10 @@ async function loadExtraction(id: string): Promise<Extraction> {
 
 /** Coordinator saves corrections to the referral fields. Confirming clears low-confidence flags. */
 export async function saveReview(id: string, raw: Record<string, unknown>, confirm: boolean) {
-  return reported(() => updateReview(id, raw, confirm));
+  return reported(async () => {
+    await staffOrThrow();
+    return updateReview(id, raw, confirm);
+  });
 }
 
 async function updateReview(id: string, raw: Record<string, unknown>, confirm: boolean) {
@@ -221,15 +229,17 @@ async function updateReview(id: string, raw: Record<string, unknown>, confirm: b
 
 /** Staff-only box: record the approval decision. */
 export async function saveDecision(id: string, raw: Record<string, unknown>) {
-  return reported(() => updateDecision(id, raw));
+  return reported(async () => updateDecision(id, raw, fullName(await staffOrThrow())));
 }
 
-async function updateDecision(id: string, raw: Record<string, unknown>) {
+async function updateDecision(id: string, raw: Record<string, unknown>, reviewer: string) {
   const supabase = db();
   const { data: current, error: curErr } = await supabase.from(T.referrals).select("data, status").eq("id", id).single();
   if (curErr) throw new Error(curErr.message);
 
   const staff = normalize(raw, staffFields);
+  // Default "Reviewed by" to whoever is signed in.
+  if (!staff.reviewed_by) staff.reviewed_by = reviewer;
   const data = { ...current.data, ...staff };
   const staffFlags = validate(data, { fields: staffFields }).filter((f) => f.kind === "missing" || f.kind === "invalid");
   if (staffFlags.length) return { errors: staffFlags.map((f) => f.message) };

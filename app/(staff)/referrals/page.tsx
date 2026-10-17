@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/StatusBadge";
+import { requireUser } from "@/lib/auth";
 import { listReferrals } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ function age(iso: string) {
 }
 
 export default async function Queue() {
+  await requireUser("/referrals");
   const referrals = await listReferrals();
   return (
     <div className="space-y-4">

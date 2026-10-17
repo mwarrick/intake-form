@@ -19,17 +19,22 @@ The browser renders each page to a JPEG and uploads it straight to Supabase Stor
 | Read the form | `OPENAI_MODEL_EXTRACT` | `gpt-5.4-mini` | Reads every field at high detail into a strict JSON schema: value, exactly what was written, and a confidence score. |
 | Re-read unsure fields | `OPENAI_MODEL_REREAD` | `gpt-5.5` | Gives fields below `EXTRACT_REREAD_THRESHOLD` (default 0.75) an independent second reading. If the two readings agree, confidence goes up. If they disagree, the field is flagged and shows both. Set it to empty to skip this step. |
 
+**Supporting documents.** The checklist items (face sheet, CalOptima authorization, H&P, progress notes, vitals, medication list, PT/OT notes, culture) are read too. That covers files attached on the online form and, in a faxed packet, the pages the classifier labels as one of those documents. Each document type has its own short field list (`lib/documents.ts`) and is read in one call to `OPENAI_MODEL_DOCS` (default `gpt-5.4-mini`). Plain code (`lib/crosscheck.ts`) then compares the documents with the form and the admission criteria: patient identity, active infections (e.g. MRSA on a culture while the form says none), cognition and orientation, walking distance, transfers and ADLs, IV medications, insulin and oxygen, vitals older than 24 hours, and the authorization (status, number, approved days vs. requested). Conflicts appear on the review screen under the form field they contradict, and in a Documents panel.
+
 Validation and admission-criteria checks are plain code (`lib/validate.ts`), not a model. They cover required fields, formats, DOBs that could be read month/day or day/month, and eligibility rules such as not ambulatory, active infection, cognitive impairment, or registered sex offender.
 
 The defaults are model names whose tier is clear. Swap in any vision-capable model from your OpenAI account through the environment variables; no code changes needed.
 
 ## Layout
 
+- `docs/REQUIREMENTS.md`: the requirements, with the status of each (built, in progress, planned, deferred).
+
 - `schema/referral-form.json`: the one field list. It drives the extraction schema, the portal form, the review screen and validation.
-- `supabase/migrations/`: `0001` creates tables `ILLINTAKE_referrals` and `ILLINTAKE_documents` and the private storage bucket `illintake-files`. `0002` adds the `draft` status for portal pre-fill.
+- `supabase/migrations/`: `0001` creates tables `ILLINTAKE_referrals` and `ILLINTAKE_documents` and the private storage bucket `illintake-files`. `0002` adds the `draft` status for portal pre-fill. `0003` adds `ILLINTAKE_supporting_docs` (what was read from each supporting document) and `doc_flags` on referrals.
 - `lib/extract.ts`: the OpenAI pipeline. `lib/validate.ts`: rules and flags. `lib/process.ts`: runs a scan through the pipeline.
 - `app/`: pages (`/upload`, `/refer`, `/referrals`, `/referrals/[id]`), server actions, and the processing route.
 - `scripts/make_samples.py`: generates fake hand-filled, faxed forms with answer keys in `samples/synthetic/`.
+- `scripts/make_documents.py`: generates fake supporting documents for the same three patients in `samples/synthetic/documents/`, with answer keys and the flags they should raise. Each patient gets typed printouts plus handwritten versions of the vitals flowsheet, nursing mobility assessment, authorization request, and a medication list with handwritten corrections. Patient 2's culture shows MRSA although the form says no infection, their authorization is short, and their vitals are 32 hours old. Patient 3 has IV antibiotics, dementia, walks only 40 ft, a pending authorization, and an MRN typo.
 - `test/`: unit tests, plus `eval.test.ts`, which scores the real pipeline against the sample answer keys.
 
 ## Setup
@@ -38,7 +43,7 @@ The defaults are model names whose tier is clear. Swap in any vision-capable mod
 2. **Environment variables** (Vercel project settings; see `.env.example`):
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`), and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEY`). The Vercel Supabase integration sets these.
    - `OPENAI_API_KEY`
-   - Optional: `OPENAI_MODEL_CLASSIFY`, `OPENAI_MODEL_EXTRACT`, `OPENAI_MODEL_REREAD`, `EXTRACT_REREAD_THRESHOLD`
+   - Optional: `OPENAI_MODEL_CLASSIFY`, `OPENAI_MODEL_EXTRACT`, `OPENAI_MODEL_REREAD`, `OPENAI_MODEL_DOCS`, `EXTRACT_REREAD_THRESHOLD`
 3. `npm install` (this also copies the pdf.js worker into `public/`), then `npm run dev`.
 
 **Cleanup:** Vercel Cron calls `/api/cron/cleanup` once a day (`vercel.json`). It deletes uploads that are more than a day old and not attached to an intake record: online-form uploads of a paper form that were never submitted (including repeat uploads), and storage folders whose referral no longer exists. Faxed scans and submitted referrals are never deleted. Optionally set `CRON_SECRET` in Vercel so only the cron job can call the route.
@@ -49,6 +54,7 @@ All database access goes through server code with the service role key. Row leve
 
 ```bash
 npm run samples   # regenerate samples/synthetic/*.pdf and their answer keys
+python3 scripts/make_documents.py   # regenerate the supporting documents
 npm test          # unit tests (free)
 npm run eval      # run the real pipeline on every sample and score each field (uses the OpenAI API)
 OPENAI_MODEL_EXTRACT=gpt-5.5 OPENAI_MODEL_REREAD= npm run eval   # compare another model

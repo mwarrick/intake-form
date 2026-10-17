@@ -11,7 +11,7 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const found = await getReferral(id);
   if (!found) notFound();
-  const { referral, documents } = found;
+  const { referral, documents, supporting } = found;
 
   return (
     <div className="space-y-4">
@@ -29,6 +29,7 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
         key={referral.updated_at}
         referral={referral}
         documents={documents}
+        supporting={supporting}
         threshold={rereadThreshold}
       />
     </div>

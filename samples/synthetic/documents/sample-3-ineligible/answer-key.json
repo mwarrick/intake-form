@@ -1,0 +1,135 @@
+{
+  "received_at": "2026-10-10T14:20",
+  "documents": [
+    {
+      "doc_type": "demographics",
+      "file": "demographics.pdf",
+      "handwritten": false,
+      "expected": {
+        "patient_name": "PIKE, GERALD",
+        "mrn": "FV2290141"
+      }
+    },
+    {
+      "doc_type": "authorization",
+      "file": "authorization.pdf",
+      "handwritten": false,
+      "expected": {
+        "status": "Pending clinical review"
+      }
+    },
+    {
+      "doc_type": "history_physical",
+      "file": "history_physical.pdf",
+      "handwritten": false,
+      "expected": {
+        "cognitive_impairment": true,
+        "oriented_x4": false,
+        "infections": [
+          {
+            "organism": "MRSA",
+            "status": "active"
+          }
+        ]
+      }
+    },
+    {
+      "doc_type": "vitals",
+      "file": "vitals.pdf",
+      "handwritten": false,
+      "expected": {
+        "taken_at": "2026-10-10T10:00",
+        "oxygen": "2L NC"
+      }
+    },
+    {
+      "doc_type": "medications",
+      "file": "medications.pdf",
+      "handwritten": false,
+      "expected": {
+        "medications": 4
+      }
+    },
+    {
+      "doc_type": "therapy_notes",
+      "file": "therapy_notes.pdf",
+      "handwritten": false,
+      "expected": {
+        "ambulation_distance_ft": 40,
+        "transfers_independent": false,
+        "adls_independent": false
+      }
+    },
+    {
+      "doc_type": "culture",
+      "file": "culture.pdf",
+      "handwritten": false,
+      "expected": {
+        "result": "positive",
+        "mrsa": true
+      }
+    },
+    {
+      "doc_type": "vitals",
+      "file": "vitals-handwritten.pdf",
+      "handwritten": true,
+      "expected": {
+        "taken_at": "2026-10-10T10:00",
+        "oxygen": "2L NC"
+      }
+    },
+    {
+      "doc_type": "therapy_notes",
+      "file": "nursing-mobility-handwritten.pdf",
+      "handwritten": true,
+      "expected": {
+        "ambulation_distance_ft": 40,
+        "transfers_independent": false,
+        "adls_independent": false
+      }
+    },
+    {
+      "doc_type": "authorization",
+      "file": "authorization-request-handwritten.pdf",
+      "handwritten": true,
+      "expected": {
+        "status": "Pending"
+      }
+    },
+    {
+      "doc_type": "medications",
+      "file": "medications-corrected-handwritten.pdf",
+      "handwritten": true,
+      "expected": {
+        "medications": 4,
+        "dose:Donepezil": "10 mg"
+      }
+    }
+  ],
+  "expected_flags": [
+    [
+      "conflict",
+      "mrn"
+    ],
+    [
+      "document",
+      "Authorization status"
+    ],
+    [
+      "eligibility",
+      "IV medication"
+    ],
+    [
+      "eligibility",
+      "walks 40 ft"
+    ],
+    [
+      "eligibility",
+      "cognitive impairment"
+    ],
+    [
+      "eligibility",
+      "Active infection"
+    ]
+  ]
+}

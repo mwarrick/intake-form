@@ -1,0 +1,123 @@
+{
+  "received_at": "2026-10-10T14:20",
+  "documents": [
+    {
+      "doc_type": "demographics",
+      "file": "demographics.pdf",
+      "handwritten": false,
+      "expected": {
+        "patient_name": "ELLIS, TAMARA",
+        "dob": "1965-04-07",
+        "mrn": "SJ-0093381"
+      }
+    },
+    {
+      "doc_type": "authorization",
+      "file": "authorization.pdf",
+      "handwritten": false,
+      "expected": {
+        "authorization_number": "RC-2026-119207",
+        "approved_days": 14,
+        "status": "Approved"
+      }
+    },
+    {
+      "doc_type": "history_physical",
+      "file": "history_physical.pdf",
+      "handwritten": false,
+      "expected": {
+        "cognitive_impairment": false,
+        "oriented_x4": true
+      }
+    },
+    {
+      "doc_type": "vitals",
+      "file": "vitals.pdf",
+      "handwritten": false,
+      "expected": {
+        "taken_at": "2026-10-09T06:00"
+      }
+    },
+    {
+      "doc_type": "medications",
+      "file": "medications.pdf",
+      "handwritten": false,
+      "expected": {
+        "medications": 4
+      }
+    },
+    {
+      "doc_type": "therapy_notes",
+      "file": "therapy_notes.pdf",
+      "handwritten": false,
+      "expected": {
+        "ambulation_distance_ft": 150,
+        "transfers_independent": true
+      }
+    },
+    {
+      "doc_type": "culture",
+      "file": "culture.pdf",
+      "handwritten": false,
+      "expected": {
+        "result": "positive",
+        "mrsa": true
+      }
+    },
+    {
+      "doc_type": "vitals",
+      "file": "vitals-handwritten.pdf",
+      "handwritten": true,
+      "expected": {
+        "taken_at": "2026-10-09T06:00",
+        "oxygen": "RA"
+      }
+    },
+    {
+      "doc_type": "therapy_notes",
+      "file": "nursing-mobility-handwritten.pdf",
+      "handwritten": true,
+      "expected": {
+        "ambulation_distance_ft": 150,
+        "transfers_independent": true
+      }
+    },
+    {
+      "doc_type": "authorization",
+      "file": "authorization-request-handwritten.pdf",
+      "handwritten": true,
+      "expected": {
+        "authorization_number": "RC-2026-119207",
+        "approved_days": 14,
+        "status": "Approved"
+      }
+    },
+    {
+      "doc_type": "medications",
+      "file": "medications-corrected-handwritten.pdf",
+      "handwritten": true,
+      "expected": {
+        "medications": 5,
+        "dose:Insulin glargine": "22 units"
+      }
+    }
+  ],
+  "expected_flags": [
+    [
+      "conflict",
+      "active_infection"
+    ],
+    [
+      "conflict",
+      "los_authorized_days"
+    ],
+    [
+      "document",
+      "Vitals are"
+    ],
+    [
+      "eligibility",
+      "Active infection"
+    ]
+  ]
+}

@@ -1,5 +1,6 @@
 import "server-only";
 import { runPipeline, rereadThreshold, type PageImage } from "@/lib/extract";
+import { readPacketDocuments, refreshDocFlags } from "@/lib/extract-docs";
 import { allFields, emptyData } from "@/lib/form";
 import { summaryColumns } from "@/lib/referrals";
 import { BUCKET, T, db } from "@/lib/supabase";
@@ -50,6 +51,10 @@ export async function processScan(referralId: string): Promise<void> {
       })
       .eq("id", referralId);
     if (upErr) throw new Error(upErr.message);
+
+    // The form is ready for review now; supporting documents in the packet are read after it.
+    await readPacketDocuments(referralId, pages, result.pipeline.pageTypes ?? []);
+    await refreshDocFlags(referralId, data);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error(`processScan ${referralId} failed:`, e);

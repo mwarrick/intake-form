@@ -1,7 +1,9 @@
 import "server-only";
 import type { FormData } from "@/lib/form";
 import type { Extraction, Flag } from "@/lib/validate";
+import type { SupportingDoc } from "@/lib/documents";
 import type { PipelineResult } from "@/lib/extract";
+import { loadSupporting } from "@/lib/extract-docs";
 import { T, db, signedUrls } from "@/lib/supabase";
 
 export type Status = "draft" | "processing" | "needs_review" | "reviewed" | "approved" | "denied" | "failed";
@@ -17,6 +19,8 @@ export interface Referral {
   data: FormData;
   extraction: Extraction;
   flags: Flag[];
+  /** Supporting documents vs. the form and admission criteria (lib/crosscheck.ts). */
+  doc_flags: Flag[];
   pipeline: Partial<PipelineResult["pipeline"]>;
   error: string | null;
   reviewed_at: string | null;
@@ -37,7 +41,7 @@ export interface DocumentRow {
 export async function listReferrals(): Promise<Referral[]> {
   const { data, error } = await db()
     .from(T.referrals)
-    .select("id, created_at, updated_at, source, status, patient_name, referring_hospital, flags, error, reviewed_at")
+    .select("id, created_at, updated_at, source, status, patient_name, referring_hospital, flags, doc_flags, error, reviewed_at")
     // Referrers' unsubmitted portal uploads (drafts, or still being read) aren't the coordinator's yet.
     .neq("status", "draft")
     .or("source.eq.scan,status.neq.processing")
@@ -47,7 +51,9 @@ export async function listReferrals(): Promise<Referral[]> {
   return data as Referral[];
 }
 
-export async function getReferral(id: string): Promise<{ referral: Referral; documents: DocumentRow[] } | null> {
+export async function getReferral(
+  id: string,
+): Promise<{ referral: Referral; documents: DocumentRow[]; supporting: SupportingDoc[] } | null> {
   const { data: referral, error } = await db().from(T.referrals).select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!referral) return null;
@@ -62,7 +68,7 @@ export async function getReferral(id: string): Promise<{ referral: Referral; doc
 
   const urls = await signedUrls((docs ?? []).map((d) => d.storage_path));
   const documents = (docs ?? []).map((d) => ({ ...d, url: urls.get(d.storage_path) })) as DocumentRow[];
-  return { referral: referral as Referral, documents };
+  return { referral: referral as Referral, documents, supporting: await loadSupporting(id) };
 }
 
 export function summaryColumns(data: FormData) {

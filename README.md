@@ -7,7 +7,7 @@ There are two ways in, and both land in the same coordinator queue:
 1. **Paper/fax reader (`/upload`).** Upload a faxed referral packet (PDF or photo). The app picks out the referral form page, reads the handwriting with OpenAI models, and flags anything uncertain. A coordinator then checks the fields side by side with the scan.
 2. **Online referral portal (`/refer`).** Hospital SW/CM/RN staff fill out the same form on the web and attach supporting documents. A referrer who already filled out the paper form can **upload a scan of it to pre-fill the online form**. The same reader fills in the fields and highlights the ones that were hard to read, disputed or ambiguous. The referrer checks them against their original and confirms before submitting. Until then the referral is a `draft` and stays out of the queue. The coordinator sees the scan beside the fields, plus a list of fields the referrer corrected.
 
-The **queue** (`/referrals`) lists every referral. Each referral's page has the review screen and the Illumination Staff Only decision box. On a faxed referral, clicking a field zooms the scan to that spot on the form and outlines it; the − / + buttons zoom out and in, and the percentage button goes back to fitting the page width.
+The **queue** (`/referrals`) lists every referral. Each referral's page has the review screen and the Illumination Staff Only decision box. Whenever there's a scan (a faxed referral, or an online one pre-filled from the paper form), clicking any field zooms the scan to that spot on the form and outlines it; the − / + buttons zoom out and in, and the percentage button goes back to fitting the page width.
 
 ## How the reader works
 

@@ -45,7 +45,8 @@ export function ReviewClient({ referral, documents, supporting, threshold }: Pro
   const attachments = documents.filter((d) => d.kind === "attachment");
   // The field to show on the scan; `n` changes on every click so clicking the same field again re-centers it.
   const [locate, setLocate] = useState<{ field: string; n: number } | null>(null);
-  const canLocate = referral.source === "scan" && pages.length > 0;
+  // Any referral with a scan: faxed ones, and online ones the referrer pre-filled from their paper form.
+  const canLocate = pages.length > 0;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">

@@ -37,6 +37,8 @@ export const models = {
 };
 
 export const rereadThreshold = Number(process.env.EXTRACT_REREAD_THRESHOLD || 0.75);
+/** Patient identity fields get the second reading whatever the first reading's confidence: a wrong one is costly. */
+export const alwaysReread = ["patient_name", "mrn", "dob"];
 
 let client: OpenAI | undefined;
 function openai(): OpenAI {
@@ -265,8 +267,8 @@ export async function runPipeline(pages: PageImage[]): Promise<PipelineResult> {
     }),
   );
 
-  // Step 3: an independent second reading of the uncertain fields by a stronger model.
-  const unsure = fields.filter((f) => extraction[f.id].confidence < rereadThreshold);
+  // Step 3: an independent second reading of the uncertain fields, and the patient identity fields, by a stronger model.
+  const unsure = fields.filter((f) => extraction[f.id].confidence < rereadThreshold || alwaysReread.includes(f.id));
   let rereadModel: string | null = null;
   if (unsure.length && models.reread) {
     rereadModel = models.reread;
@@ -275,7 +277,8 @@ export async function runPipeline(pages: PageImage[]): Promise<PipelineResult> {
       model: models.reread,
       fields: unsure,
       pages: formPages,
-      extraText: "These fields were hard to read on a first pass. Look closely at each one; zoom into the area of the form where its label is printed.",
+      extraText:
+        "These fields need a careful second reading: some were hard to read on a first pass, and patient identity fields are always double-checked. Look closely at each one; zoom into the area of the form where its label is printed. Read every character of IDs and dates, and watch for writing that runs into printed text.",
       usage,
     });
     const reread = normalize(Object.fromEntries(unsure.map((f) => [f.id, second.fields[f.id]?.value])), unsure);

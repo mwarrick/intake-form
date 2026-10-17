@@ -3,9 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { startScan } from "@/app/actions";
+import { type ClientStep, ReadingProgressModal } from "@/components/ReadingProgress";
 import { renderPages, uploadSigned } from "@/lib/client-upload";
+import type { ReadProgress, ReadStatus } from "@/lib/progress";
 
-type Phase = { step: "idle" } | { step: "working"; message: string } | { step: "error"; message: string };
+type Phase =
+  | { step: "idle" }
+  | { step: "working"; since: number; pageCount: number; client?: ClientStep; progress: ReadProgress | null }
+  | { step: "error"; message: string };
 
 export function UploadForm() {
   const router = useRouter();
@@ -16,13 +21,14 @@ export function UploadForm() {
 
   async function submit() {
     if (!file) return;
+    const since = Date.now();
+    const working = (pageCount: number, client?: ClientStep, progress: ReadProgress | null = null) =>
+      setPhase({ step: "working", since, pageCount, client, progress });
     try {
-      setPhase({ step: "working", message: "Preparing pages…" });
-      const pages = await renderPages(file, (done, total) =>
-        setPhase({ step: "working", message: `Preparing page ${done} of ${total}…` }),
-      );
+      working(0, { step: "prepare", done: 0, total: 1 });
+      const pages = await renderPages(file, (done, total) => working(total, { step: "prepare", done, total }));
 
-      setPhase({ step: "working", message: "Uploading…" });
+      working(pages.length, { step: "upload", total: pages.length });
       const target = await startScan({ fileName: file.name, mimeType: file.type || "application/pdf" }, pages.length);
       if ("error" in target) throw new Error(target.error);
       await Promise.all([
@@ -30,9 +36,20 @@ export function UploadForm() {
         ...pages.map((p, i) => uploadSigned(target.pages[i], p, "image/jpeg")),
       ]);
 
-      setPhase({ step: "working", message: "Starting the reader…" });
+      working(pages.length);
       const res = await fetch(`/api/referrals/${target.id}/process`, { method: "POST" });
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Processing failed (${res.status})`);
+
+      // Follow the reader step by step; open the review screen once the form is read (or reading failed).
+      // The reader's time limit is 5 minutes; stop waiting a little after that.
+      while (Date.now() - since < 6 * 60 * 1000) {
+        await new Promise((r) => setTimeout(r, 1500));
+        const s: ReadStatus | null = await fetch(`/api/referrals/${target.id}/status`, { cache: "no-store" })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
+        if (s && s.status !== "processing") break;
+        if (s?.progress) working(pages.length, undefined, s.progress);
+      }
       router.push(`/referrals/${target.id}`);
     } catch (e) {
       setPhase({ step: "error", message: e instanceof Error ? e.message : String(e) });
@@ -76,9 +93,18 @@ export function UploadForm() {
         <button className="btn-primary shrink-0" disabled={!file || busy} onClick={submit}>
           {busy ? "Working…" : "Read form"}
         </button>
-        {phase.step === "working" && <span className="text-sm text-slate-600">{phase.message}</span>}
         {phase.step === "error" && <span className="text-sm text-red-700">{phase.message}</span>}
       </div>
+
+      {phase.step === "working" && file && (
+        <ReadingProgressModal
+          fileName={file.name}
+          client={phase.client}
+          progress={phase.progress}
+          pageCount={phase.pageCount}
+          since={phase.since}
+        />
+      )}
     </div>
   );
 }

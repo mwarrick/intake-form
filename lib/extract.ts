@@ -2,6 +2,7 @@ import "server-only";
 import OpenAI from "openai";
 import { type Field, type FormData, normalize, paperFields, schema } from "@/lib/form";
 import { DOC_TYPES } from "@/lib/documents";
+import type { ReadProgress } from "@/lib/progress";
 import type { Extraction } from "@/lib/validate";
 
 export interface PageImage {
@@ -24,6 +25,8 @@ export interface PipelineResult {
     referrerEdits?: string[];
     models: { classify: string | null; extract: string; reread: string | null };
     usage: { step: string; model: string; input_tokens: number; output_tokens: number; ms: number }[];
+    /** Only while the scan is being read (lib/process.ts); replaced by the rest when it's done. */
+    progress?: ReadProgress;
   };
 }
 
@@ -239,8 +242,11 @@ function sameValue(a: unknown, b: unknown): boolean {
   return norm(a) === norm(b);
 }
 
-export async function runPipeline(pages: PageImage[]): Promise<PipelineResult> {
+type ProgressStep = Omit<ReadProgress, "startedAt">;
+
+export async function runPipeline(pages: PageImage[], onProgress?: (p: ProgressStep) => Promise<void>): Promise<PipelineResult> {
   const usage: Usage = [];
+  const report = async (p: ProgressStep) => onProgress?.(p).catch((e) => console.warn("progress update failed:", e));
   const fields = paperFields;
 
   // Step 1: a one-page upload is the form page; otherwise let the cheap model find it.
@@ -250,6 +256,7 @@ export async function runPipeline(pages: PageImage[]): Promise<PipelineResult> {
   let classifyModel: string | null = null;
   if (pages.length > 1) {
     classifyModel = models.classify;
+    await report({ step: "classify", pages: pages.length });
     const sorted = await classifyPages(pages, usage);
     classifyNotes = sorted.notes;
     pageTypes = sorted.pages;
@@ -258,6 +265,7 @@ export async function runPipeline(pages: PageImage[]): Promise<PipelineResult> {
   }
 
   // Step 2: read every field.
+  await report({ step: "extract", pages: pages.length, formPages: formPages.map((p) => p.pageNumber) });
   const first = await readFields({ step: "extract", model: models.extract, fields, pages: formPages, usage });
   const data = normalize(Object.fromEntries(fields.map((f) => [f.id, first.fields[f.id]?.value])), fields);
   const extraction: Extraction = Object.fromEntries(
@@ -272,6 +280,7 @@ export async function runPipeline(pages: PageImage[]): Promise<PipelineResult> {
   let rereadModel: string | null = null;
   if (unsure.length && models.reread) {
     rereadModel = models.reread;
+    await report({ step: "reread", pages: pages.length, formPages: formPages.map((p) => p.pageNumber), fields: unsure.length });
     const second = await readFields({
       step: "reread",
       model: models.reread,

@@ -16,7 +16,7 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
   if (!found) notFound();
   const { referral, documents, supporting } = found;
   // A referral with a decision recorded is kept unless an admin deletes it.
-  const canDelete = user.role === "admin" || !["approved", "denied"].includes(referral.status);
+  const canDelete = user.role === "admin" || !["approved", "denied", "withdrawn"].includes(referral.status);
 
   return (
     <div className="space-y-4">

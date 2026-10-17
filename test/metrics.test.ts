@@ -98,6 +98,33 @@ describe("stays", () => {
   });
 });
 
+describe("withdrawals", () => {
+  const at = (hours: number) => new Date(Date.parse("2026-10-01T17:00:00Z") + hours * 3_600_000).toISOString();
+  const referrals = [
+    ref({ minutes: 60, data: { approved: "Yes" } }),
+    ref({ status: "denied", minutes: 90, data: { approved: "No" } }),
+    // Left AMA while IHH was still reviewing.
+    ref({ status: "withdrawn", withdrawn_at: at(1), data: { withdrawn: "Yes", withdrawal_reason: "Patient left the hospital against medical advice (AMA)" } }),
+    // Approved in 3 hours, then placed elsewhere and never arrived.
+    ref({ status: "withdrawn", minutes: 180, withdrawn_at: at(5), data: { approved: "Yes", withdrawn: "Yes", withdrawal_reason: "Placed with another provider" } }),
+  ];
+  const m = computeMetrics(referrals, [], new Map(), range, TODAY);
+
+  it("counts withdrawals apart from approvals and denials", () => {
+    expect(m.totals).toMatchObject({ received: 4, approved: 1, denied: 1, approvalRate: 0.5, untimed: 0 });
+    expect(m.weekly.reduce((a, w) => a + w.withdrawn, 0)).toBe(2);
+  });
+
+  it("separates those lost before a decision from approved patients who never arrived", () => {
+    expect(m.withdrawals).toMatchObject({ count: 2, rate: 0.5, beforeDecision: 1, afterApproval: 1, leftAma: 1, medianHours: 3 });
+    expect(m.withdrawals.reasons.map((r) => r.count)).toEqual([1, 1]);
+  });
+
+  it("keeps a decision that came before the withdrawal in decision time", () => {
+    expect(m.totals.medianMinutes).toBe(90);
+  });
+});
+
 describe("localDate", () => {
   it("uses Pacific time", () => {
     expect(localDate("2026-10-13T02:00:00Z")).toBe("2026-10-12");

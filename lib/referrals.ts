@@ -9,7 +9,7 @@ import { loadSupporting } from "@/lib/extract-docs";
 import { type MetricReferral, addDays, localDate, pacificDayStart } from "@/lib/metrics";
 import { T, db, signedUrls } from "@/lib/supabase";
 
-export type Status = "draft" | "processing" | "needs_review" | "reviewed" | "approved" | "denied" | "failed";
+export type Status = "draft" | "processing" | "needs_review" | "reviewed" | "approved" | "denied" | "withdrawn" | "failed";
 
 export interface Referral {
   id: string;
@@ -31,6 +31,8 @@ export interface Referral {
   reviewed_at: string | null;
   /** When the approve/deny decision was recorded; null for undecided referrals and decisions made before it was kept. */
   decided_at: string | null;
+  /** When the referral was marked withdrawn (patient left AMA, went elsewhere…); null otherwise. */
+  withdrawn_at: string | null;
 }
 
 export interface DocumentRow {
@@ -154,7 +156,7 @@ export async function loadMetricsData(): Promise<{
   const [refs, asmts, meds] = await Promise.all([
     db()
       .from(T.referrals)
-      .select("id, created_at, status, source, referring_hospital, patient_name, data, doc_flags, decided_at")
+      .select("id, created_at, status, source, referring_hospital, patient_name, data, doc_flags, decided_at, withdrawn_at")
       .not("status", "in", "(draft,processing)")
       .order("created_at", { ascending: false })
       .limit(5000),

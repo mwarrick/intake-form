@@ -3,13 +3,14 @@
 import { useState } from "react";
 
 /**
- * Small hand-built SVG charts for the program dashboard (no chart library). Colors are the validated categorical
- * slots 1–3 (blue, orange, aqua); aqua is below 3:1 contrast, so every chart also has a table view.
+ * Small hand-built SVG charts for the program dashboard (no chart library). Colors are categorical slots 1–4
+ * (blue, orange, violet, aqua); aqua is below 3:1 contrast, so every chart also has a table view.
  */
 const C = {
   s1: "#2a78d6",
   s2: "#eb6834",
   s3: "#1baf7a",
+  s4: "#8a5cd6",
   grid: "#e2e8f0",
   axis: "#64748b",
   ref: "#94a3b8",
@@ -20,6 +21,7 @@ export interface Week {
   week: string;
   approved: number;
   denied: number;
+  withdrawn: number;
   pending: number;
   medianMinutes: number | null;
   within2h: number | null;
@@ -28,6 +30,7 @@ export interface Week {
 const SERIES = [
   { key: "approved", label: "Approved", color: C.s1 },
   { key: "denied", label: "Denied", color: C.s2 },
+  { key: "withdrawn", label: "Withdrawn", color: C.s4 },
   { key: "pending", label: "Awaiting decision", color: C.s3 },
 ] as const;
 
@@ -55,7 +58,7 @@ function topRounded(x: number, y: number, w: number, h: number, r = 4) {
 /** Referrals per week, stacked by outcome. */
 export function WeeklyStack({ weeks }: { weeks: Week[] }) {
   const [hover, setHover] = useState<number | null>(null);
-  const max = niceMax(Math.max(1, ...weeks.map((w) => w.approved + w.denied + w.pending)));
+  const max = niceMax(Math.max(1, ...weeks.map((w) => w.approved + w.denied + w.withdrawn + w.pending)));
   const plotW = W - PAD.l - PAD.r;
   const plotH = H - PAD.t - PAD.b;
   const band = plotW / Math.max(1, weeks.length);
@@ -115,8 +118,8 @@ export function WeeklyStack({ weeks }: { weeks: Week[] }) {
         )}
       </div>
       <TableView
-        head={["Week of", "Approved", "Denied", "Awaiting", "Total"]}
-        rows={weeks.map((w) => [short(w.week), w.approved, w.denied, w.pending, w.approved + w.denied + w.pending])}
+        head={["Week of", "Approved", "Denied", "Withdrawn", "Awaiting", "Total"]}
+        rows={weeks.map((w) => [short(w.week), w.approved, w.denied, w.withdrawn, w.pending, w.approved + w.denied + w.withdrawn + w.pending])}
       />
     </figure>
   );

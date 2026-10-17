@@ -7,6 +7,7 @@ const STYLES: Record<Status, [string, string]> = {
   reviewed: ["Reviewed", "bg-slate-200 text-slate-700"],
   approved: ["Approved", "bg-emerald-100 text-emerald-800"],
   denied: ["Denied", "bg-red-100 text-red-800"],
+  withdrawn: ["Withdrawn", "bg-violet-100 text-violet-800"],
   failed: ["Read failed", "bg-red-100 text-red-800"],
 };
 

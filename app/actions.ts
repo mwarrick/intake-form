@@ -215,7 +215,7 @@ export async function addDocuments(referralId: string, attachments: AttachmentMe
 
 /**
  * Delete a referral and every file uploaded for it, e.g. the wrong file or an unreadable scan, so it can be uploaded again.
- * Approved or denied referrals are records of a decision; only an admin can delete those.
+ * Approved, denied or withdrawn referrals are records of an outcome; only an admin can delete those.
  */
 export async function deleteReferral(id: string) {
   return reported(async () => {
@@ -224,8 +224,8 @@ export async function deleteReferral(id: string) {
     const { data: current, error: curErr } = await supabase.from(T.referrals).select("status").eq("id", id).maybeSingle();
     if (curErr) throw new Error(curErr.message);
     if (!current) return { ok: true as const };
-    if (["approved", "denied"].includes(current.status) && user.role !== "admin") {
-      throw new Error("This referral has a decision recorded; only an admin can delete it.");
+    if (RECORDED.includes(current.status) && user.role !== "admin") {
+      throw new Error("This referral has a decision or withdrawal recorded; only an admin can delete it.");
     }
     // Rows first (documents and supporting documents go with it, on delete cascade), then the files.
     const { error } = await supabase.from(T.referrals).delete().eq("id", id);
@@ -293,7 +293,7 @@ async function updateReview(id: string, raw: Record<string, unknown>, confirm: b
   const extraction = checked || current.source === "portal" ? undefined : await loadExtraction(id);
   const flags = validate(data, { extraction, confidenceThreshold: rereadThreshold });
 
-  const decided = current.status === "approved" || current.status === "denied";
+  const decided = RECORDED.includes(current.status);
   const { error } = await supabase
     .from(T.referrals)
     .update({
@@ -311,14 +311,25 @@ async function updateReview(id: string, raw: Record<string, unknown>, confirm: b
   return { ok: true as const };
 }
 
-/** Staff-only box: record the approval decision. */
+/** Statuses that record an outcome: confirming fields leaves them alone, and only an admin can delete them. */
+const RECORDED = ["approved", "denied", "withdrawn"];
+
+function outcome(approved: unknown): "approved" | "denied" | null {
+  return approved === "Yes" ? "approved" : approved === "No" ? "denied" : null;
+}
+
+/** Staff-only box: record the approval decision, or that the referral was withdrawn. */
 export async function saveDecision(id: string, raw: Record<string, unknown>) {
   return reported(async () => updateDecision(id, raw, fullName(await staffOrThrow())));
 }
 
 async function updateDecision(id: string, raw: Record<string, unknown>, reviewer: string) {
   const supabase = db();
-  const { data: current, error: curErr } = await supabase.from(T.referrals).select("data, status, decided_at").eq("id", id).single();
+  const { data: current, error: curErr } = await supabase
+    .from(T.referrals)
+    .select("data, status, decided_at, withdrawn_at, reviewed_at")
+    .eq("id", id)
+    .single();
   if (curErr) throw new Error(curErr.message);
 
   const staff = normalize(raw, staffFields);
@@ -328,14 +339,18 @@ async function updateDecision(id: string, raw: Record<string, unknown>, reviewer
   const staffFlags = validate(data, { fields: staffFields }).filter((f) => f.kind === "missing" || f.kind === "invalid");
   if (staffFlags.length) return { errors: staffFlags.map((f) => f.message) };
 
-  const status = staff.approved === "Yes" ? "approved" : staff.approved === "No" ? "denied" : current.status;
+  const decision = outcome(data.approved);
+  // Withdrawn wins over the decision: an approved patient who left AMA never arrives. Un-withdrawing restores it.
+  const withdrawn = data.withdrawn === "Yes";
+  const undecided = current.reviewed_at ? "reviewed" : "needs_review";
+  const status = withdrawn ? "withdrawn" : (decision ?? (current.status === "withdrawn" ? undecided : current.status));
   // Time the decision when it's first made or changed, so the dashboard can measure the two-hour promise.
   const now = new Date().toISOString();
-  const decided = status === "approved" || status === "denied";
-  const decided_at = decided ? (status === current.status && current.decided_at ? current.decided_at : now) : null;
+  const decided_at = decision ? (decision === outcome(current.data.approved) && current.decided_at ? current.decided_at : now) : null;
+  const withdrawn_at = withdrawn ? (current.withdrawn_at ?? now) : null;
   const { error } = await supabase
     .from(T.referrals)
-    .update({ data, status, decided_at, updated_at: now })
+    .update({ data, status, decided_at, withdrawn_at, updated_at: now })
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath(`/referrals/${id}`);

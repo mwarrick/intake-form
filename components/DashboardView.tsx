@@ -16,6 +16,7 @@ export function DashboardView({ m, range, toFix }: { m: Metrics; range: string; 
   const t = m.totals;
   const hs = m.housing;
   const st = m.stays;
+  const wd = m.withdrawals;
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -69,6 +70,22 @@ export function DashboardView({ m, range, toFix }: { m: Metrics; range: string; 
           <DecisionTrend weeks={m.weekly} />
         </Card>
       </div>
+
+      <Card title="Withdrawn referrals" note="Patients IHH didn't get to serve: left the hospital AMA, went elsewhere, or the hospital took the referral back">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Mini label="Withdrawn" value={pct(wd.rate)} note={`${wd.count} of ${t.received} referrals`} />
+            <Mini label="Before a decision" value={String(wd.beforeDecision)} note="gone before IHH answered" />
+            <Mini label="Left AMA" value={String(wd.leftAma)} note="against medical advice" />
+            <Mini label="After approval" value={String(wd.afterApproval)} note="approved, never arrived" />
+            <Mini label="Median time to withdrawal" value={wd.medianHours === null ? "—" : `${wd.medianHours} h`} note="from referral received" />
+          </div>
+          <div>
+            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">Why</p>
+            <BarList items={wd.reasons} total={wd.count} empty="No withdrawals in this range." />
+          </div>
+        </div>
+      </Card>
 
       <Card title="Referral sources" note="Where packets come in incomplete or contradicting the form">
         <div className="overflow-x-auto">

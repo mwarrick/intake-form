@@ -2,6 +2,8 @@
 -- Everything is made up. Choices come from md5 of the row number, so every run produces the same rows.
 -- Re-running replaces only these rows (ids starting b2000000-); their assessments go with them.
 -- Decision times improve over the period, and Inland Valley sends weaker packets: stories for the dashboard to show.
+-- About 16% are withdrawn (IHH sees 10–20%, mostly patients leaving AMA), far more often when the answer took over
+-- two hours, so withdrawals fall as decisions speed up. Most go before a decision; about a third after approval.
 -- Approved patients are admitted the day the referral arrives; exits, extensions and Total LOS are filled as of 2026-10-17.
 begin;
 
@@ -28,17 +30,23 @@ with base as (
     pg_temp.r(n, 'acuity') as ra
   from generate_series(1, 120) n
 ),
+-- Median decision time drifts down over the 90 days: the exponent grows with the day.
+waited as (
+  select b.*, round(18 + power(b.rm, 3 + b.day / 30.0) * 300)::int as minutes
+  from base b
+),
 decided as (
-  select b.*,
+  select w.*,
     case
-      when b.day >= 88 and b.ro < 0.5 then 'needs_review'
-      when b.ro < (case when b.hospital = 'Inland Valley Medical Center' then 0.50 else 0.72 end) then 'approved'
+      when w.day >= 88 and w.ro < 0.5 then 'needs_review'
+      when pg_temp.r(w.n, 'wd') < (case when w.minutes > 120 then 0.40 else 0.07 end) then 'withdrawn'
+      when w.ro < (case when w.hospital = 'Inland Valley Medical Center' then 0.50 else 0.72 end) then 'approved'
       else 'denied'
     end as status,
-    -- Median decision time drifts down over the 90 days: the exponent grows with the day.
-    round(18 + power(b.rm, 3 + b.day / 30.0) * 300)::int as minutes,
-    (array['Robin Hyrons', 'Hobey Letessier', 'Bordy Coultar'])[1 + floor(pg_temp.r(b.n, 'rev') * 3)::int] as reviewer
-  from base b
+    -- A withdrawn referral that was approved first (and then never arrived).
+    pg_temp.r(w.n, 'wdappr') < 0.3 as approved_first,
+    (array['Robin Hyrons', 'Hobey Letessier', 'Bordy Coultar'])[1 + floor(pg_temp.r(w.n, 'rev') * 3)::int] as reviewer
+  from waited w
 ),
 people as (
   select d.*,
@@ -59,15 +67,34 @@ people as (
     pg_temp.pick(pg_temp.r(d.n, 'deny'),
       array['Active infection not cleared', 'Not ambulatory / can''t transfer', 'Missing documents or authorization', 'Cognitive impairment', 'Can''t self-administer meds / IV meds', 'Not medically stable', 'Behavioral or safety concern', 'No bed available', 'Patient declined', 'Registered sex offender'],
       array[0.22, 0.40, 0.56, 0.66, 0.74, 0.82, 0.89, 0.95, 0.98, 1.0]) as deny,
-    case when d.status in ('approved', 'denied') then d.created + d.minutes * interval '1 minute' end as decided_at
+    case when d.status in ('approved', 'denied') or (d.status = 'withdrawn' and d.approved_first) then d.created + d.minutes * interval '1 minute' end as decided_at,
+    d.status = 'approved' or (d.status = 'withdrawn' and d.approved_first) as was_approved
   from decided d
+),
+-- Withdrawn while waiting (part way through the wait) or, once approved, 1 to 20 hours after the decision.
+withdrew as (
+  select p.*,
+    case when p.status = 'withdrawn' then
+      case when p.approved_first then p.decided_at + (1 + pg_temp.r(p.n, 'wdhrs') * 19) * interval '1 hour'
+      else p.created + p.minutes * (0.3 + pg_temp.r(p.n, 'wdhrs') * 0.6) * interval '1 minute' end
+    end as withdrawn_at,
+    case when p.approved_first then
+      pg_temp.pick(pg_temp.r(p.n, 'wdwhy'),
+        array['Placed with another provider', 'Patient left the hospital against medical advice (AMA)', 'Patient declined recuperative care', 'Still needs hospital care'],
+        array[0.40, 0.70, 0.90, 1.0])
+    else
+      pg_temp.pick(pg_temp.r(p.n, 'wdwhy'),
+        array['Patient left the hospital against medical advice (AMA)', 'Placed with another provider', 'Discharged elsewhere by the hospital', 'Still needs hospital care', 'Patient declined recuperative care'],
+        array[0.55, 0.80, 0.90, 0.96, 1.0])
+    end as withdrawal_reason
+  from people p
 ),
 -- Admitted the day the referral came in, from an hour after the decision until 8 PM, on the quarter hour.
 admitted as (
   select p.*,
     (p.created at time zone 'America/Los_Angeles')::date as admission,
     ceil((extract(epoch from (p.decided_at at time zone 'America/Los_Angeles')::time) / 60 + 60) / 15)::int * 15 as earliest
-  from people p
+  from withdrew p
 ),
 -- Stay as of 2026-10-17: about 20% get a 7 or 14 day extension, approved a few days before the authorized end.
 stayed as (
@@ -115,9 +142,9 @@ flagged as (
     ], null)) as doc_flags
   from exited p
 )
-insert into "ILLINTAKE_referrals" (id, created_at, updated_at, source, status, patient_name, referring_hospital, data, flags, doc_flags, reviewed_at, decided_at)
+insert into "ILLINTAKE_referrals" (id, created_at, updated_at, source, status, patient_name, referring_hospital, data, flags, doc_flags, reviewed_at, decided_at, withdrawn_at)
 select
-  f.id, f.created, coalesce(f.decided_at, f.created),
+  f.id, f.created, coalesce(f.withdrawn_at, f.decided_at, f.created),
   case when pg_temp.r(f.n, 'src') < 0.6 then 'scan' else 'portal' end,
   f.status, f.name, f.hospital,
   jsonb_build_object(
@@ -144,9 +171,9 @@ select
     'los_authorized_days', f.los, 'meds_30_day_supply', 'Yes',
     'date_received', (f.created at time zone 'America/Los_Angeles')::date,
     'reviewed_by', case when f.status <> 'needs_review' then f.reviewer end,
-    'approved', case f.status when 'approved' then 'Yes' when 'denied' then 'No' end,
-    'approval_date', case when f.status = 'approved' then (f.decided_at at time zone 'America/Los_Angeles')::date end,
-    'authorization_number', case when f.status = 'approved' then 'RC-2026-' || (110000 + f.n) end,
+    'approved', case when f.was_approved then 'Yes' when f.status = 'denied' then 'No' end,
+    'approval_date', case when f.was_approved then (f.decided_at at time zone 'America/Los_Angeles')::date end,
+    'authorization_number', case when f.was_approved then 'RC-2026-' || (110000 + f.n) end,
     'denial_category', case when f.status = 'denied' then f.deny end,
     'denial_reason', case when f.status = 'denied' then f.deny || ' (mock history)' end,
     'admission_date', case when f.status = 'approved' then f.admission end,
@@ -156,8 +183,13 @@ select
     'extension_approval_date', case when f.status = 'approved' and f.extension = 'Yes' then f.extension_date end,
     'extension_approved_by', case when f.status = 'approved' and f.extension = 'Yes' then (array['Robin Hyrons', 'Hobey Letessier', 'Bordy Coultar'])[1 + floor(pg_temp.r(f.n, 'extby') * 3)::int] end,
     'total_los', case when f.status = 'approved' then f.exit_date - f.admission end
-  ),
-  '[]'::jsonb, f.doc_flags, f.decided_at, f.decided_at
+  ) || case when f.status = 'withdrawn' then jsonb_build_object(
+    'withdrawn', 'Yes',
+    'withdrawal_reason', f.withdrawal_reason,
+    'withdrawal_date', (f.withdrawn_at at time zone 'America/Los_Angeles')::date,
+    'withdrawal_note', 'Hospital case manager called (mock history)'
+  ) else '{}'::jsonb end,
+  '[]'::jsonb, f.doc_flags, f.decided_at, f.decided_at, f.withdrawn_at
 from flagged f;
 
 -- A demographic page (hospital face sheet) for every history referral; the flags above never list it as missing.

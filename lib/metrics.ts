@@ -21,6 +21,7 @@ export interface MetricReferral {
   data: FormData;
   doc_flags: Flag[];
   decided_at: string | null;
+  withdrawn_at?: string | null;
 }
 
 export interface Metrics {
@@ -37,9 +38,23 @@ export interface Metrics {
     untimed: number;
     scans: number;
   };
-  weekly: { week: string; approved: number; denied: number; pending: number; medianMinutes: number | null; within2h: number | null }[];
+  weekly: { week: string; approved: number; denied: number; withdrawn: number; pending: number; medianMinutes: number | null; within2h: number | null }[];
   hospitals: { hospital: string; referrals: number; approvalRate: number | null; missingDocs: number; conflicts: number; medianMinutes: number | null }[];
   denials: Count[];
+  /** Referrals withdrawn (patient left AMA, went elsewhere…): IHH's experience is 10–20%, often while waiting. */
+  withdrawals: {
+    count: number;
+    /** Share of referrals received. */
+    rate: number | null;
+    /** Withdrawn before IHH answered: the patients a faster decision could have reached. */
+    beforeDecision: number;
+    /** Approved, then never arrived. */
+    afterApproval: number;
+    leftAma: number;
+    /** Median hours from referral to withdrawal, where the time was kept. */
+    medianHours: number | null;
+    reasons: Count[];
+  };
   criteria: Count[];
   acuity: { label: string; count: number; of: number }[];
   capacity: { inCare: number; arrivingNext7: number; endingNext7: number; avgDaysAuthorized: number | null };
@@ -98,18 +113,21 @@ export function computeMetrics(
   const decided = inRange.filter((r) => DECIDED.has(r.status));
   const approved = inRange.filter((r) => r.status === "approved");
   const denied = inRange.filter((r) => r.status === "denied");
-  const timed = decided.filter((r) => r.decided_at).map((r) => minutes(r));
+  const withdrawn = inRange.filter((r) => r.status === "withdrawn");
+  // A decision later followed by a withdrawal still counts toward decision time.
+  const timed = [...decided, ...withdrawn].filter((r) => r.decided_at).map((r) => minutes(r));
 
   // Weekly flow and decision time, weeks starting Monday.
   const weeks = new Map<string, MetricReferral[]>();
   for (let w = weekStart(range.from); w <= range.to; w = addDays(w, 7)) weeks.set(w, []);
   for (const r of inRange) weeks.get(weekStart(localDate(r.created_at)))?.push(r);
   const weekly = [...weeks].map(([week, rs]) => {
-    const t = rs.filter((r) => DECIDED.has(r.status) && r.decided_at).map(minutes);
+    const t = rs.filter((r) => (DECIDED.has(r.status) || r.status === "withdrawn") && r.decided_at).map(minutes);
     return {
       week,
       approved: rs.filter((r) => r.status === "approved").length,
       denied: rs.filter((r) => r.status === "denied").length,
+      withdrawn: rs.filter((r) => r.status === "withdrawn").length,
       pending: rs.filter((r) => PENDING.has(r.status)).length,
       medianMinutes: median(t),
       within2h: t.length ? t.filter((m) => m <= 120).length / t.length : null,
@@ -132,6 +150,15 @@ export function computeMetrics(
     .sort((a, b) => b.referrals - a.referrals);
 
   const denials = counts(denied.map((r) => (typeof r.data.denial_category === "string" ? r.data.denial_category : "Not categorized")));
+  const withdrawals = {
+    count: withdrawn.length,
+    rate: inRange.length ? withdrawn.length / inRange.length : null,
+    beforeDecision: withdrawn.filter((r) => !r.decided_at || (r.withdrawn_at && r.withdrawn_at < r.decided_at)).length,
+    afterApproval: withdrawn.filter((r) => r.data.approved === "Yes").length,
+    leftAma: withdrawn.filter((r) => /AMA/.test(str(r.data.withdrawal_reason) ?? "")).length,
+    medianHours: median(withdrawn.filter((r) => r.withdrawn_at).map((r) => (Date.parse(r.withdrawn_at!) - Date.parse(r.created_at)) / 3_600_000)),
+    reasons: counts(withdrawn.map((r) => str(r.data.withdrawal_reason) ?? "No reason given")),
+  };
   const criteria = counts(
     inRange.flatMap((r) => {
       const hit = new Set<string>();
@@ -224,12 +251,13 @@ export function computeMetrics(
       approvalRate: decided.length ? approved.length / decided.length : null,
       within2h: timed.length ? timed.filter((m) => m <= 120).length / timed.length : null,
       medianMinutes: median(timed),
-      untimed: decided.length - timed.length,
+      untimed: decided.filter((r) => !r.decided_at).length,
       scans: inRange.filter((r) => r.source === "scan").length,
     },
     weekly,
     hospitals,
     denials,
+    withdrawals,
     criteria,
     acuity,
     capacity,

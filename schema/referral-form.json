@@ -446,6 +446,55 @@
           }
         },
         {
+          "id": "withdrawn",
+          "label": "Referral withdrawn",
+          "type": "yes_no",
+          "notOnPaper": true,
+          "note": "The patient won't be coming: left the hospital against medical advice, went elsewhere, or the hospital took the referral back. Before or after a decision."
+        },
+        {
+          "id": "withdrawal_reason",
+          "label": "Why it was withdrawn",
+          "type": "single_choice",
+          "options": [
+            "Patient left the hospital against medical advice (AMA)",
+            "Placed with another provider",
+            "Discharged elsewhere by the hospital",
+            "Patient declined recuperative care",
+            "Still needs hospital care",
+            "Patient died",
+            "Other"
+          ],
+          "showWhen": {
+            "withdrawn": "Yes"
+          },
+          "requiredWhen": {
+            "withdrawn": "Yes"
+          },
+          "notOnPaper": true
+        },
+        {
+          "id": "withdrawal_date",
+          "label": "Date withdrawn",
+          "type": "date",
+          "showWhen": {
+            "withdrawn": "Yes"
+          },
+          "requiredWhen": {
+            "withdrawn": "Yes"
+          },
+          "notOnPaper": true
+        },
+        {
+          "id": "withdrawal_note",
+          "label": "Withdrawal note",
+          "type": "longtext",
+          "showWhen": {
+            "withdrawn": "Yes"
+          },
+          "notOnPaper": true
+        },
+        {
           "id": "admission_date",
           "label": "Admission Date",
           "type": "date"

@@ -6,6 +6,8 @@ export const T = {
   referrals: "ILLINTAKE_referrals",
   documents: "ILLINTAKE_documents",
   supporting: "ILLINTAKE_supporting_docs",
+  users: "ILLINTAKE_users",
+  sessions: "ILLINTAKE_sessions",
 } as const;
 
 let admin: SupabaseClient | undefined;

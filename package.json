@@ -10,7 +10,8 @@
     "test": "vitest run",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "eval": "EVAL=1 vitest run test/eval.test.ts",
-    "samples": "python3 scripts/make_samples.py"
+    "samples": "python3 scripts/make_samples.py",
+    "mock": "MOCK_SQL=1 vitest run test/mock-data.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

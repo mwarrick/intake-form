@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { type ImportResult, importUsers } from "@/app/admin-actions";
+import { ROLE_LABELS } from "@/lib/roles";
 import { parseStaffList, staffEmail } from "@/lib/user-import";
 
 /** Paste a staff list, preview who will be added, then import and hand out the temporary passwords. */
@@ -20,8 +21,8 @@ export function ImportUsers({ onDone }: { onDone: () => void }) {
         <p className="text-sm text-slate-600">
           Choose a CSV file or paste rows from a spreadsheet with the columns <code>firstname, lastname, email</code> (and
           optionally <code>role</code>). A header row is fine. Leave email blank to use the full name run together, e.g.{" "}
-          <code>{staffEmail("Dana", "Whitfield")}</code>. Put <code>admin</code> in the role column to make someone an admin;
-          everyone else is a user.
+          <code>{staffEmail("Dana", "Whitfield")}</code>. Put <code>admin</code> or <code>clinical</code> (or
+          <code>nurse</code>, <code>LVN</code>, <code>RN</code>) in the role column; everyone else is a user.
         </p>
       </div>
       <label className="block text-sm">
@@ -68,7 +69,7 @@ export function ImportUsers({ onDone }: { onDone: () => void }) {
                         {r.email}
                         {r.generatedEmail && <span className="ml-1.5 text-xs text-slate-500">(from name)</span>}
                       </td>
-                      <td className="px-3 py-1.5">{r.role === "admin" ? "Admin" : "User"}</td>
+                      <td className="px-3 py-1.5">{ROLE_LABELS[r.role]}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -141,7 +142,7 @@ function ImportDone({ result, onDone }: { result: ImportResult; onDone: () => vo
                       {u.first_name} {u.last_name}
                     </td>
                     <td className="px-3 py-1.5">{u.email}</td>
-                    <td className="px-3 py-1.5">{u.role === "admin" ? "Admin" : "User"}</td>
+                    <td className="px-3 py-1.5">{ROLE_LABELS[u.role]}</td>
                   </tr>
                 ))}
               </tbody>

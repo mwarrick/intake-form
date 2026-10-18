@@ -39,8 +39,8 @@ async function reported<T>(fn: () => Promise<T>): Promise<T | { error: string }>
  */
 export async function startScan(original: FileMeta, pageCount: number, purpose: "scan" | "prefill" = "scan") {
   return reported(async () => {
-    // Faxes go straight to the coordinator queue, so only staff can upload them. Pre-fill is the public form's.
-    if (purpose === "scan") await staffOrThrow();
+    // Both the coordinator's faxes and the online form's pre-fill scans are for signed-in staff only.
+    await staffOrThrow();
     return createScan(original, pageCount, purpose);
   });
 }
@@ -99,6 +99,7 @@ async function loadDraft(id: string) {
 /** The referrer's form polls this while their uploaded paper form is read. */
 export async function getPrefill(id: string) {
   return reported(async (): Promise<PrefillResult> => {
+    await staffOrThrow();
     const d = await loadDraft(id);
     if (d.status === "processing") return { status: "processing" };
     return {
@@ -119,7 +120,10 @@ export interface AttachmentMeta extends FileMeta {
  * With draftId, the referral pre-filled from the referrer's uploaded paper form is submitted.
  */
 export async function submitPortalReferral(raw: Record<string, unknown>, attachments: AttachmentMeta[], draftId?: string) {
-  return reported(() => createPortalReferral(raw, attachments, draftId));
+  return reported(async () => {
+    await staffOrThrow();
+    return createPortalReferral(raw, attachments, draftId);
+  });
 }
 
 async function createPortalReferral(

@@ -9,14 +9,11 @@ export const maxDuration = 300;
 /** Read a referral's uploaded supporting documents. Called once the browser has finished uploading them. */
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const { data, error } = await db().from(T.referrals).select("id, source").eq("id", id).maybeSingle();
+  // Only signed-in staff submit referrals now, so reading their documents needs a signed-in user too.
+  if (!(await apiUser())) return NextResponse.json({ error: "Please sign in" }, { status: 401 });
+  const { data, error } = await db().from(T.referrals).select("id").eq("id", id).maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  // The public online form calls this right after submitting; anything else needs a signed-in user.
-  // Reading is idempotent: only attachments not yet read are sent to the model.
-  if (data.source !== "portal" && !(await apiUser())) {
-    return NextResponse.json({ error: "Please sign in" }, { status: 401 });
-  }
 
   after(async () => {
     try {

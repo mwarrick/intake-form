@@ -1,7 +1,9 @@
+import { requireUser } from "@/lib/auth";
 import { rereadThreshold } from "@/lib/extract";
 import { PortalForm } from "./PortalForm";
 
-export default function ReferPage() {
+export default async function ReferPage() {
+  await requireUser("/refer");
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <div>
